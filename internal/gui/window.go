@@ -3,9 +3,11 @@ package gui
 // https://github.com/fyne-io/fyne
 
 import (
-	"fmt"
+	"bytes"
 	"math/rand"
 	"time"
+
+	"github.com/mikeflynn/hardhat-honeybear/internal/gui/bears"
 
 	fyne "fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -60,8 +62,13 @@ func StartGUI() {
 }
 
 func getBear(label string) *canvas.Image {
-	bear := canvas.NewImageFromFile(fmt.Sprintf("./internal/gui/bears/%s.jpg", label))
-	//bear.FillMode = canvas.ImageFillStretch
+	bearData, err := bears.Images.ReadFile(label + ".jpg")
+	if err != nil {
+		return nil
+	}
+
+	bear := canvas.NewImageFromReader(bytes.NewReader(bearData), label)
+	bear.FillMode = canvas.ImageFillStretch
 	bear.SetMinSize(fyne.NewSize(1280, 720))
 	bear.Move(fyne.NewPos(0, 0))
 
