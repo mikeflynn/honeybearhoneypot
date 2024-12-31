@@ -1,0 +1,15 @@
+Website = "https://hydrox.fun"
+
+[Details]
+Icon = "Icon.png"
+Name = "Honey Bear Honey Pot"
+ID = "com.github.com/mikeflynn/hardhat-honeybear"
+Version = "1.0.0"
+Build = 1
+
+[LinuxAndBSD]
+GenericName = "Honey Bear Honey Pot"
+Categories = ["Network", "Infosec"]
+Comment = "Start a honey pot server with a fun graphical interface and a bear theme."
+Keywords = ["honeypot", "ssh"]
+ExecParams = "-x 42"
