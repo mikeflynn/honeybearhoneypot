@@ -12,50 +12,32 @@ import (
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
-	"fyne.io/fyne/v2/theme"
-	"fyne.io/fyne/v2/widget"
 )
 
 var currentBear string
+var w fyne.Window
 
 func StartGUI() {
 	a := app.New()
-	w := a.NewWindow("Honey Bear Honey Pot")
+	w = a.NewWindow("Honey Bear Honey Pot")
 
 	currentBear = "default"
-	main := container.NewVBox(
+	background := container.NewStack(
 		getBear(currentBear),
 	)
-	main.Resize(fyne.NewSize(1280, 720))
-
-	var adminPopup *widget.PopUp
-	adminSettingsHeader := widget.NewLabel("SETTINGS")
-	adminSettingsHeader.Resize(fyne.NewSize(600, 600))
-	adminPopupContent := container.NewVBox(
-		container.NewHBox(
-			adminSettingsHeader,
-
-			widget.NewButtonWithIcon("", theme.WindowCloseIcon(), func() {
-				adminPopup.Hide() // Function to hide the pop-up
-			}),
-		),
-	)
-	adminPopupContent.Resize(fyne.NewSize(640, 400))
-
-	adminButton := widget.NewButtonWithIcon("", theme.MenuIcon(), func() {
-		if adminPopup == nil {
-			adminPopup = widget.NewModalPopUp(adminPopupContent, w.Canvas())
-		}
-		adminPopup.Show()
-	})
-	adminButton.Resize(fyne.NewSize(75, 75))
-	adminButton.Move(fyne.NewPos(1195, 635))
+	//background.Resize(fyne.NewSize(1280, 720))
 
 	w.SetContent(container.New(
 		layout.NewStackLayout(),
-		main,
-		container.NewWithoutLayout(
-			adminButton,
+		background,
+		container.NewPadded(
+			container.NewHBox(
+				layout.NewSpacer(),
+				container.NewVBox(
+					layout.NewSpacer(),
+					getAdminButton(),
+				),
+			),
 		),
 	))
 
@@ -64,13 +46,14 @@ func StartGUI() {
 		for range time.Tick(5 * time.Second) {
 			idx := rand.Intn(len(options))
 			currentBear = options[idx]
-			main.Objects[0] = getBear(currentBear)
-			main.Refresh()
+			background.Objects[0] = getBear(currentBear)
+			background.Refresh()
 		}
 	}()
 
 	w.Resize(fyne.NewSize(1280, 720))
-	w.SetFixedSize(true)
+	//w.SetFixedSize(true) // Don't allow resizing
+	//w.SetFullScreen(true) // Mandate full screen
 	w.SetMainMenu(systemMenu())
 	w.ShowAndRun()
 	shutdown()
@@ -78,8 +61,9 @@ func StartGUI() {
 
 func getBear(label string) *canvas.Image {
 	bear := canvas.NewImageFromFile(fmt.Sprintf("./internal/gui/bears/%s.jpg", label))
-	bear.FillMode = canvas.ImageFillStretch
+	//bear.FillMode = canvas.ImageFillStretch
 	bear.SetMinSize(fyne.NewSize(1280, 720))
+	bear.Move(fyne.NewPos(0, 0))
 
 	return bear
 }
