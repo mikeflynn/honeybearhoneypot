@@ -14,7 +14,7 @@ On first run, it will be a bit slower, but you will see the GUI application pop 
 
 ## Deployment / Exporting
 
-You will need the fyne-cross application and Docker to cross compile the application for different platforms.
+You will need the [fyne-cross](https://github.com/fyne-io/fyne-cross) application and Docker to cross compile the application for different platforms.
 
 ```bash
 $ go install github.com/fyne-io/fyne-cross@latest
