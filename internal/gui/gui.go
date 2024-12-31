@@ -22,27 +22,31 @@ func StartGUI() {
 	a := app.New()
 	w := a.NewWindow("Honey Bear Honey Pot")
 
-	//hello := widget.NewLabel("Hello Fyne!")
-
 	currentBear = "default"
 	main := container.NewVBox(
 		getBear(currentBear),
 	)
 	main.Resize(fyne.NewSize(1280, 720))
 
-	adminMenu := container.NewVBox(
-		widget.NewLabel("Admin"),
+	var adminPopup *widget.PopUp
+	adminSettingsHeader := widget.NewLabel("SETTINGS")
+	adminSettingsHeader.Resize(fyne.NewSize(600, 600))
+	adminPopupContent := container.NewVBox(
+		container.NewHBox(
+			adminSettingsHeader,
+
+			widget.NewButtonWithIcon("", theme.WindowCloseIcon(), func() {
+				adminPopup.Hide() // Function to hide the pop-up
+			}),
+		),
 	)
-	adminMenu.Resize(fyne.NewSize(200, 600))
-	adminMenu.Move(fyne.NewPos(1080, 10))
-	adminMenu.Hide()
+	adminPopupContent.Resize(fyne.NewSize(640, 400))
 
 	adminButton := widget.NewButtonWithIcon("", theme.MenuIcon(), func() {
-		if adminMenu.Hidden {
-			adminMenu.Show()
-		} else {
-			adminMenu.Hide()
+		if adminPopup == nil {
+			adminPopup = widget.NewModalPopUp(adminPopupContent, w.Canvas())
 		}
+		adminPopup.Show()
 	})
 	adminButton.Resize(fyne.NewSize(75, 75))
 	adminButton.Move(fyne.NewPos(1195, 635))
@@ -51,7 +55,6 @@ func StartGUI() {
 		layout.NewStackLayout(),
 		main,
 		container.NewWithoutLayout(
-			adminMenu,
 			adminButton,
 		),
 	))
@@ -68,7 +71,9 @@ func StartGUI() {
 
 	w.Resize(fyne.NewSize(1280, 720))
 	w.SetFixedSize(true)
+	w.SetMainMenu(systemMenu())
 	w.ShowAndRun()
+	shutdown()
 }
 
 func getBear(label string) *canvas.Image {
@@ -77,4 +82,26 @@ func getBear(label string) *canvas.Image {
 	bear.SetMinSize(fyne.NewSize(1280, 720))
 
 	return bear
+}
+
+func systemMenu() *fyne.MainMenu {
+	return fyne.NewMainMenu(
+		fyne.NewMenu(
+			"Host",
+			fyne.NewMenuItem("Restart", nil),
+			fyne.NewMenuItem("Shutdown", nil),
+		),
+		fyne.NewMenu(
+			"Honey Pot",
+			fyne.NewMenuItem("Start", nil),
+			fyne.NewMenuItem("Stop", nil),
+		),
+		fyne.NewMenu(
+			"Help",
+			fyne.NewMenuItem("___", nil),
+		))
+}
+
+func shutdown() {
+	return
 }
