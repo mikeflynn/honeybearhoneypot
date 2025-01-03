@@ -1,8 +1,6 @@
 package gui
 
 import (
-	"fmt"
-
 	fyne "fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
@@ -22,27 +20,42 @@ func getAdminButton() *widget.Button {
 	//adminButton.Resize(fyne.NewSize(75, 75))
 	adminButton.Alignment = widget.ButtonAlignCenter
 	adminButton.Importance = widget.LowImportance
-	fmt.Println(adminButton.MinSize().Width)
 
 	return adminButton
 }
 
 func getAdminMenu() *fyne.Container {
-	adminSettingsHeader := widget.NewLabel("SETTINGS")
-	adminSettingsHeader.Resize(fyne.NewSize(600, 600))
+	adminSettingsHeader := widget.NewLabel("HBHP - Settings")
 	adminPopupContent := container.New(
 		layout.NewCenterLayout(),
 		container.NewVBox(
-			container.NewHBox(
+			container.NewGridWithColumns(4,
 				adminSettingsHeader,
-
+				layout.NewSpacer(),
+				layout.NewSpacer(),
 				widget.NewButtonWithIcon("", theme.WindowCloseIcon(), func() {
 					adminPopup.Hide() // Function to hide the pop-up
 				}),
 			),
+			container.NewAppTabs(
+				container.NewTabItem("Honey Pot", widget.NewLabel("Honey Pot")),
+				container.NewTabItem("Honey Bear", widget.NewLabel("Honey Bear")),
+				container.NewTabItem("System", adminSystemMenu()),
+				container.NewTabItem("About", widget.NewLabel("About")),
+			),
 		),
 	)
-	adminPopupContent.Resize(fyne.NewSize(640, 400))
+	adminPopupContent.Resize(fyne.NewSize(900, 400))
 
 	return adminPopupContent
+}
+
+func adminSystemMenu() *fyne.Container {
+	pane := container.NewVBox(
+		widget.NewLabel("System Menu"),
+	)
+
+	pane.Resize(fyne.NewSize(800, 600))
+
+	return pane
 }
