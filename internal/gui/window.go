@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/rand"
+	"net/url"
 	"time"
 
 	"github.com/mikeflynn/hardhat-honeybear/internal/gui/assets"
@@ -19,11 +20,17 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
+const (
+	version = "v0.1.0"
+)
+
 var currentBear string
 var w fyne.Window
 
 func StartGUI() {
 	a := app.New()
+	a.Settings().SetTheme(&touchTheme{})
+
 	w = a.NewWindow("Honey Bear Honey Pot")
 
 	currentBear = "default"
@@ -114,7 +121,9 @@ func aboutButton() *widget.Button {
 
 	logo = canvas.NewImageFromReader(bytes.NewReader(logoData), "hydrox")
 	logo.FillMode = canvas.ImageFillStretch
-	logo.SetMinSize(fyne.NewSize(300, 300))
+	logo.SetMinSize(fyne.NewSize(300, 350))
+
+	link, _ := url.Parse("https://hydrox.fun")
 
 	aboutButton := widget.NewButtonWithIcon("", theme.HelpIcon(), func() {
 		var aboutPopup *widget.PopUp
@@ -130,11 +139,11 @@ func aboutButton() *widget.Button {
 				container.NewHBox(
 					logo,
 					container.NewVBox(
-						widget.NewLabel("The Honey Bear Honey Pot"),
-						widget.NewLabel("v0.1.0"),
-						widget.NewLabel("Another useless hydrox project."),
-						widget.NewLabel("https://hydrox.fun"),
-						widget.NewLabel("License: MIT"),
+						widget.NewRichTextWithText("The Honey Bear Honey Pot: "+version),
+						widget.NewSeparator(),
+						widget.NewRichTextWithText("Another useless hydrox project."),
+						widget.NewHyperlink("hydrox.fun", link),
+						widget.NewRichTextWithText("License: MIT"),
 					),
 				),
 			),

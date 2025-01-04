@@ -89,69 +89,73 @@ func adminAuthenticate(approved binding.ExternalInt) *fyne.Container {
 	selectedLabel := canvas.NewText("", theme.Color(theme.ColorNameForeground))
 	selectedLabel.Alignment = fyne.TextAlignCenter
 	selectedLabel.TextStyle = fyne.TextStyle{Monospace: true}
-	selectedLabel.TextSize = 24
+	selectedLabel.TextSize = 48
 	selectedLabel.Resize(fyne.NewSize(300, 50))
+
+	maxDigits := 9
+	addDigit := func(digit string) {
+		if len(selectedLabel.Text) >= maxDigits {
+			return
+		}
+
+		selectedLabel.Text += digit
+		selectedLabel.Refresh()
+	}
 
 	keypad := container.NewVBox(
 		selectedLabel,
 		container.NewGridWithRows(3,
 			container.NewGridWithColumns(3,
 				widget.NewButton("1", func() {
-					selectedLabel.Text += "1"
-					selectedLabel.Refresh()
+					addDigit("1")
 				}),
 				widget.NewButton("2", func() {
-					selectedLabel.Text += "2"
-					selectedLabel.Refresh()
+					addDigit("2")
 				}),
 				widget.NewButton("3", func() {
-					selectedLabel.Text += "3"
-					selectedLabel.Refresh()
+					addDigit("3")
 				}),
 			),
 			container.NewGridWithColumns(3,
 				widget.NewButton("4", func() {
-					selectedLabel.Text += "4"
-					selectedLabel.Refresh()
+					addDigit("4")
 				}),
 				widget.NewButton("5", func() {
-					selectedLabel.Text += "5"
-					selectedLabel.Refresh()
+					addDigit("5")
 				}),
 				widget.NewButton("6", func() {
-					selectedLabel.Text += "6"
-					selectedLabel.Refresh()
+					addDigit("6")
 				}),
 			),
 			container.NewGridWithColumns(3,
 				widget.NewButton("7", func() {
-					selectedLabel.Text += "7"
-					selectedLabel.Refresh()
+					addDigit("7")
 				}),
 				widget.NewButton("8", func() {
-					selectedLabel.Text += "8"
-					selectedLabel.Refresh()
+					addDigit("8")
 				}),
 				widget.NewButton("9", func() {
-					selectedLabel.Text += "9"
-					selectedLabel.Refresh()
+					addDigit("9")
 				}),
 			),
 		),
 		container.NewHBox(
-			widget.NewButton("Submit", func() {
-				if selectedLabel.Text == "1234" {
-					approved.Set(authSuccess)
-				} else {
-					selectedLabel.Text = ""
-				}
-
-				selectedLabel.Refresh()
-			}),
-			widget.NewButton("Cancel", func() {
+			widget.NewButtonWithIcon("", theme.WindowCloseIcon(), func() {
 				authPopup.Hide()
 				approved.Set(authCancel)
 			}),
+			container.NewStack(
+				//canvas.NewRectangle(theme.Color(theme.ColorNameSuccess)),
+				widget.NewButtonWithIcon("Submit", theme.ConfirmIcon(), func() {
+					if selectedLabel.Text == "1234" {
+						approved.Set(authSuccess)
+					} else {
+						selectedLabel.Text = ""
+					}
+
+					selectedLabel.Refresh()
+				}),
+			),
 		),
 	)
 
