@@ -1,10 +1,10 @@
 package gui
 
 import (
-	"fmt"
 	"time"
 
 	fyne "fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/layout"
@@ -37,7 +37,6 @@ func getAdminButton() *widget.Button {
 					return
 				}
 
-				fmt.Println("Checking for admin approval")
 				isApproved, _ := approvalBinding.Get()
 				if isApproved == authCancel {
 					authPopup.Hide()
@@ -75,10 +74,9 @@ func getAdminMenu() *fyne.Container {
 				}),
 			),
 			container.NewAppTabs(
-				container.NewTabItem("Honey Pot", widget.NewLabel("Honey Pot")),
-				container.NewTabItem("Honey Bear", widget.NewLabel("Honey Bear")),
-				container.NewTabItem("System", container.NewStack(widget.NewLabel("System Actions"))),
-				container.NewTabItem("About", widget.NewLabel("About")),
+				container.NewTabItem("Bear", adminBearTab()),
+				container.NewTabItem("Pot", adminPotTab()),
+				container.NewTabItem("System", adminSystemTab()),
 			),
 		),
 	)
@@ -88,9 +86,11 @@ func getAdminMenu() *fyne.Container {
 }
 
 func adminAuthenticate(approved binding.ExternalInt) *fyne.Container {
-	selectedLabel := widget.NewLabel("")
+	selectedLabel := canvas.NewText("", theme.Color(theme.ColorNameForeground))
 	selectedLabel.Alignment = fyne.TextAlignCenter
 	selectedLabel.TextStyle = fyne.TextStyle{Monospace: true}
+	selectedLabel.TextSize = 24
+	selectedLabel.Resize(fyne.NewSize(300, 50))
 
 	keypad := container.NewVBox(
 		selectedLabel,
@@ -156,4 +156,22 @@ func adminAuthenticate(approved binding.ExternalInt) *fyne.Container {
 	)
 
 	return keypad
+}
+
+func adminBearTab() *fyne.Container {
+	return container.NewVBox(
+		widget.NewLabel("Bear Actions"),
+	)
+}
+
+func adminPotTab() *fyne.Container {
+	return container.NewVBox(
+		widget.NewLabel("Pot Actions"),
+	)
+}
+
+func adminSystemTab() *fyne.Container {
+	return container.NewVBox(
+		widget.NewLabel("System Actions"),
+	)
 }

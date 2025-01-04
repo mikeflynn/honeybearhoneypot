@@ -4,16 +4,19 @@ package gui
 
 import (
 	"bytes"
+	"fmt"
 	"math/rand"
 	"time"
 
-	"github.com/mikeflynn/hardhat-honeybear/internal/gui/bears"
+	"github.com/mikeflynn/hardhat-honeybear/internal/gui/assets"
 
 	fyne "fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/widget"
 )
 
 var currentBear string
@@ -34,6 +37,7 @@ func StartGUI() {
 			layout.NewSpacer(),
 			container.NewVBox(
 				layout.NewSpacer(),
+				aboutButton(),
 				getAdminButton(),
 			),
 		),
@@ -64,7 +68,7 @@ func StartGUI() {
 }
 
 func getBear(label string) *canvas.Image {
-	bearData, err := bears.Images.ReadFile(label + ".jpg")
+	bearData, err := assets.Images.ReadFile(label + ".jpg")
 	if err != nil {
 		return nil
 	}
@@ -97,4 +101,48 @@ func systemMenu() *fyne.MainMenu {
 
 func shutdown() {
 	return
+}
+
+func aboutButton() *widget.Button {
+	var logo *canvas.Image
+
+	logoData, err := assets.Images.ReadFile("hydrox.png")
+	if err != nil {
+		fmt.Println("Error loading logo:", err)
+		return nil
+	}
+
+	logo = canvas.NewImageFromReader(bytes.NewReader(logoData), "hydrox")
+	logo.FillMode = canvas.ImageFillStretch
+	logo.SetMinSize(fyne.NewSize(300, 300))
+
+	aboutButton := widget.NewButtonWithIcon("", theme.HelpIcon(), func() {
+		var aboutPopup *widget.PopUp
+		aboutPopup = widget.NewModalPopUp(
+			container.NewVBox(
+				container.NewHBox(
+					widget.NewLabel("About"),
+					layout.NewSpacer(),
+					widget.NewButtonWithIcon("", theme.WindowCloseIcon(), func() {
+						aboutPopup.Hide()
+					}),
+				),
+				container.NewHBox(
+					logo,
+					container.NewVBox(
+						widget.NewLabel("The Honey Bear Honey Pot"),
+						widget.NewLabel("v0.1.0"),
+						widget.NewLabel("Another useless hydrox project."),
+						widget.NewLabel("https://hydrox.fun"),
+						widget.NewLabel("License: MIT"),
+					),
+				),
+			),
+			w.Canvas(),
+		)
+		aboutPopup.Show()
+	})
+	aboutButton.Importance = widget.LowImportance
+
+	return aboutButton
 }
