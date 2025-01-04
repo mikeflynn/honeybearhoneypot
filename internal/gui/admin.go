@@ -1,6 +1,7 @@
 package gui
 
 import (
+	"os"
 	"time"
 
 	fyne "fyne.io/fyne/v2"
@@ -164,18 +165,46 @@ func adminAuthenticate(approved binding.ExternalInt) *fyne.Container {
 
 func adminBearTab() *fyne.Container {
 	return container.NewVBox(
-		widget.NewLabel("Bear Actions"),
+		container.NewGridWithRows(2,
+			container.NewGridWithColumns(2,
+				widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
+				widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
+			),
+			widget.NewButtonWithIcon("Toggle Fullscreen", theme.ViewFullScreenIcon(), func() {
+				w.SetFullScreen(!w.FullScreen())
+			}),
+		),
 	)
 }
 
 func adminPotTab() *fyne.Container {
 	return container.NewVBox(
-		widget.NewLabel("Pot Actions"),
+		container.NewGridWithRows(2,
+			container.NewGridWithColumns(2,
+				widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
+				widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
+			),
+			container.NewGridWithColumns(2,
+				widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
+				widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
+			),
+		),
 	)
 }
 
 func adminSystemTab() *fyne.Container {
 	return container.NewVBox(
-		widget.NewLabel("System Actions"),
+		container.NewGridWithRows(2,
+			container.NewGridWithColumns(2,
+				widget.NewButtonWithIcon("Quit App", theme.LogoutIcon(), func() {
+					os.Exit(0)
+				}),
+				widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
+			),
+			container.NewGridWithColumns(2,
+				widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
+				widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
+			),
+		),
 	)
 }
