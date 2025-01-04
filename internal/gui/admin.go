@@ -1,21 +1,58 @@
 package gui
 
 import (
+	"fmt"
+	"time"
+
 	fyne "fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
 
+const (
+	maxAuthSeconds = 30
+	authSuccess    = 1
+	authFailure    = 0
+	authCancel     = -1
+)
+
 var adminPopup *widget.PopUp
+var authPopup *widget.PopUp
 
 func getAdminButton() *widget.Button {
 	adminButton := widget.NewButtonWithIcon("", theme.MenuIcon(), func() {
-		if adminPopup == nil {
-			adminPopup = widget.NewModalPopUp(getAdminMenu(), w.Canvas())
-		}
-		adminPopup.Show()
+		approved := 0
+		approvalBinding := binding.BindInt(&approved)
+
+		authPopup = widget.NewModalPopUp(adminAuthenticate(approvalBinding), w.Canvas())
+		go func() {
+			i := 0
+			for range time.Tick(time.Second) {
+				i++
+				if i >= maxAuthSeconds {
+					authPopup.Hide()
+					return
+				}
+
+				fmt.Println("Checking for admin approval")
+				isApproved, _ := approvalBinding.Get()
+				if isApproved == authCancel {
+					authPopup.Hide()
+					return
+				} else if isApproved == authSuccess {
+					authPopup.Hide()
+
+					adminPopup = widget.NewModalPopUp(getAdminMenu(), w.Canvas())
+					adminPopup.Show()
+					return
+				}
+			}
+		}()
+
+		authPopup.Show()
 	})
 	//adminButton.Resize(fyne.NewSize(75, 75))
 	adminButton.Alignment = widget.ButtonAlignCenter
@@ -25,7 +62,7 @@ func getAdminButton() *widget.Button {
 }
 
 func getAdminMenu() *fyne.Container {
-	adminSettingsHeader := widget.NewLabel("HBHP - Settings")
+	adminSettingsHeader := widget.NewLabel("Settings")
 	adminPopupContent := container.New(
 		layout.NewCenterLayout(),
 		container.NewVBox(
@@ -40,7 +77,7 @@ func getAdminMenu() *fyne.Container {
 			container.NewAppTabs(
 				container.NewTabItem("Honey Pot", widget.NewLabel("Honey Pot")),
 				container.NewTabItem("Honey Bear", widget.NewLabel("Honey Bear")),
-				container.NewTabItem("System", adminSystemMenu()),
+				container.NewTabItem("System", container.NewStack(widget.NewLabel("System Actions"))),
 				container.NewTabItem("About", widget.NewLabel("About")),
 			),
 		),
@@ -50,12 +87,73 @@ func getAdminMenu() *fyne.Container {
 	return adminPopupContent
 }
 
-func adminSystemMenu() *fyne.Container {
-	pane := container.NewVBox(
-		widget.NewLabel("System Menu"),
+func adminAuthenticate(approved binding.ExternalInt) *fyne.Container {
+	selectedLabel := widget.NewLabel("")
+	selectedLabel.Alignment = fyne.TextAlignCenter
+	selectedLabel.TextStyle = fyne.TextStyle{Monospace: true}
+
+	keypad := container.NewVBox(
+		selectedLabel,
+		container.NewGridWithRows(3,
+			container.NewGridWithColumns(3,
+				widget.NewButton("1", func() {
+					selectedLabel.Text += "1"
+					selectedLabel.Refresh()
+				}),
+				widget.NewButton("2", func() {
+					selectedLabel.Text += "2"
+					selectedLabel.Refresh()
+				}),
+				widget.NewButton("3", func() {
+					selectedLabel.Text += "3"
+					selectedLabel.Refresh()
+				}),
+			),
+			container.NewGridWithColumns(3,
+				widget.NewButton("4", func() {
+					selectedLabel.Text += "4"
+					selectedLabel.Refresh()
+				}),
+				widget.NewButton("5", func() {
+					selectedLabel.Text += "5"
+					selectedLabel.Refresh()
+				}),
+				widget.NewButton("6", func() {
+					selectedLabel.Text += "6"
+					selectedLabel.Refresh()
+				}),
+			),
+			container.NewGridWithColumns(3,
+				widget.NewButton("7", func() {
+					selectedLabel.Text += "7"
+					selectedLabel.Refresh()
+				}),
+				widget.NewButton("8", func() {
+					selectedLabel.Text += "8"
+					selectedLabel.Refresh()
+				}),
+				widget.NewButton("9", func() {
+					selectedLabel.Text += "9"
+					selectedLabel.Refresh()
+				}),
+			),
+		),
+		container.NewHBox(
+			widget.NewButton("Submit", func() {
+				if selectedLabel.Text == "1234" {
+					approved.Set(authSuccess)
+				} else {
+					selectedLabel.Text = ""
+				}
+
+				selectedLabel.Refresh()
+			}),
+			widget.NewButton("Cancel", func() {
+				authPopup.Hide()
+				approved.Set(authCancel)
+			}),
+		),
 	)
 
-	pane.Resize(fyne.NewSize(800, 600))
-
-	return pane
+	return keypad
 }

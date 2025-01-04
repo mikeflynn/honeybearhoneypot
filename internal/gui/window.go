@@ -29,18 +29,20 @@ func StartGUI() {
 	)
 	//background.Resize(fyne.NewSize(1280, 720))
 
+	overlays := container.NewPadded(
+		container.NewHBox(
+			layout.NewSpacer(),
+			container.NewVBox(
+				layout.NewSpacer(),
+				getAdminButton(),
+			),
+		),
+	)
+
 	w.SetContent(container.New(
 		layout.NewStackLayout(),
 		background,
-		container.NewPadded(
-			container.NewHBox(
-				layout.NewSpacer(),
-				container.NewVBox(
-					layout.NewSpacer(),
-					getAdminButton(),
-				),
-			),
-		),
+		overlays,
 	))
 
 	go func() {
