@@ -21,7 +21,8 @@ import (
 )
 
 const (
-	version = "v0.1.0"
+	version  = "v0.1.0"
+	maxUsers = 10
 )
 
 var currentBear string
@@ -39,7 +40,7 @@ func StartGUI() {
 	)
 	//background.Resize(fyne.NewSize(1280, 720))
 
-	overlays := container.NewPadded(
+	functionToolbar := container.NewPadded(
 		container.NewHBox(
 			layout.NewSpacer(),
 			container.NewVBox(
@@ -50,10 +51,33 @@ func StartGUI() {
 		),
 	)
 
+	statCurrentUsers := canvas.NewText(fmt.Sprintf("%d / %d", 0, 10), theme.Color(theme.ColorNameForeground))
+	dataOverlays := container.NewPadded(
+		container.NewHBox(
+			container.NewVBox(
+				container.NewStack(
+					canvas.NewRectangle(theme.Color(theme.ColorNameBackground)),
+					container.NewPadded(
+						statCurrentUsers,
+					),
+				),
+				container.NewStack(
+					canvas.NewRectangle(theme.Color(theme.ColorNameBackground)),
+					container.NewPadded(
+						canvas.NewText("38%", theme.Color(theme.ColorNameForeground)),
+					),
+				),
+				layout.NewSpacer(),
+			),
+			layout.NewSpacer(),
+		),
+	)
+
 	w.SetContent(container.New(
 		layout.NewStackLayout(),
 		background,
-		overlays,
+		dataOverlays,
+		functionToolbar,
 	))
 
 	go func() {
@@ -63,6 +87,9 @@ func StartGUI() {
 			currentBear = options[idx]
 			background.Objects[0] = getBear(currentBear)
 			background.Refresh()
+
+			statCurrentUsers.Text = fmt.Sprintf("%d / %d", rand.Intn(maxUsers), maxUsers)
+			dataOverlays.Refresh()
 		}
 	}()
 
@@ -107,6 +134,7 @@ func systemMenu() *fyne.MainMenu {
 }
 
 func shutdown() {
+	// Run any clean up tasks here
 	return
 }
 
