@@ -1,3 +1,5 @@
 .DS_Store
 fyne-cross
 hardhat-honeybear
+honeybear.db
+.ssh

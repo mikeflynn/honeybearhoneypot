@@ -103,6 +103,18 @@ func adminAuthenticate(approved binding.ExternalInt) *fyne.Container {
 		selectedLabel.Refresh()
 	}
 
+	submitBtn := widget.NewButtonWithIcon("Submit", theme.ConfirmIcon(), func() {
+		if selectedLabel.Text == "1234" {
+			approved.Set(authSuccess)
+		} else {
+			selectedLabel.Text = ""
+		}
+
+		selectedLabel.Refresh()
+	})
+
+	submitBtn.Importance = widget.HighImportance
+
 	keypad := container.NewVBox(
 		selectedLabel,
 		container.NewGridWithRows(3,
@@ -145,18 +157,7 @@ func adminAuthenticate(approved binding.ExternalInt) *fyne.Container {
 				authPopup.Hide()
 				approved.Set(authCancel)
 			}),
-			container.NewStack(
-				//canvas.NewRectangle(theme.Color(theme.ColorNameSuccess)),
-				widget.NewButtonWithIcon("Submit", theme.ConfirmIcon(), func() {
-					if selectedLabel.Text == "1234" {
-						approved.Set(authSuccess)
-					} else {
-						selectedLabel.Text = ""
-					}
-
-					selectedLabel.Refresh()
-				}),
-			),
+			submitBtn,
 		),
 	)
 
