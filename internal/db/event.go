@@ -34,7 +34,7 @@ func (e *Event) Save() error {
 	return makeWrite(insertStmt, e.User, e.Host, e.Source, e.Type, e.Command)
 }
 
-func EventQuery(query string, values ...string) ([]*Event, error) {
+func EventQuery(query string, values ...any) ([]*Event, error) {
 	rows, err := makeQuery(query, values...)
 	if err != nil {
 		return nil, err

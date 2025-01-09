@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/mikeflynn/hardhat-honeybear/internal/gui/assets"
+	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot"
 
 	fyne "fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -21,8 +22,7 @@ import (
 )
 
 const (
-	version  = "v0.1.0"
-	maxUsers = 10
+	version = "v0.1.0"
 )
 
 var currentBear string
@@ -51,7 +51,7 @@ func StartGUI() {
 		),
 	)
 
-	statCurrentUsers := canvas.NewText(fmt.Sprintf("%d / %d", 0, 10), theme.Color(theme.ColorNameForeground))
+	statCurrentUsers := canvas.NewText(fmt.Sprintf("%d / %d", 0, honeypot.StatMaxUsers()), theme.Color(theme.ColorNameForeground))
 	dataOverlays := container.NewPadded(
 		container.NewHBox(
 			container.NewVBox(
@@ -88,7 +88,7 @@ func StartGUI() {
 			background.Objects[0] = getBear(currentBear)
 			background.Refresh()
 
-			statCurrentUsers.Text = fmt.Sprintf("%d / %d", rand.Intn(maxUsers), maxUsers)
+			statCurrentUsers.Text = fmt.Sprintf("%d / %d", honeypot.StatActiveUsers(), honeypot.StatMaxUsers())
 			dataOverlays.Refresh()
 		}
 	}()

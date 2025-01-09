@@ -18,15 +18,23 @@ import (
 	"github.com/charmbracelet/wish/accesscontrol"
 	"github.com/charmbracelet/wish/activeterm"
 	"github.com/charmbracelet/wish/bubbletea"
+	"github.com/charmbracelet/wish/elapsed"
 	"github.com/charmbracelet/wish/logging"
 )
 
 const (
-	host = "localhost"
-	port = "2222"
+	host     = "localhost"
+	port     = "2222"
+	maxUsers = 10
+)
+
+var (
+	activeUsers int
 )
 
 func StartHoneyPot() {
+	activeUsers = 0
+
 	s, err := wish.NewServer(
 		wish.WithAddress(net.JoinHostPort(host, port)),
 		wish.WithHostKeyPath(".ssh/id_ed25519"),
@@ -34,11 +42,26 @@ func StartHoneyPot() {
 			log.Info(fmt.Sprintf("Authorization used: %s, %s", ctx.User(), password))
 			return true
 		}),
+		//wish.WithBannerHandler(func(ctx ssh.Context) string {
+		//	return fmt.Sprintf(banner, ctx.User())
+		//}),
 		wish.WithMiddleware(
 			bubbletea.Middleware(teaHandler),
 			activeterm.Middleware(), // Bubble Tea apps usually require a PTY.
 			accesscontrol.Middleware(),
 			logging.Middleware(),
+			func(next ssh.Handler) ssh.Handler {
+				return func(s ssh.Session) {
+					activeUsers++
+					next(s)
+					activeUsers--
+					if activeUsers < 0 {
+						activeUsers = 0
+					}
+
+				}
+			},
+			elapsed.Middleware(),
 		),
 	)
 	if err != nil {
