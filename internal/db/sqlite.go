@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"log"
 	"path/filepath"
-	"time"
 
 	_ "github.com/mattn/go-sqlite3" // SQLite driver
 )
@@ -14,21 +13,6 @@ const (
 	EventSourceSystem = "system"
 	EventSourceUser   = "user"
 )
-
-type EventLog struct {
-	User      string    `json:"user"`
-	IP        string    `json:"ip"`
-	Source    string    `json:"source"` // EventSource*
-	Type      string    `json:"type"`
-	Command   string    `json:"command"`
-	Timestamp time.Time `json:"timestamp"`
-}
-
-type Option struct {
-	Name      string    `json:"name"`
-	Value     string    `json:"value"`
-	Timestamp time.Time `json:"timestamp"`
-}
 
 var client *sql.DB
 
@@ -40,15 +24,12 @@ func Initialize(appConfigDir string) {
 	}
 
 	// Create the tables
-	initializeStmt := ``
-	_, err = client.Exec(initializeStmt)
-	if err != nil {
-		log.Fatal(err)
-	}
+	EventInitialization(client)
+	OptionInitialization(client)
 }
 
-func Query(query string) (*sql.Rows, error) {
-	rows, err := client.Query(query)
+func makeQuery(query string, values ...string) (*sql.Rows, error) {
+	rows, err := client.Query(query, values)
 	if err != nil {
 		return nil, err
 	}
@@ -57,16 +38,13 @@ func Query(query string) (*sql.Rows, error) {
 	return rows, nil
 }
 
-func Insert() {
+func makeWrite(query string, values ...string) error {
+	_, err := client.Exec(query, values)
+	if err != nil {
+		return err
+	}
 
-}
-
-func Update() {
-
-}
-
-func Delete() {
-
+	return nil
 }
 
 func Close() {
