@@ -1,0 +1,4 @@
+Available commands:
+help - show this help message
+clear - clear the screen
+exit - leave

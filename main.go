@@ -3,6 +3,7 @@ package main
 // https://github.com/charmbracelet/wish
 
 import (
+	"flag"
 	"log"
 	"os"
 	"path/filepath"
@@ -17,13 +18,20 @@ const (
 )
 
 func main() {
+	noGui := flag.Bool("no-gui", false, "Run the honey pot without the GUI")
+	flag.Parse()
+
 	setup()
 
-	go func() {
-		honeypot.StartHoneyPot()
-	}()
+	if *noGui == false {
+		go func() {
+			honeypot.StartHoneyPot()
+		}()
 
-	gui.StartGUI()
+		gui.StartGUI()
+	} else {
+		honeypot.StartHoneyPot()
+	}
 
 	cleanup()
 }
