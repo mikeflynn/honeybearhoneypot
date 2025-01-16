@@ -22,8 +22,6 @@ import (
 	"github.com/charmbracelet/wish/bubbletea"
 	"github.com/charmbracelet/wish/elapsed"
 	"github.com/charmbracelet/wish/logging"
-	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot/embedded"
-	"github.com/muesli/reflow/wordwrap"
 )
 
 const (
@@ -138,7 +136,9 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		ready:        false,
 		textInput:    textinput,
 		output:       "",
-		helpText:     "Type 'help' to see commands",
+		helpText:     "Type 'help' to see some commands; Use up/down for history.",
+		historyIdx:   0,
+		history:      []string{},
 	}
 
 	return m, []tea.ProgramOption{
@@ -149,11 +149,11 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 // Just a generic tea.Model to demo terminal information of ssh.
 type model struct {
 	// Session
-	term            string
-	profile         string
-	width           int
-	height          int
-	previousCommand string
+	term           string
+	profile        string
+	width          int
+	height         int
+	runningCommand string
 	// Styles
 	txtStyle     lipgloss.Style
 	quitStyle    lipgloss.Style
@@ -166,6 +166,9 @@ type model struct {
 	helpText  string
 	// Data
 	output string
+	// History
+	historyIdx int
+	history    []string
 }
 
 func (m model) Init() tea.Cmd {
@@ -174,8 +177,9 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
-		cmd  tea.Cmd
-		cmds []tea.Cmd
+		cmd   tea.Cmd
+		vpCmd tea.Cmd
+		cmds  []tea.Cmd
 	)
 
 	switch msg := msg.(type) {
@@ -207,46 +211,38 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "enter":
 			command := m.textInput.Value()
-			m.previousCommand = command
+			m.historyIdx = 0
 			m.output += m.historyStyle.Render(fmt.Sprintf("\n❯ %s\n", m.textInput.Value()))
-			m.textInput.Reset()
 
-			switch command {
-			case "clear":
-				m.output = ""
-			case "help":
-				helpText, err := embedded.Files.ReadFile("help.txt")
-				if err != nil {
-					helpText = []byte("\nError reading file.\n")
+			if command != "" {
+				historyPush(&m, command)
+
+				if command == "exit" {
+					return m, tea.Quit
 				}
 
-				m.output += m.outputStyle.Render("\n" + string(helpText))
-			case "cat", "more", "less":
-				cmds = append(cmds, func() tea.Msg {
-					fileData, err := embedded.Files.ReadFile("test.txt")
-					if err != nil {
-						return fileContentsMsg(m.outputStyle.Render(fmt.Sprintf("\nError reading file: %s\n", err)))
-					}
-
-					wrapper := wordwrap.NewWriter(m.width)
-					wrapper.Newline = []rune{'\r'}
-					wrapper.Breakpoints = []rune{':', ','}
-					wrapper.Write(fileData)
-					wrapper.Close()
-
-					return fileContentsMsg(wrapper.String())
-				})
-			case "exit":
-				return m, tea.Quit
-			default:
-				m.output += m.outputStyle.Render(fmt.Sprintf("\nCommand not found: %s\n", command))
+				newCmd := globalCommandHandler(&m)
+				if newCmd != nil {
+					cmds = append(cmds, *newCmd)
+				}
 			}
 
+			m.textInput.Reset()
 			return m, tea.Batch(cmds...)
+		case "up":
+			if m.runningCommand == "" {
+				m.textInput.SetValue(historyPeek(&m))
+				historyIdxInc(&m)
+			}
+		case "down":
+			if m.runningCommand == "" {
+				m.textInput.SetValue(historyPeek(&m))
+				historyIdxDec(&m)
+			}
 		case "ctrl+c":
-			if m.previousCommand == "cat" {
+			if m.runningCommand != "" {
 				m.viewport.SetContent("")
-				m.previousCommand = ""
+				m.runningCommand = ""
 			}
 
 			return m, tea.Batch(cmds...)
@@ -254,8 +250,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// Allow viewport to track arrow keys
-	m.viewport, cmd = m.viewport.Update(msg)
-	cmds = append(cmds, cmd)
+	m.viewport, vpCmd = m.viewport.Update(msg)
+	cmds = append(cmds, vpCmd)
 
 	// The rest of the text can go in to the input.q
 	m.textInput, cmd = m.textInput.Update(msg)
@@ -277,8 +273,11 @@ func (m model) View() string {
 
 	content := m.txtStyle.Width(m.width - 4).Height(contentHeight).Render(lipgloss.PlaceVertical(contentHeight-2, lipgloss.Top, m.output))
 
-	if m.previousCommand == "cat" && m.ready {
-		content = m.viewport.View()
+	if m.runningCommand == "cat" && m.ready {
+		return "" +
+			m.viewport.View() +
+			"\n" +
+			m.quitStyle.Render("ctrl + c to exit this file.\n")
 	}
 
 	return "" +
@@ -287,4 +286,33 @@ func (m model) View() string {
 		m.textInput.View() +
 		"\n" +
 		m.quitStyle.Render(m.helpText+"\n")
+}
+
+func historyPush(m *model, command string) {
+	// Prepends a command to the history slice.
+	m.history = append([]string{command}, m.history...)
+}
+
+func historyPeek(m *model) string {
+	if m.historyIdx >= len(m.history) {
+		return ""
+	}
+
+	return m.history[m.historyIdx]
+}
+
+func historyIdxInc(m *model) {
+	if m.historyIdx >= len(m.history)-1 {
+		return
+	}
+
+	m.historyIdx++
+}
+
+func historyIdxDec(m *model) {
+	if m.historyIdx == 0 {
+		return
+	}
+
+	m.historyIdx--
 }
