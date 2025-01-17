@@ -9,9 +9,7 @@ import (
 )
 
 const (
-	dbFilename        = "database.db"
-	EventSourceSystem = "system"
-	EventSourceUser   = "user"
+	dbFilename = "database.db"
 )
 
 var client *sql.DB

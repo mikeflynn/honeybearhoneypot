@@ -22,6 +22,7 @@ import (
 	"github.com/charmbracelet/wish/bubbletea"
 	"github.com/charmbracelet/wish/elapsed"
 	"github.com/charmbracelet/wish/logging"
+	"github.com/mikeflynn/hardhat-honeybear/internal/db"
 )
 
 const (
@@ -125,6 +126,8 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	textinput.TextStyle = txtStyle
 
 	m := model{
+		user:         s.Context().User(),
+		host:         s.Context().RemoteAddr().String(),
 		term:         pty.Term,
 		profile:      renderer.ColorProfile().Name(),
 		width:        pty.Window.Width,
@@ -149,6 +152,8 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 // Just a generic tea.Model to demo terminal information of ssh.
 type model struct {
 	// Session
+	user           string
+	host           string
 	term           string
 	profile        string
 	width          int
@@ -216,6 +221,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if command != "" {
 				historyPush(&m, command)
+
+				// Save an event log
+				err := NewEvent(&m, true, "typed", command)
+				if err != nil {
+					log.Printf("Error saving event: %s", err)
+				}
 
 				if command == "exit" {
 					return m, tea.Quit
@@ -315,4 +326,23 @@ func historyIdxDec(m *model) {
 	}
 
 	m.historyIdx--
+}
+
+func NewEvent(m *model, userEvent bool, eventType string, eventAction string) error {
+	source := db.EventSourceSystem
+	if userEvent {
+		source = db.EventSourceUser
+	}
+
+	event := &db.Event{
+		User:      m.user,
+		Host:      m.host,
+		App:       "ssh",
+		Source:    source,
+		Type:      eventType,
+		Action:    eventAction,
+		Timestamp: time.Now(),
+	}
+
+	return event.Save()
 }
