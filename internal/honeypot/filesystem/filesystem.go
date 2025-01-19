@@ -2,6 +2,7 @@ package filesystem
 
 import (
 	"fmt"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot/embedded"
@@ -24,6 +25,32 @@ type (
 		Node *Node
 	}
 )
+
+func newDirectory(path string, children ...*Node) *Node {
+	parts := strings.Split(path, "/")
+	return &Node{
+		Name:      parts[len(parts)-1],
+		Path:      path,
+		Owner:     "root",
+		Group:     "root",
+		Mode:      0755,
+		Directory: true,
+		Children:  children,
+	}
+}
+
+func newFile(path string, content []byte, mode int) *Node {
+	parts := strings.Split(path, "/")
+	return &Node{
+		Name:      parts[len(parts)-1],
+		Path:      path,
+		Owner:     "root",
+		Group:     "root",
+		Directory: false,
+		Content:   func() []byte { return content },
+		Mode:      mode,
+	}
+}
 
 func Initialize() {
 	SystemPath = []string{
@@ -63,22 +90,18 @@ func Initialize() {
 		Path:      "/",
 		Directory: true,
 		Children: []*Node{
-			{
-				Name:      "opt",
-				Path:      "/opt",
-				Directory: true,
-				Children:  []*Node{},
-				Owner:     "root",
-				Group:     "root",
-			},
-			{
-				Name:      "root",
-				Path:      "/root",
-				Directory: true,
-				Children:  []*Node{},
-				Owner:     "root",
-				Group:     "root",
-			},
+			newDirectory("/opt"),
+			newDirectory("/root"),
+			newDirectory("/var"),
+			newDirectory("/tmp"),
+			newDirectory(
+				"/etc",
+				newFile(
+					"/etc/os-release",
+					[]byte("PRETTY_NAME=\"Hardhat Linux\"\nNAME=\"Hardhat Linux\"\nID=hardhat\nID_LIKE=debian\nVERSION_ID=\"1.0\"\nVERSION=\"1.0\"\nVERSION_CODENAME=\"hardhat\"\n"),
+					0644,
+				),
+			),
 			{
 				Name:      "usr",
 				Path:      "/usr",
@@ -278,14 +301,6 @@ func Initialize() {
 				Group: "root",
 			},
 			{
-				Name:      "var",
-				Path:      "/var",
-				Directory: true,
-				Children:  []*Node{},
-				Owner:     "root",
-				Group:     "root",
-			},
-			{
 				Name:      "home",
 				Path:      "/home",
 				Directory: true,
@@ -294,14 +309,6 @@ func Initialize() {
 				},
 				Owner: "root",
 				Group: "root",
-			},
-			{
-				Name:      "tmp",
-				Path:      "/tmp",
-				Directory: true,
-				Children:  []*Node{},
-				Owner:     "root",
-				Group:     "root",
 			},
 		},
 		Owner: "root",
