@@ -23,7 +23,7 @@ import (
 	"github.com/charmbracelet/wish/elapsed"
 	"github.com/charmbracelet/wish/logging"
 	"github.com/google/shlex"
-	"github.com/mikeflynn/hardhat-honeybear/internal/db"
+	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot/embedded"
 	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot/filesystem"
 	"github.com/muesli/reflow/wordwrap"
 )
@@ -48,9 +48,14 @@ func StartHoneyPot() {
 			log.Info(fmt.Sprintf("Authorization used: %s, %s", ctx.User(), password))
 			return true
 		}),
-		//wish.WithBannerHandler(func(ctx ssh.Context) string {
-		//	return fmt.Sprintf(banner, ctx.User())
-		//}),
+		wish.WithBannerHandler(func(ctx ssh.Context) string {
+			banner, err := embedded.Files.ReadFile("banner.txt")
+			if err == nil || banner != nil {
+				return fmt.Sprintf(string(banner), ctx.User())
+			}
+
+			return ""
+		}),
 		wish.WithMiddleware(
 			bubbletea.Middleware(teaHandler),
 			activeterm.Middleware(), // Bubble Tea apps usually require a PTY.
@@ -347,52 +352,4 @@ func (m model) View() string {
 		m.textInput.View() +
 		"\n" +
 		m.quitStyle.Render(m.helpText+"\n")
-}
-
-func historyPush(m *model, command string) {
-	// Prepends a command to the history slice.
-	m.history = append([]string{command}, m.history...)
-}
-
-func historyPeek(m *model) string {
-	if m.historyIdx >= len(m.history) {
-		return ""
-	}
-
-	return m.history[m.historyIdx]
-}
-
-func historyIdxInc(m *model) {
-	if m.historyIdx >= len(m.history)-1 {
-		return
-	}
-
-	m.historyIdx++
-}
-
-func historyIdxDec(m *model) {
-	if m.historyIdx == 0 {
-		return
-	}
-
-	m.historyIdx--
-}
-
-func NewEvent(m *model, userEvent bool, eventType string, eventAction string) error {
-	source := db.EventSourceSystem
-	if userEvent {
-		source = db.EventSourceUser
-	}
-
-	event := &db.Event{
-		User:      m.user,
-		Host:      m.host,
-		App:       "ssh",
-		Source:    source,
-		Type:      eventType,
-		Action:    eventAction,
-		Timestamp: time.Now(),
-	}
-
-	return event.Save()
 }
