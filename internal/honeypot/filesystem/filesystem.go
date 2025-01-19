@@ -80,6 +80,7 @@ func Initialize() {
 					return fileData
 				},
 			},
+			newDirectory("/home/you/.ssh"),
 		},
 		Owner: "you",
 		Group: "default",
@@ -124,11 +125,18 @@ func Initialize() {
 										output := ""
 										separater := "\t"
 										targetPath := "."
+										showHidden := false
 
 										if len(params) > 0 {
 											for _, param := range params {
-												if param == "-l" {
-													separater = "\n"
+												if strings.HasPrefix(param, "-") {
+													if strings.Contains(param, "l") {
+														separater = "\n"
+													}
+
+													if strings.Contains(param, "a") {
+														showHidden = true
+													}
 												} else {
 													targetPath = param
 												}
@@ -142,6 +150,10 @@ func Initialize() {
 
 										if targetNode.IsDirectory() && len(targetNode.Children) > 0 {
 											for _, child := range targetNode.Children {
+												if !showHidden && strings.HasPrefix(child.Name, ".") {
+													continue
+												}
+
 												output += child.Name + separater
 											}
 										}
