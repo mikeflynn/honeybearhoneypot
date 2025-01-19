@@ -103,7 +103,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		Light: "10", // Light green
 		Dark:  "10", // Light green
 	})
-	outputStyle := renderer.NewStyle().MaxHeight(pty.Window.Height).Foreground(lipgloss.AdaptiveColor{
+	outputStyle := renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{
 		Light: "8",   // Light grey
 		Dark:  "246", // Dark grey
 	})
@@ -310,9 +310,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.viewport, vpCmd = m.viewport.Update(msg)
 	cmds = append(cmds, vpCmd)
 
-	// The rest of the text can go in to the input.q
-	m.textInput, cmd = m.textInput.Update(msg)
-	cmds = append(cmds, cmd)
+	// The rest of the text can go in to the input.
+	if m.runningCommand == "" {
+		m.textInput, cmd = m.textInput.Update(msg)
+		cmds = append(cmds, cmd)
+	}
 
 	return m, tea.Batch(cmds...)
 }
@@ -331,6 +333,8 @@ func (m model) View() string {
 	content := m.txtStyle.Width(m.width - 4).Height(contentHeight).Render(lipgloss.PlaceVertical(contentHeight-2, lipgloss.Top, m.output))
 
 	if m.runningCommand == "cat" && m.ready {
+		m.viewport.Height = m.height - footerHeight
+
 		return "" +
 			m.viewport.View() +
 			"\n" +
