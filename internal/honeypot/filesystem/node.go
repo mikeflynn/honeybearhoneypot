@@ -78,16 +78,16 @@ func GetRoot() *Node {
 	return SystemRoot
 }
 
-func GetContent(currentNode *Node, path string, user string, group string) (string, error) {
+func GetContent(currentNode *Node, path string, user string, group string) ([]byte, error) {
 	if node, err := GetNodeByPath(currentNode, path); err == nil {
 		if !node.IsReadable(user, group) {
-			return "", errors.New("not readable")
+			return nil, errors.New("not readable")
 		}
 
 		return node.Content(), nil
 	}
 
-	return "", errors.New("not found")
+	return nil, errors.New("not found")
 }
 
 func RunNode(currentNode *Node, path string, params []string, user string, group string) (*tea.Cmd, error) {
@@ -108,7 +108,7 @@ type Node struct {
 	Directory bool
 	Children  []*Node
 	AssetName string
-	Content   func() string
+	Content   func() []byte
 	Exec      func(*Node, []string) *tea.Cmd
 	Owner     string
 	Group     string
@@ -196,12 +196,12 @@ func (n *Node) Child(name string) *Node {
 	return nil
 }
 
-func (n *Node) Open() (string, error) {
+func (n *Node) Open() ([]byte, error) {
 	if n.IsFile() && n.Content != nil {
 		return n.Content(), nil
 	}
 
-	return "", errors.New("not a file")
+	return nil, errors.New("not a file")
 }
 
 func (n *Node) Run(params []string) (*tea.Cmd, error) {

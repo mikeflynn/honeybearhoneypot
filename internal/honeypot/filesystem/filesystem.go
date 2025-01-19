@@ -1,7 +1,10 @@
 package filesystem
 
 import (
+	"fmt"
+
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot/embedded"
 )
 
 var (
@@ -11,9 +14,11 @@ var (
 )
 
 type (
-	FileContentsMsg string
+	FileContentsMsg []byte
 	OutputMsg       string
 	ClearOutputMsg  string
+	HistoryListMsg  string
+	SetRunningCmd   string
 	ChangeDirMsg    struct {
 		Path string
 		Node *Node
@@ -31,14 +36,21 @@ func Initialize() {
 		Directory: true,
 		Children: []*Node{
 			{
-				Name:      "notes.txt",
-				Path:      "/home/you/notes.txt",
+				Name:      "test.txt",
+				Path:      "/home/you/test.txt",
 				Directory: false,
 				Owner:     "you",
 				Group:     "default",
 				Mode:      0644,
-				Content: func() string {
-					return "This is a note."
+				Content: func() []byte {
+					//return []byte("This is a note.")
+
+					fileData, err := embedded.Files.ReadFile("test.txt")
+					if err != nil {
+						return FileContentsMsg(fmt.Sprintf("\n%s: Error reading file.\n", err))
+					}
+
+					return fileData
 				},
 			},
 		},
@@ -134,6 +146,32 @@ func Initialize() {
 								},
 							},
 							{
+								Name:      "help",
+								Path:      "/usr/bin/help",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0755,
+								Exec: func(dir *Node, params []string) *tea.Cmd {
+									cmds := []tea.Cmd{}
+									cmds = append(cmds, tea.Cmd(func() tea.Msg {
+										return SetRunningCmd("cat")
+									}))
+
+									cmds = append(cmds, tea.Cmd(func() tea.Msg {
+										helpText, err := embedded.Files.ReadFile("help.txt")
+										if err != nil {
+											helpText = []byte("\nError reading file.\n")
+										}
+
+										return FileContentsMsg(helpText)
+									}))
+
+									batch := tea.Batch(cmds...)
+									return &batch
+								},
+							},
+							{
 								Name:      "pwd",
 								Path:      "/usr/bin/pwd",
 								Directory: false,
@@ -146,6 +184,56 @@ func Initialize() {
 									})
 
 									return &cmd
+								},
+							},
+							{
+								Name:      "history",
+								Path:      "/usr/bin/history",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0755,
+								Exec: func(dir *Node, params []string) *tea.Cmd {
+									cmd := tea.Cmd(func() tea.Msg {
+										return HistoryListMsg("")
+									})
+
+									return &cmd
+								},
+							},
+							{
+								Name:      "cat",
+								Path:      "/usr/bin/cat",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0755,
+								Exec: func(dir *Node, params []string) *tea.Cmd {
+									cmds := []tea.Cmd{}
+									cmds = append(cmds, tea.Cmd(func() tea.Msg {
+										return SetRunningCmd("cat")
+									}))
+
+									cmds = append(cmds, tea.Cmd(func() tea.Msg {
+										if len(params) == 0 {
+											return OutputMsg("cat: missing file operand")
+										}
+
+										target, err := GetNodeByPath(dir, params[0])
+										if err != nil || target == nil {
+											return OutputMsg(err.Error())
+										}
+
+										fileData, err := target.Open()
+										if err != nil {
+											return OutputMsg("cat: " + err.Error())
+										}
+
+										return FileContentsMsg(fileData)
+									}))
+
+									batch := tea.Batch(cmds...)
+									return &batch
 								},
 							},
 							{

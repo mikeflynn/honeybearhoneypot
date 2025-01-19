@@ -25,6 +25,7 @@ import (
 	"github.com/google/shlex"
 	"github.com/mikeflynn/hardhat-honeybear/internal/db"
 	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot/filesystem"
+	"github.com/muesli/reflow/wordwrap"
 )
 
 const (
@@ -216,8 +217,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		//cmds = append(cmds, viewport.Sync(m.viewport))
 	case filesystem.FileContentsMsg:
-		m.viewport.SetContent(string(msg))
+		wrapper := wordwrap.NewWriter(m.width - 10)
+		wrapper.Newline = []rune{'\r'}
+		wrapper.Breakpoints = []rune{':', ','}
+		wrapper.Write(msg)
+		wrapper.Close()
+
+		m.viewport.SetContent(m.outputStyle.Render(wrapper.String()))
 		m.viewport.GotoTop()
+	case filesystem.SetRunningCmd:
+		m.runningCommand = string(msg)
 	case filesystem.OutputMsg:
 		m.output += m.outputStyle.Render("\n" + string(msg) + "\n")
 	case filesystem.ClearOutputMsg:
@@ -225,6 +234,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case filesystem.ChangeDirMsg:
 		m.currentDir = msg.Node
 		m.output += m.outputStyle.Render(fmt.Sprintf("\ncd %s\n", msg.Path))
+	case filesystem.HistoryListMsg:
+		max := 10
+		if len(m.history) < 10 {
+			max = len(m.history)
+		}
+
+		list := m.history[:max]
+
+		for i := len(list) - 1; i >= 0; i-- {
+			m.output += m.outputStyle.Render(fmt.Sprintf("\n%d: %s", i, list[i]))
+		}
+
+		m.output += m.outputStyle.Render("\n")
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
