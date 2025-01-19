@@ -22,7 +22,9 @@ import (
 	"github.com/charmbracelet/wish/bubbletea"
 	"github.com/charmbracelet/wish/elapsed"
 	"github.com/charmbracelet/wish/logging"
+	"github.com/google/shlex"
 	"github.com/mikeflynn/hardhat-honeybear/internal/db"
+	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot/filesystem"
 )
 
 const (
@@ -34,8 +36,6 @@ const (
 var (
 	activeUsers int
 )
-
-type fileContentsMsg string
 
 func StartHoneyPot() {
 	activeUsers = 0
@@ -125,10 +125,14 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	textinput.PromptStyle = txtStyle
 	textinput.TextStyle = txtStyle
 
+	filesystem.Initialize()
+
 	m := model{
 		user:         s.Context().User(),
 		host:         s.Context().RemoteAddr().String(),
+		group:        "default",
 		term:         pty.Term,
+		currentDir:   filesystem.HomeDir,
 		profile:      renderer.ColorProfile().Name(),
 		width:        pty.Window.Width,
 		height:       pty.Window.Height,
@@ -154,11 +158,13 @@ type model struct {
 	// Session
 	user           string
 	host           string
+	group          string
 	term           string
 	profile        string
 	width          int
 	height         int
 	runningCommand string
+	currentDir     *filesystem.Node
 	// Styles
 	txtStyle     lipgloss.Style
 	quitStyle    lipgloss.Style
@@ -209,9 +215,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		//cmds = append(cmds, viewport.Sync(m.viewport))
-	case fileContentsMsg:
+	case filesystem.FileContentsMsg:
 		m.viewport.SetContent(string(msg))
 		m.viewport.GotoTop()
+	case filesystem.OutputMsg:
+		m.output += m.outputStyle.Render("\n" + string(msg) + "\n")
+	case filesystem.ClearOutputMsg:
+		m.output = ""
+	case filesystem.ChangeDirMsg:
+		m.currentDir = msg.Node
+		m.output += m.outputStyle.Render(fmt.Sprintf("\ncd %s\n", msg.Path))
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
@@ -219,22 +232,33 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.historyIdx = 0
 			m.output += m.historyStyle.Render(fmt.Sprintf("\n❯ %s\n", m.textInput.Value()))
 
-			if command != "" {
-				historyPush(&m, command)
+			parts, err := shlex.Split(command)
+			if err != nil {
+				m.output += m.outputStyle.Render(fmt.Sprintf("\nError parsing command: %s\n", err))
+				return m, tea.Batch(cmds...)
+			}
 
+			if len(parts) > 0 {
+				// Add to history
+				historyPush(&m, command)
 				// Save an event log
 				err := NewEvent(&m, true, "typed", command)
 				if err != nil {
 					log.Printf("Error saving event: %s", err)
 				}
 
-				if command == "exit" {
+				if parts[0] == "exit" {
 					return m, tea.Quit
 				}
 
-				newCmd := globalCommandHandler(&m)
-				if newCmd != nil {
-					cmds = append(cmds, *newCmd)
+				found, err := filesystem.GetNodeByPath(m.currentDir, parts[0])
+				if err != nil || found == nil {
+					m.output += m.outputStyle.Render(fmt.Sprintf("\n%s: command not found\n", parts[0]))
+				} else {
+					newCmd := found.Exec(m.currentDir, parts[1:])
+					if newCmd != nil {
+						cmds = append(cmds, *newCmd)
+					}
 				}
 			}
 

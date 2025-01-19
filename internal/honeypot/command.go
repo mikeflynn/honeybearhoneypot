@@ -6,6 +6,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/google/shlex"
 	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot/embedded"
+	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot/filesystem"
 	"github.com/muesli/reflow/wordwrap"
 )
 
@@ -23,7 +24,12 @@ func globalCommandHandler(m *model) *tea.Cmd {
 
 	switch parts[0] {
 	case "clear":
-		m.output = ""
+		var cmd tea.Cmd
+		cmd = func() tea.Msg {
+			return filesystem.ClearOutputMsg("")
+		}
+
+		return &cmd
 	case "help":
 		helpText, err := embedded.Files.ReadFile("help.txt")
 		if err != nil {
@@ -49,7 +55,7 @@ func globalCommandHandler(m *model) *tea.Cmd {
 		cmd = func() tea.Msg {
 			fileData, err := embedded.Files.ReadFile(parts[1])
 			if err != nil {
-				return fileContentsMsg(m.outputStyle.Render(fmt.Sprintf("\n%s: No such file or directory\n", err)))
+				return filesystem.FileContentsMsg(m.outputStyle.Render(fmt.Sprintf("\n%s: No such file or directory\n", err)))
 			}
 
 			wrapper := wordwrap.NewWriter(m.width)
@@ -58,7 +64,7 @@ func globalCommandHandler(m *model) *tea.Cmd {
 			wrapper.Write(fileData)
 			wrapper.Close()
 
-			return fileContentsMsg(wrapper.String())
+			return filesystem.FileContentsMsg(wrapper.String())
 		}
 
 		return &cmd
