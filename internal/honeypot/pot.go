@@ -176,11 +176,12 @@ type model struct {
 	quitStyle    lipgloss.Style
 	historyStyle lipgloss.Style
 	outputStyle  lipgloss.Style
-	// UX
+	// UX & Sub-Models
 	textInput textinput.Model
 	viewport  viewport.Model
-	ready     bool
-	helpText  string
+	//confetti  confetti.model
+	ready    bool
+	helpText string
 	// Data
 	output string
 	// History
@@ -252,6 +253,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		m.output += m.outputStyle.Render("\n")
+	case filesystem.ConfettiMsg:
+		m.output += m.outputStyle.Render(fmt.Sprintf("\n%s\n", string(msg)))
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":

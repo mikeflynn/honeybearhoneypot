@@ -24,6 +24,7 @@ type (
 		Path string
 		Node *Node
 	}
+	ConfettiMsg string
 )
 
 func newDirectory(path string, children ...*Node) *Node {
@@ -269,6 +270,21 @@ func Initialize() {
 
 									batch := tea.Batch(cmds...)
 									return &batch
+								},
+							},
+							{
+								Name:      "celebrate",
+								Path:      "/usr/bin/celebrate",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0755,
+								Exec: func(dir *Node, params []string) *tea.Cmd {
+									cmd := tea.Cmd(func() tea.Msg {
+										return ConfettiMsg("🎉")
+									})
+
+									return &cmd
 								},
 							},
 							{
