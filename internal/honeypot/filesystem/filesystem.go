@@ -3,8 +3,10 @@ package filesystem
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot/confetti"
 	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot/embedded"
 )
 
@@ -24,7 +26,6 @@ type (
 		Path string
 		Node *Node
 	}
-	ConfettiMsg string
 )
 
 func newDirectory(path string, children ...*Node) *Node {
@@ -280,11 +281,25 @@ func Initialize() {
 								Group:     "root",
 								Mode:      0755,
 								Exec: func(dir *Node, params []string) *tea.Cmd {
-									cmd := tea.Cmd(func() tea.Msg {
-										return ConfettiMsg("🎉")
-									})
+									cmds := []tea.Cmd{}
+									cmds = append(cmds, tea.Cmd(func() tea.Msg {
+										return SetRunningCmd("confetti")
+									}))
 
-									return &cmd
+									// Star the confetti animation after a short delay for the previous command to finish.
+									cmds = append(cmds, tea.Cmd(func() tea.Msg {
+										time.Sleep(time.Millisecond * 100)
+										return confetti.Burst()
+									}))
+
+									// Reset the running command after the confetti has finished.
+									cmds = append(cmds, tea.Cmd(func() tea.Msg {
+										time.Sleep(time.Second * 4)
+										return SetRunningCmd("")
+									}))
+
+									batch := tea.Batch(cmds...)
+									return &batch
 								},
 							},
 							{

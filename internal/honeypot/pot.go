@@ -23,6 +23,7 @@ import (
 	"github.com/charmbracelet/wish/elapsed"
 	"github.com/charmbracelet/wish/logging"
 	"github.com/google/shlex"
+	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot/confetti"
 	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot/embedded"
 	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot/filesystem"
 	"github.com/muesli/reflow/wordwrap"
@@ -134,24 +135,25 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	filesystem.Initialize()
 
 	m := model{
-		user:         s.Context().User(),
-		host:         s.Context().RemoteAddr().String(),
-		group:        "default",
-		term:         pty.Term,
-		currentDir:   filesystem.HomeDir,
-		profile:      renderer.ColorProfile().Name(),
-		width:        pty.Window.Width,
-		height:       pty.Window.Height,
-		txtStyle:     txtStyle,
-		quitStyle:    quitStyle,
-		outputStyle:  outputStyle,
-		historyStyle: historyStyle,
-		ready:        false,
-		textInput:    textinput,
-		output:       "",
-		helpText:     "Type 'help' to see some commands; Use up/down for history.",
-		historyIdx:   0,
-		history:      []string{},
+		user:          s.Context().User(),
+		host:          s.Context().RemoteAddr().String(),
+		group:         "default",
+		term:          pty.Term,
+		currentDir:    filesystem.HomeDir,
+		profile:       renderer.ColorProfile().Name(),
+		width:         pty.Window.Width,
+		height:        pty.Window.Height,
+		txtStyle:      txtStyle,
+		quitStyle:     quitStyle,
+		outputStyle:   outputStyle,
+		historyStyle:  historyStyle,
+		viewportReady: false,
+		textInput:     textinput,
+		confetti:      confetti.InitialModel(),
+		output:        "",
+		helpText:      "Type 'help' to see some commands; Use up/down for history.",
+		historyIdx:    0,
+		history:       []string{},
 	}
 
 	return m, []tea.ProgramOption{
@@ -177,11 +179,11 @@ type model struct {
 	historyStyle lipgloss.Style
 	outputStyle  lipgloss.Style
 	// UX & Sub-Models
-	textInput textinput.Model
-	viewport  viewport.Model
-	//confetti  confetti.model
-	ready    bool
-	helpText string
+	textInput     textinput.Model
+	viewport      viewport.Model
+	viewportReady bool
+	confetti      tea.Model
+	helpText      string
 	// Data
 	output string
 	// History
@@ -209,17 +211,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		inputHeight := lipgloss.Height(m.textInput.View())
 		verticalMargin := footerHeight + inputHeight
 
-		if !m.ready {
+		if !m.viewportReady {
 			m.viewport = viewport.New(msg.Width, msg.Height-verticalMargin)
 			m.viewport.YPosition = 0
 			m.viewport.HighPerformanceRendering = false
 			m.viewport.Style = m.outputStyle.Border(lipgloss.NormalBorder(), false, false, true, false)
 			m.viewport.SetContent("")
-			m.ready = true
+			m.viewportReady = true
 		} else {
 			m.viewport.Width = msg.Width
 			m.viewport.Height = msg.Height - verticalMargin
 		}
+
+		m.confetti.Update(msg)
 
 		//cmds = append(cmds, viewport.Sync(m.viewport))
 	case filesystem.FileContentsMsg:
@@ -253,8 +257,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		m.output += m.outputStyle.Render("\n")
-	case filesystem.ConfettiMsg:
-		m.output += m.outputStyle.Render(fmt.Sprintf("\n%s\n", string(msg)))
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
@@ -314,12 +316,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// Allow viewport to track arrow keys
-	m.viewport, vpCmd = m.viewport.Update(msg)
-	cmds = append(cmds, vpCmd)
-
-	// The rest of the text can go in to the input.
-	if m.runningCommand == "" {
+	switch m.runningCommand {
+	case "cat":
+		m.viewport, vpCmd = m.viewport.Update(msg)
+		cmds = append(cmds, vpCmd)
+	case "confetti":
+		np, cmd := m.confetti.Update(msg)
+		cp, ok := np.(confetti.Model)
+		if !ok {
+			return m, tea.Quit
+		}
+		m.confetti = cp
+		cmds = append(cmds, cmd)
+	default:
 		m.textInput, cmd = m.textInput.Update(msg)
 		cmds = append(cmds, cmd)
 	}
@@ -328,7 +337,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	if !m.ready {
+	if !m.viewportReady {
 		return "\nInitializing...\n"
 	}
 
@@ -339,20 +348,19 @@ func (m model) View() string {
 	//s := fmt.Sprintf("Your term is %s\nYour window size is %dx%d\nBackground: %s", m.term, m.width, m.height, m.bg)
 
 	content := m.txtStyle.Width(m.width - 4).Height(contentHeight).Render(lipgloss.PlaceVertical(contentHeight-2, lipgloss.Top, m.output))
+	help := m.helpText
 
-	if m.runningCommand == "cat" && m.ready {
+	if m.runningCommand == "cat" && m.viewportReady {
 		m.viewport.Height = m.height - footerHeight
 
 		return "" +
 			m.viewport.View() +
 			"\n" +
 			m.quitStyle.Render("ctrl + c to exit this file.\n")
+	} else if m.runningCommand == "confetti" {
+		content = m.confetti.View()
+		help = "Press 'q' to quit or any other key to make more confetti."
 	}
 
-	return "" +
-		content +
-		"\n" +
-		m.textInput.View() +
-		"\n" +
-		m.quitStyle.Render(m.helpText+"\n")
+	return fmt.Sprintf("%s\n%s\n%s\n", content, m.textInput.View(), m.quitStyle.Render(help))
 }
