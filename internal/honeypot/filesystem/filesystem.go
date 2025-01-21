@@ -327,7 +327,7 @@ func Initialize() {
 								Directory: false,
 								Owner:     "root",
 								Group:     "root",
-								Mode:      0711,
+								Mode:      0710,
 								Exec: func(dir *Node, params []string) *tea.Cmd {
 									cmds := []tea.Cmd{}
 									cmds = append(cmds, tea.Cmd(func() tea.Msg {

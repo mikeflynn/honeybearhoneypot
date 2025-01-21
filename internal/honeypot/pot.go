@@ -279,15 +279,25 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					log.Printf("Error saving event: %s", err)
 				}
 
-				if parts[0] == "exit" {
+				switch parts[0] {
+				case "exit":
 					return m, tea.Quit
-				}
-
-				newCmd, err := filesystem.RunNode(m.currentDir, parts[0], parts[1:], m.user, m.group)
-				if err != nil {
-					m.output += m.outputStyle.Render(fmt.Sprintf("\n%s\n", err))
-				} else if newCmd != nil {
-					cmds = append(cmds, *newCmd)
+				case "sudo":
+					if len(parts) > 1 {
+						newCmd, err := filesystem.RunNode(m.currentDir, parts[1], parts[2:], "root", "root")
+						if err != nil {
+							m.output += m.outputStyle.Render(fmt.Sprintf("\n%s\n", err))
+						} else if newCmd != nil {
+							cmds = append(cmds, *newCmd)
+						}
+					}
+				default:
+					newCmd, err := filesystem.RunNode(m.currentDir, parts[0], parts[1:], m.user, m.group)
+					if err != nil {
+						m.output += m.outputStyle.Render(fmt.Sprintf("\n%s\n", err))
+					} else if newCmd != nil {
+						cmds = append(cmds, *newCmd)
+					}
 				}
 			}
 
