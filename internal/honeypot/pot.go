@@ -283,14 +283,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, tea.Quit
 				}
 
-				found, err := filesystem.GetNodeByPath(m.currentDir, parts[0])
-				if err != nil || found == nil {
-					m.output += m.outputStyle.Render(fmt.Sprintf("\n%s: command not found\n", parts[0]))
-				} else {
-					newCmd := found.Exec(m.currentDir, parts[1:])
-					if newCmd != nil {
-						cmds = append(cmds, *newCmd)
-					}
+				newCmd, err := filesystem.RunNode(m.currentDir, parts[0], parts[1:], m.user, m.group)
+				if err != nil {
+					m.output += m.outputStyle.Render(fmt.Sprintf("\n%s\n", err))
+				} else if newCmd != nil {
+					cmds = append(cmds, *newCmd)
 				}
 			}
 

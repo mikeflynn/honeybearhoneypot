@@ -88,6 +88,37 @@ func Initialize() {
 		Group: "default",
 	}
 
+	// Shared exec functions
+	catExec := func(dir *Node, params []string) *tea.Cmd {
+		cmds := []tea.Cmd{}
+		cmds = append(cmds, tea.Cmd(func() tea.Msg {
+			return SetRunningCmd("cat")
+		}))
+
+		cmds = append(cmds, tea.Cmd(func() tea.Msg {
+			if len(params) == 0 {
+				return OutputMsg("cat: missing file operand")
+			}
+
+			target, err := GetNodeByPath(dir, params[0])
+			if err != nil || target == nil {
+				return OutputMsg(err.Error())
+			}
+
+			fileData, err := target.Open()
+			if err != nil {
+				return OutputMsg("cat: " + err.Error())
+			}
+
+			return FileContentsMsg(fileData)
+		}))
+
+		batch := tea.Batch(cmds...)
+		return &batch
+	}
+
+	catHelp := "Usage: cat [FILE]\n Displays the contents of a file."
+
 	SystemRoot = &Node{
 		Name:      "",
 		Path:      "/",
@@ -121,7 +152,8 @@ func Initialize() {
 								Directory: false,
 								Owner:     "root",
 								Group:     "root",
-								Mode:      0755,
+								Mode:      0711,
+								HelpText:  "Usage: ls [OPTION]... [FILE]...\n List information about the FILEs (the current directory by default).",
 								Exec: func(dir *Node, params []string) *tea.Cmd {
 									cmd := tea.Cmd(func() tea.Msg {
 										output := ""
@@ -172,7 +204,8 @@ func Initialize() {
 								Directory: false,
 								Owner:     "root",
 								Group:     "root",
-								Mode:      0755,
+								Mode:      0711,
+								HelpText:  "Usage: clear\n Clear the terminal screen.",
 								Exec: func(dir *Node, params []string) *tea.Cmd {
 									var cmd tea.Cmd
 									cmd = func() tea.Msg {
@@ -188,7 +221,8 @@ func Initialize() {
 								Directory: false,
 								Owner:     "root",
 								Group:     "root",
-								Mode:      0755,
+								Mode:      0711,
+								HelpText:  "Usage: help\n Display this help text.",
 								Exec: func(dir *Node, params []string) *tea.Cmd {
 									cmds := []tea.Cmd{}
 									cmds = append(cmds, tea.Cmd(func() tea.Msg {
@@ -214,7 +248,8 @@ func Initialize() {
 								Directory: false,
 								Owner:     "root",
 								Group:     "root",
-								Mode:      0755,
+								Mode:      0711,
+								HelpText:  "Usage: pwd\n Print the name of the current working directory.",
 								Exec: func(dir *Node, params []string) *tea.Cmd {
 									cmd := tea.Cmd(func() tea.Msg {
 										return OutputMsg(dir.Path)
@@ -229,7 +264,8 @@ func Initialize() {
 								Directory: false,
 								Owner:     "root",
 								Group:     "root",
-								Mode:      0755,
+								Mode:      0711,
+								HelpText:  "Usage: history\n Display the command history.",
 								Exec: func(dir *Node, params []string) *tea.Cmd {
 									cmd := tea.Cmd(func() tea.Msg {
 										return HistoryListMsg("")
@@ -244,34 +280,29 @@ func Initialize() {
 								Directory: false,
 								Owner:     "root",
 								Group:     "root",
-								Mode:      0755,
-								Exec: func(dir *Node, params []string) *tea.Cmd {
-									cmds := []tea.Cmd{}
-									cmds = append(cmds, tea.Cmd(func() tea.Msg {
-										return SetRunningCmd("cat")
-									}))
-
-									cmds = append(cmds, tea.Cmd(func() tea.Msg {
-										if len(params) == 0 {
-											return OutputMsg("cat: missing file operand")
-										}
-
-										target, err := GetNodeByPath(dir, params[0])
-										if err != nil || target == nil {
-											return OutputMsg(err.Error())
-										}
-
-										fileData, err := target.Open()
-										if err != nil {
-											return OutputMsg("cat: " + err.Error())
-										}
-
-										return FileContentsMsg(fileData)
-									}))
-
-									batch := tea.Batch(cmds...)
-									return &batch
-								},
+								Mode:      0711,
+								Exec:      catExec,
+								HelpText:  catHelp,
+							},
+							{
+								Name:      "less",
+								Path:      "/usr/bin/less",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								Exec:      catExec,
+								HelpText:  catHelp,
+							},
+							{
+								Name:      "more",
+								Path:      "/usr/bin/more",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								Exec:      catExec,
+								HelpText:  catHelp,
 							},
 							{
 								Name:      "celebrate",
@@ -279,7 +310,7 @@ func Initialize() {
 								Directory: false,
 								Owner:     "root",
 								Group:     "root",
-								Mode:      0755,
+								Mode:      0711,
 								Exec: func(dir *Node, params []string) *tea.Cmd {
 									cmds := []tea.Cmd{}
 									cmds = append(cmds, tea.Cmd(func() tea.Msg {
@@ -308,10 +339,15 @@ func Initialize() {
 								Directory: false,
 								Owner:     "root",
 								Group:     "root",
-								Mode:      0755,
+								Mode:      0711,
+								HelpText:  "Usage: cd [DIRECTORY]\n Change the shell working directory.",
 								Exec: func(dir *Node, params []string) *tea.Cmd {
 									var cmd tea.Cmd
 									cmd = func() tea.Msg {
+										if len(params) == 0 {
+											params = []string{"/home/you"}
+										}
+
 										newPath := params[0]
 										newNode, err := GetNodeByPath(dir, newPath)
 										if err != nil {

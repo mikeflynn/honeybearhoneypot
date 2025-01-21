@@ -2,6 +2,8 @@ package filesystem
 
 import (
 	"errors"
+	"fmt"
+	"slices"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -91,15 +93,15 @@ func GetContent(currentNode *Node, path string, user string, group string) ([]by
 }
 
 func RunNode(currentNode *Node, path string, params []string, user string, group string) (*tea.Cmd, error) {
-	if node, err := GetNodeByPath(currentNode, path); err == nil {
-		if !node.IsExecutable(user, group) {
+	if found, err := GetNodeByPath(currentNode, path); err == nil {
+		if !found.IsExecutable(user, group) {
 			return nil, errors.New("not executable")
 		}
 
-		return node.Run(params)
+		return found.Run(currentNode, params)
 	}
 
-	return nil, errors.New("not found")
+	return nil, errors.New(fmt.Sprintf("\n%s: command not found\n", path))
 }
 
 type Node struct {
@@ -113,6 +115,7 @@ type Node struct {
 	Owner     string
 	Group     string
 	Mode      int
+	HelpText  string
 }
 
 func (n *Node) IsDirectory() bool {
@@ -125,7 +128,7 @@ func (n *Node) IsFile() bool {
 
 func (n *Node) IsExecutable(user string, group string) bool {
 	// Check if it's a file and has an executable function
-	if !n.IsFile() || n.Exec != nil {
+	if !n.IsFile() || n.Exec == nil {
 		return false
 	}
 
@@ -204,9 +207,21 @@ func (n *Node) Open() ([]byte, error) {
 	return nil, errors.New("not a file")
 }
 
-func (n *Node) Run(params []string) (*tea.Cmd, error) {
+func (n *Node) Run(currentDir *Node, params []string) (*tea.Cmd, error) {
+	if len(params) > 0 && (slices.Contains(params, "-h") || slices.Contains(params, "--help")) {
+		if n.HelpText == "" {
+			return nil, errors.New("no help text")
+		}
+
+		cmd := tea.Cmd(func() tea.Msg {
+			return OutputMsg(n.HelpText)
+		})
+
+		return &cmd, nil
+	}
+
 	if n.Exec != nil {
-		return n.Exec(n, params), nil
+		return n.Exec(currentDir, params), nil
 	}
 
 	return nil, errors.New("not executable")
