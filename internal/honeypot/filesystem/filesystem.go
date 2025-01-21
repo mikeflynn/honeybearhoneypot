@@ -216,6 +216,23 @@ func Initialize() {
 								},
 							},
 							{
+								Name:      "man",
+								Path:      "/usr/bin/man",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								HelpText:  "Usage: man [COMMAND]\n Display the manual page for a command.",
+								Exec: func(dir *Node, params []string) *tea.Cmd {
+									var cmd tea.Cmd
+									cmd = func() tea.Msg {
+										return OutputMsg("No man. Just use -h or --help on the command you want to learn about.")
+									}
+
+									return &cmd
+								},
+							},
+							{
 								Name:      "help",
 								Path:      "/usr/bin/help",
 								Directory: false,
