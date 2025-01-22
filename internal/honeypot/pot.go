@@ -149,16 +149,25 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		historyStyle:  historyStyle,
 		viewportReady: false,
 		textInput:     textinput,
-		confetti:      confetti.InitialModel(),
-		output:        "",
-		helpText:      "Type 'help' to see some commands; Use up/down for history.",
-		historyIdx:    0,
-		history:       []string{},
+		events: map[string]time.Time{
+			"session_start": time.Now(),
+		},
+		confetti:   confetti.InitialModel(),
+		output:     "",
+		helpText:   "Type 'help' to see some commands; Use up/down for history.",
+		historyIdx: 0,
+		history:    []string{},
 	}
 
 	return m, []tea.ProgramOption{
 		//tea.WithAltScreen(),
 	}
+}
+
+func doTick() tea.Cmd {
+	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
+		return filesystem.TickMsg(t)
+	})
 }
 
 // Just a generic tea.Model to demo terminal information of ssh.
@@ -184,6 +193,7 @@ type model struct {
 	viewportReady bool
 	confetti      tea.Model
 	helpText      string
+	events        map[string]time.Time
 	// Data
 	output string
 	// History
@@ -192,7 +202,7 @@ type model struct {
 }
 
 func (m model) Init() tea.Cmd {
-	return nil
+	return doTick()
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -203,6 +213,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	)
 
 	switch msg := msg.(type) {
+	case filesystem.TickMsg:
+		cmds := []tea.Cmd{}
+		if time.Since(*m.EventTime("session_start")) > 3*time.Minute && m.EventTime("knock") == nil {
+			m.SetEventTime("knock")
+			cmds = append(
+				cmds,
+				tea.Cmd(func() tea.Msg {
+					return filesystem.ClearOutputMsg("")
+				}),
+				tea.Cmd(func() tea.Msg {
+					time.Sleep(time.Second * 1)
+					return filesystem.OutputMsg("Knock, knock, Neo.")
+				}),
+			)
+		}
+
+		cmds = append(cmds, doTick())
+		return m, tea.Batch(cmds...)
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
@@ -262,6 +290,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			command := m.textInput.Value()
 			m.historyIdx = 0
+			m.SetEventTime("enter")
 			m.output += m.historyStyle.Render(fmt.Sprintf("\n❯ %s\n", m.textInput.Value()))
 
 			parts, err := shlex.Split(command)
@@ -370,4 +399,16 @@ func (m model) View() string {
 	}
 
 	return fmt.Sprintf("%s\n%s\n%s\n", content, m.textInput.View(), m.quitStyle.Render(help))
+}
+
+func (m model) EventTime(event string) *time.Time {
+	if t, ok := m.events[event]; ok {
+		return &t
+	}
+
+	return nil
+}
+
+func (m model) SetEventTime(event string) {
+	m.events[event] = time.Now()
 }

@@ -26,6 +26,7 @@ type (
 		Path string
 		Node *Node
 	}
+	TickMsg time.Time
 )
 
 func newDirectory(path string, children ...*Node) *Node {
