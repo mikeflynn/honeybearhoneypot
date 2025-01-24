@@ -30,8 +30,7 @@ import (
 )
 
 const (
-	host     = "localhost"
-	port     = "2222"
+	host     = "0.0.0.0"
 	maxUsers = 10
 )
 
@@ -39,7 +38,7 @@ var (
 	activeUsers int
 )
 
-func StartHoneyPot() {
+func StartHoneyPot(port string) {
 	activeUsers = 0
 
 	s, err := wish.NewServer(

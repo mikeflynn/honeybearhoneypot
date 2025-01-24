@@ -28,7 +28,7 @@ const (
 var currentBear string
 var w fyne.Window
 
-func StartGUI() {
+func StartGUI(fullscreen bool) {
 	a := app.New()
 	a.Settings().SetTheme(&touchTheme{})
 
@@ -95,8 +95,8 @@ func StartGUI() {
 
 	w.Resize(fyne.NewSize(1280, 720))
 	//w.SetFixedSize(true) // Don't allow resizing
-	//w.SetFullScreen(true) // Mandate full screen
-	w.SetMainMenu(systemMenu())
+	w.SetFullScreen(fullscreen) // Inital full screen state
+	//w.SetMainMenu(systemMenu()) // Menu takes a lot of space on linux
 	w.ShowAndRun()
 	shutdown()
 }

@@ -19,18 +19,20 @@ const (
 
 func main() {
 	noGui := flag.Bool("no-gui", false, "Run the honey pot without the GUI")
+	noFS := flag.Bool("no-fs", false, "Don't start the gui in full screen mode")
+	sshPort := flag.String("ssh-port", "1337", "The port to listen on for honey pot SSH connections")
 	flag.Parse()
 
 	setup()
 
 	if *noGui == false {
 		go func() {
-			honeypot.StartHoneyPot()
+			honeypot.StartHoneyPot(*sshPort)
 		}()
 
-		gui.StartGUI()
+		gui.StartGUI(!*noFS)
 	} else {
-		honeypot.StartHoneyPot()
+		honeypot.StartHoneyPot(*sshPort)
 	}
 
 	cleanup()
