@@ -93,7 +93,7 @@ func StartGUI(fullscreen bool) {
 		}
 	}()
 
-	w.Resize(fyne.NewSize(1280, 720))
+	w.Resize(fyne.NewSize(800, 480)) // 1280x720 is the default size
 	//w.SetFixedSize(true) // Don't allow resizing
 	w.SetFullScreen(fullscreen) // Inital full screen state
 	//w.SetMainMenu(systemMenu()) // Menu takes a lot of space on linux
@@ -109,7 +109,7 @@ func getBear(label string) *canvas.Image {
 
 	bear := canvas.NewImageFromReader(bytes.NewReader(bearData), label)
 	bear.FillMode = canvas.ImageFillStretch
-	bear.SetMinSize(fyne.NewSize(1280, 720))
+	bear.SetMinSize(fyne.NewSize(800, 480))
 	bear.Move(fyne.NewPos(0, 0))
 
 	return bear
