@@ -22,13 +22,27 @@ import (
 )
 
 const (
-	version = "v0.1.0"
+	version       = "v0.1.0"
+	defaultWidth  = 800
+	defaultHeight = 480
 )
 
-var currentBear string
-var w fyne.Window
+var (
+	currentBear string
+	w           fyne.Window
+	width       float32 = defaultWidth
+	height      float32 = defaultHeight
+)
 
-func StartGUI(fullscreen bool) {
+func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
+	if overrideWidth != 0 {
+		width = overrideWidth
+	}
+
+	if overrideHeight != 0 {
+		height = overrideHeight
+	}
+
 	a := app.New()
 	a.Settings().SetTheme(&touchTheme{})
 
@@ -93,7 +107,7 @@ func StartGUI(fullscreen bool) {
 		}
 	}()
 
-	w.Resize(fyne.NewSize(800, 480)) // 1280x720 is the default size
+	w.Resize(fyne.NewSize(width, height)) // 1280x720 is the default size
 	//w.SetFixedSize(true) // Don't allow resizing
 	w.SetFullScreen(fullscreen) // Inital full screen state
 	//w.SetMainMenu(systemMenu()) // Menu takes a lot of space on linux
@@ -109,7 +123,7 @@ func getBear(label string) *canvas.Image {
 
 	bear := canvas.NewImageFromReader(bytes.NewReader(bearData), label)
 	bear.FillMode = canvas.ImageFillStretch
-	bear.SetMinSize(fyne.NewSize(800, 480))
+	bear.SetMinSize(fyne.NewSize(width, height))
 	bear.Move(fyne.NewPos(0, 0))
 
 	return bear
