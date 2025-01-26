@@ -48,7 +48,7 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 
 	w = a.NewWindow("Honey Bear Honey Pot")
 
-	currentBear = "default"
+	currentBear = "sleeping"
 	background := container.NewStack(
 		getBear(currentBear),
 	)
@@ -95,12 +95,24 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 	))
 
 	go func() {
-		options := []string{"default", "happy", "very_happy", "laugh", "sad", "wtf"}
+		options := []string{"angry", "cool", "happy", "laughing", "look_left", "look_right", "sad", "surprised", "terminator"}
+		// Other Bear Ideas: Winking, More Looking, Concerned Looking, Blushing?, ...
+		glitches := []string{"glitch_001", "glitch_002", "glitch_003", "glitch_004"}
+
 		for range time.Tick(5 * time.Second) {
 			idx := rand.Intn(len(options))
-			currentBear = options[idx]
-			background.Objects[0] = getBear(currentBear)
-			background.Refresh()
+			newBear := options[idx]
+			if currentBear != newBear {
+				currentBear = newBear
+
+				glitch := glitches[rand.Intn(len(glitches))]
+				background.Objects[0] = getBear(glitch)
+				background.Refresh()
+
+				time.Sleep(150 * time.Millisecond)
+				background.Objects[0] = getBear(currentBear)
+				background.Refresh()
+			}
 
 			statCurrentUsers.Text = fmt.Sprintf("%d / %d", honeypot.StatActiveUsers(), honeypot.StatMaxUsers())
 			dataOverlays.Refresh()
@@ -116,7 +128,7 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 }
 
 func getBear(label string) *canvas.Image {
-	bearData, err := assets.Images.ReadFile(label + ".jpg")
+	bearData, err := assets.Images.ReadFile("bear_" + label + ".jpg")
 	if err != nil {
 		return nil
 	}
