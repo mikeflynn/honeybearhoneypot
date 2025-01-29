@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/mikeflynn/hardhat-honeybear/internal/gui/assets"
@@ -48,10 +49,16 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 
 	w = a.NewWindow("Honey Bear Honey Pot")
 
-	currentBear = "sleeping"
+	currentBear := bears.GetBearByCategory("boot", nil)
+	if currentBear == nil {
+		fmt.Println("Error loading boot bear")
+		os.Exit(1)
+	}
+
 	background := container.NewStack(
-		getBear(currentBear),
+		showBear(*currentBear),
 	)
+
 	//background.Resize(fyne.NewSize(1280, 720))
 
 	functionToolbar := container.NewPadded(
@@ -95,22 +102,30 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 	))
 
 	go func() {
-		options := []string{"angry", "cool", "happy", "laughing", "look_left", "look_right", "sad", "surprised", "terminator"}
-		// Other Bear Ideas: Winking, More Looking, Concerned Looking, Blushing?, ...
-		glitches := []string{"glitch_001", "glitch_002", "glitch_003", "glitch_004"}
+		for range time.Tick(3 * time.Second) {
+			r := rand.Intn(100)
+			cat := "standard"
+			if r < 10 { // Temporary hack to show an emote every 10th tick
+				cat = "emote"
+			}
 
-		for range time.Tick(5 * time.Second) {
-			idx := rand.Intn(len(options))
-			newBear := options[idx]
+			newBear := bears.GetBearByCategory(cat, nil)
+			if newBear == nil {
+				newBear = currentBear
+			}
+
 			if currentBear != newBear {
+				if currentBear.Category != newBear.Category {
+					glitch := bears.GetBearByCategory("glitch", nil)
+					if glitch != nil {
+						background.Objects[0] = showBear(*glitch)
+						background.Refresh()
+						time.Sleep(175 * time.Millisecond)
+					}
+				}
+
 				currentBear = newBear
-
-				glitch := glitches[rand.Intn(len(glitches))]
-				background.Objects[0] = getBear(glitch)
-				background.Refresh()
-
-				time.Sleep(150 * time.Millisecond)
-				background.Objects[0] = getBear(currentBear)
+				background.Objects[0] = showBear(*currentBear)
 				background.Refresh()
 			}
 
@@ -127,18 +142,18 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 	shutdown()
 }
 
-func getBear(label string) *canvas.Image {
-	bearData, err := assets.Images.ReadFile("bear_" + label + ".jpg")
+func showBear(bear Bear) *canvas.Image {
+	fileData, err := bear.FileData()
 	if err != nil {
 		return nil
 	}
 
-	bear := canvas.NewImageFromReader(bytes.NewReader(bearData), label)
-	bear.FillMode = canvas.ImageFillStretch
-	bear.SetMinSize(fyne.NewSize(width, height))
-	bear.Move(fyne.NewPos(0, 0))
+	image := canvas.NewImageFromReader(bytes.NewReader(fileData), bear.Name)
+	image.FillMode = canvas.ImageFillStretch
+	image.SetMinSize(fyne.NewSize(width, height))
+	image.Move(fyne.NewPos(0, 0))
 
-	return bear
+	return image
 }
 
 func systemMenu() *fyne.MainMenu {
