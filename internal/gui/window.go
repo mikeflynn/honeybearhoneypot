@@ -59,8 +59,6 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 		showBear(*currentBear),
 	)
 
-	//background.Resize(fyne.NewSize(1280, 720))
-
 	functionToolbar := container.NewPadded(
 		container.NewHBox(
 			layout.NewSpacer(),
@@ -75,22 +73,22 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 	statCurrentUsers := canvas.NewText(fmt.Sprintf("%d / %d", 0, honeypot.StatMaxUsers()), theme.Color(theme.ColorNameForeground))
 	dataOverlays := container.NewPadded(
 		container.NewHBox(
+			layout.NewSpacer(),
 			container.NewVBox(
 				container.NewStack(
-					canvas.NewRectangle(theme.Color(theme.ColorNameBackground)),
+					canvas.NewRectangle(theme.Color(theme.ColorNameOverlayBackground)),
 					container.NewPadded(
 						statCurrentUsers,
 					),
 				),
 				container.NewStack(
-					canvas.NewRectangle(theme.Color(theme.ColorNameBackground)),
+					canvas.NewRectangle(theme.Color(theme.ColorNameOverlayBackground)),
 					container.NewPadded(
 						canvas.NewText("38%", theme.Color(theme.ColorNameForeground)),
 					),
 				),
 				layout.NewSpacer(),
 			),
-			layout.NewSpacer(),
 		),
 	)
 
@@ -137,7 +135,7 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 	w.Resize(fyne.NewSize(width, height)) // 1280x720 is the default size
 	//w.SetFixedSize(true) // Don't allow resizing
 	w.SetFullScreen(fullscreen) // Inital full screen state
-	//w.SetMainMenu(systemMenu()) // Menu takes a lot of space on linux
+	w.SetPadded(false)
 	w.ShowAndRun()
 	shutdown()
 }
@@ -154,24 +152,6 @@ func showBear(bear Bear) *canvas.Image {
 	image.Move(fyne.NewPos(0, 0))
 
 	return image
-}
-
-func systemMenu() *fyne.MainMenu {
-	return fyne.NewMainMenu(
-		fyne.NewMenu(
-			"Host",
-			fyne.NewMenuItem("Restart", nil),
-			fyne.NewMenuItem("Shutdown", nil),
-		),
-		fyne.NewMenu(
-			"Honey Pot",
-			fyne.NewMenuItem("Start", nil),
-			fyne.NewMenuItem("Stop", nil),
-		),
-		fyne.NewMenu(
-			"Help",
-			fyne.NewMenuItem("___", nil),
-		))
 }
 
 func shutdown() {

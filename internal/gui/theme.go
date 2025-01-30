@@ -12,6 +12,10 @@ type touchTheme struct{}
 var _ fyne.Theme = (*touchTheme)(nil)
 
 func (m touchTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
+	if name == theme.ColorNameBackground {
+		return color.RGBA{R: 0xaf, G: 0x62, B: 0x31, A: 0xff}
+	}
+
 	return theme.DefaultTheme().Color(name, variant)
 }
 
@@ -24,5 +28,5 @@ func (m touchTheme) Font(style fyne.TextStyle) fyne.Resource {
 }
 
 func (m touchTheme) Size(name fyne.ThemeSizeName) float32 {
-	return theme.DefaultTheme().Size(name)*2
+	return theme.DefaultTheme().Size(name) * 2
 }
