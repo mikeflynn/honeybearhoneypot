@@ -17,7 +17,6 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
-	"github.com/charmbracelet/wish/accesscontrol"
 	"github.com/charmbracelet/wish/activeterm"
 	"github.com/charmbracelet/wish/bubbletea"
 	"github.com/charmbracelet/wish/elapsed"
@@ -58,13 +57,12 @@ func StartHoneyPot(port string) {
 		}),
 		wish.WithMiddleware(
 			bubbletea.Middleware(teaHandler),
-			activeterm.Middleware(), // Bubble Tea apps usually require a PTY.
-			accesscontrol.Middleware(),
-			logging.Middleware(),
 			func(next ssh.Handler) ssh.Handler {
 				return func(s ssh.Session) {
 					activeUsers++
+
 					next(s)
+
 					activeUsers--
 					if activeUsers < 0 {
 						activeUsers = 0
@@ -72,6 +70,9 @@ func StartHoneyPot(port string) {
 
 				}
 			},
+			activeterm.Middleware(), // Bubble Tea apps usually require a PTY.
+			//accesscontrol.Middleware(),
+			logging.Middleware(),
 			elapsed.Middleware(),
 		),
 	)
@@ -288,6 +289,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "enter":
 			command := m.textInput.Value()
+			log.Debug(fmt.Sprintf("Command entered by %s:%s: %s", m.user, m.host, command))
 			m.historyIdx = 0
 			m.SetEventTime("enter")
 			m.output += m.historyStyle.Render(fmt.Sprintf("\n❯ %s\n", m.textInput.Value()))

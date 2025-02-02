@@ -4,10 +4,10 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
 	"path/filepath"
 
+	"github.com/charmbracelet/log"
 	"github.com/mikeflynn/hardhat-honeybear/internal/db"
 	"github.com/mikeflynn/hardhat-honeybear/internal/gui"
 	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot"
@@ -23,7 +23,11 @@ func main() {
 	sshPort := flag.String("ssh-port", "1337", "The port to listen on for honey pot SSH connections")
 	widthFlag := flag.Int("width", 0, "The width of the GUI window")
 	heightFlag := flag.Int("height", 0, "The height of the GUI window")
+	logLevel := flag.String("log-level", "info", "Log level (debug, info, warn, error, fatal)")
 	flag.Parse()
+
+	log.SetLevel(translateLogLevel(*logLevel))
+	log.Info("Starting Honey Bear Honey Pot...")
 
 	setup()
 
@@ -57,7 +61,7 @@ func setup() {
 		}
 	}
 
-	log.Printf("App data directory: %s\n", appConfigDir)
+	log.Debug("App data directory: %s\n", appConfigDir)
 
 	// Initialize the database
 	db.Initialize(appConfigDir)
@@ -66,4 +70,21 @@ func setup() {
 func cleanup() {
 	// Close the database connection
 	db.Close()
+}
+
+func translateLogLevel(logLevel string) log.Level {
+	switch logLevel {
+	case "debug":
+		return log.DebugLevel
+	case "info":
+		return log.InfoLevel
+	case "warn":
+		return log.WarnLevel
+	case "error":
+		return log.ErrorLevel
+	case "fatal":
+		return log.FatalLevel
+	default:
+		return log.InfoLevel
+	}
 }
