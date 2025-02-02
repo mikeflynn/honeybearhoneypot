@@ -312,6 +312,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				switch parts[0] {
 				case "exit":
 					return m, tea.Quit
+				case "whoami":
+					m.output += m.outputStyle.Render(fmt.Sprintf("\n%s\n", m.user))
 				case "sudo":
 					if len(parts) > 1 {
 						newCmd, err := filesystem.RunNode(m.currentDir, parts[1], parts[2:], "root", "root")

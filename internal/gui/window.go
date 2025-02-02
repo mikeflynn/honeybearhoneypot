@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/charmbracelet/log"
 	"github.com/mikeflynn/hardhat-honeybear/internal/gui/assets"
 	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot"
 
@@ -55,8 +56,24 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 		os.Exit(1)
 	}
 
+	buttonNose := widget.NewButton("", func() {
+		log.Debug("Nose poke!")
+	})
+	buttonNose.Importance = widget.LowImportance
+
 	background := container.NewStack(
 		showBear(*currentBear),
+		container.New(
+			layout.NewGridLayoutWithColumns(3),
+			layout.NewSpacer(),
+			container.New(
+				layout.NewGridLayoutWithRows(3),
+				layout.NewSpacer(),
+				buttonNose,
+				layout.NewSpacer(),
+			),
+			layout.NewSpacer(),
+		),
 	)
 
 	functionToolbar := container.NewPadded(

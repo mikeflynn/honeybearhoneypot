@@ -12,11 +12,14 @@ type touchTheme struct{}
 var _ fyne.Theme = (*touchTheme)(nil)
 
 func (m touchTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
-	if name == theme.ColorNameBackground {
+	switch name {
+	case theme.ColorNameBackground:
 		return color.RGBA{R: 0xaf, G: 0x62, B: 0x31, A: 0xff}
+	case theme.ColorNameButton:
+		return color.RGBA{R: 0x00, G: 0x00, B: 0x00, A: 0x00}
+	default:
+		return theme.DefaultTheme().Color(name, variant)
 	}
-
-	return theme.DefaultTheme().Color(name, variant)
 }
 
 func (m touchTheme) Icon(name fyne.ThemeIconName) fyne.Resource {

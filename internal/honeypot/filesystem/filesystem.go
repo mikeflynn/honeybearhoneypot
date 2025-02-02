@@ -217,6 +217,40 @@ func Initialize() {
 								},
 							},
 							{
+								Name:      "echo",
+								Path:      "/usr/bin/echo",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								HelpText:  "Usage: echo\nDisplay a line of text.",
+								Exec: func(dir *Node, params []string) *tea.Cmd {
+									var cmd tea.Cmd
+									cmd = func() tea.Msg {
+										return OutputMsg(strings.Join(params, " "))
+									}
+
+									return &cmd
+								},
+							},
+							{
+								Name:      "ping",
+								Path:      "/usr/bin/ping",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								HelpText:  "Usage: ping\n Send a ping, get a pong.",
+								Exec: func(dir *Node, params []string) *tea.Cmd {
+									var cmd tea.Cmd
+									cmd = func() tea.Msg {
+										return OutputMsg("Pong!")
+									}
+
+									return &cmd
+								},
+							},
+							{
 								Name:      "man",
 								Path:      "/usr/bin/man",
 								Directory: false,
