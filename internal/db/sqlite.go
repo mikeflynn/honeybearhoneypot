@@ -14,7 +14,7 @@ const (
 
 var client *sql.DB
 
-func Initialize(appConfigDir string) {
+func Initialize(appConfigDir string, initQueries ...string) {
 	// Initialize the database
 	var err error
 	client, err = sql.Open("sqlite3", filepath.Join(appConfigDir, dbFilename))
@@ -23,11 +23,12 @@ func Initialize(appConfigDir string) {
 	}
 
 	// Create the tables
-	EventInitialization(client)
-	OptionInitialization(client)
+	for _, query := range initQueries {
+		MakeWrite(query)
+	}
 }
 
-func makeQuery(query string, values ...any) (*sql.Rows, error) {
+func MakeQuery(query string, values ...any) (*sql.Rows, error) {
 	rows, err := client.Query(query, values...)
 	if err != nil {
 		return nil, err
@@ -37,7 +38,7 @@ func makeQuery(query string, values ...any) (*sql.Rows, error) {
 	return rows, nil
 }
 
-func makeWrite(query string, values ...any) error {
+func MakeWrite(query string, values ...any) error {
 	_, err := client.Exec(query, values...)
 	if err != nil {
 		return err

@@ -116,6 +116,12 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 		functionToolbar,
 	))
 
+	// Pot Event Channel
+	go func() {
+
+	}()
+
+	// UI update loop
 	go func() {
 		for range time.Tick(3 * time.Second) {
 			r := rand.Intn(100)

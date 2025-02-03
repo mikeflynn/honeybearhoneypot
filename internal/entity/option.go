@@ -1,19 +1,19 @@
-package db
+package entity
 
 import (
-	"database/sql"
 	"fmt"
 	"time"
+
+	"github.com/mikeflynn/hardhat-honeybear/internal/db"
 )
 
-func OptionInitialization(client *sql.DB) error {
-	initializeStmt := `
+func OptionInitialization() string {
+	return `
 		CREATE TABLE IF NOT EXISTS options (
 			name TEXT PRIMARY KEY,
 			value TEXT,
 			timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
 		);`
-	return makeWrite(initializeStmt)
 }
 
 type Option struct {
@@ -29,7 +29,7 @@ func (o *Option) Save() error {
 		ON CONFLICT(name)
 		DO UPDATE SET value = excluded.value, timestamp = CURRENT_TIMESTAMP;
 	`
-	return makeWrite(query, o.Name, o.Value)
+	return db.MakeWrite(query, o.Name, o.Value)
 }
 
 func (o *Option) Load() error {
@@ -38,7 +38,7 @@ func (o *Option) Load() error {
 	}
 
 	query := `SELECT name, value, timestamp FROM options WHERE name = ?;`
-	rows, err := makeQuery(query)
+	rows, err := db.MakeQuery(query)
 	if err != nil {
 		return err
 	}

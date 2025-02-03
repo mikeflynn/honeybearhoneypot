@@ -9,6 +9,7 @@ import (
 
 	"github.com/charmbracelet/log"
 	"github.com/mikeflynn/hardhat-honeybear/internal/db"
+	"github.com/mikeflynn/hardhat-honeybear/internal/entity"
 	"github.com/mikeflynn/hardhat-honeybear/internal/gui"
 	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot"
 )
@@ -64,7 +65,11 @@ func setup() {
 	log.Debug("App data directory: %s\n", appConfigDir)
 
 	// Initialize the database
-	db.Initialize(appConfigDir)
+	db.Initialize(
+		appConfigDir,
+		entity.EventInitialization(),
+		entity.OptionInitialization(),
+	)
 }
 
 func cleanup() {

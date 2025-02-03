@@ -3,7 +3,7 @@ package honeypot
 import (
 	"time"
 
-	"github.com/mikeflynn/hardhat-honeybear/internal/db"
+	"github.com/mikeflynn/hardhat-honeybear/internal/entity"
 )
 
 func historyPush(m *model, command string) {
@@ -36,12 +36,12 @@ func historyIdxDec(m *model) {
 }
 
 func NewEvent(m *model, userEvent bool, eventType string, eventAction string) error {
-	source := db.EventSourceSystem
+	source := entity.EventSourceSystem
 	if userEvent {
-		source = db.EventSourceUser
+		source = entity.EventSourceUser
 	}
 
-	event := &db.Event{
+	event := &entity.Event{
 		User:      m.user,
 		Host:      m.host,
 		App:       "ssh",

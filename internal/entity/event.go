@@ -1,8 +1,9 @@
-package db
+package entity
 
 import (
-	"database/sql"
 	"time"
+
+	"github.com/mikeflynn/hardhat-honeybear/internal/db"
 )
 
 const (
@@ -10,8 +11,10 @@ const (
 	EventSourceUser   = "user"
 )
 
-func EventInitialization(client *sql.DB) error {
-	initializeStmt := `
+var EventSubscriptions = map[string]chan *Event{}
+
+func EventInitialization() string {
+	return `
 		PRAGMA user_version = 1;
 		CREATE TABLE IF NOT EXISTS events (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,7 +27,17 @@ func EventInitialization(client *sql.DB) error {
 	    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
 		);
 		`
-	return makeWrite(initializeStmt)
+}
+
+func EventSubscribe(name string) chan *Event {
+	c := make(chan *Event)
+	EventSubscriptions[name] = c
+	return c
+}
+
+func EventUnsubscribe(name string) {
+	close(EventSubscriptions[name])
+	delete(EventSubscriptions, name)
 }
 
 type Event struct {
@@ -40,11 +53,17 @@ type Event struct {
 
 func (e *Event) Save() error {
 	insertStmt := `INSERT INTO events (user, host, app, source, type, action) VALUES (?, ?, ?, ?, ?, ?);`
-	return makeWrite(insertStmt, e.User, e.Host, e.App, e.Source, e.Type, e.Action)
+	return db.MakeWrite(insertStmt, e.User, e.Host, e.App, e.Source, e.Type, e.Action)
+}
+
+func (e *Event) Publish() {
+	for _, c := range EventSubscriptions {
+		c <- e
+	}
 }
 
 func EventQuery(query string, values ...any) ([]*Event, error) {
-	rows, err := makeQuery(query, values...)
+	rows, err := db.MakeQuery(query, values...)
 	if err != nil {
 		return nil, err
 	}
