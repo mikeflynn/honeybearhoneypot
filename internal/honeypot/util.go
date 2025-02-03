@@ -51,5 +51,6 @@ func NewEvent(m *model, userEvent bool, eventType string, eventAction string) er
 		Timestamp: time.Now(),
 	}
 
+	event.Publish()
 	return event.Save()
 }

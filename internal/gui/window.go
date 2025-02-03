@@ -10,7 +10,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/charmbracelet/log"
 	"github.com/mikeflynn/hardhat-honeybear/internal/gui/assets"
 	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot"
 
@@ -30,10 +29,12 @@ const (
 )
 
 var (
-	currentBear string
-	w           fyne.Window
-	width       float32 = defaultWidth
-	height      float32 = defaultHeight
+	currentBear   string
+	overrideBear  string
+	emotionFactor int = 1
+	w             fyne.Window
+	width         float32 = defaultWidth
+	height        float32 = defaultHeight
 )
 
 func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
@@ -57,7 +58,7 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 	}
 
 	buttonNose := widget.NewButton("", func() {
-		log.Debug("Nose poke!")
+		overrideBear = "Laughing"
 	})
 	buttonNose.Importance = widget.LowImportance
 
@@ -98,12 +99,14 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 						statCurrentUsers,
 					),
 				),
-				container.NewStack(
-					canvas.NewRectangle(theme.Color(theme.ColorNameOverlayBackground)),
-					container.NewPadded(
-						canvas.NewText("38%", theme.Color(theme.ColorNameForeground)),
+				/*
+					container.NewStack(
+						canvas.NewRectangle(theme.Color(theme.ColorNameOverlayBackground)),
+						container.NewPadded(
+							canvas.NewText("38%", theme.Color(theme.ColorNameForeground)),
+						),
 					),
-				),
+				*/
 				layout.NewSpacer(),
 			),
 		),
@@ -113,6 +116,7 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 		layout.NewStackLayout(),
 		background,
 		dataOverlays,
+		//notifications,
 		functionToolbar,
 	))
 
@@ -123,14 +127,21 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 
 	// UI update loop
 	go func() {
-		for range time.Tick(3 * time.Second) {
+		for range time.Tick(2 * time.Second) {
 			r := rand.Intn(100)
 			cat := "standard"
-			if r < 10 { // Temporary hack to show an emote every 10th tick
+			if r < emotionFactor {
 				cat = "emote"
 			}
 
-			newBear := bears.GetBearByCategory(cat, nil)
+			var newBear *Bear
+			if overrideBear != "" {
+				newBear = bears.GetBear(overrideBear)
+				overrideBear = ""
+			} else {
+				newBear = bears.GetBearByCategory(cat, nil)
+			}
+
 			if newBear == nil {
 				newBear = currentBear
 			}
