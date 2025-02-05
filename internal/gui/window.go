@@ -5,11 +5,13 @@ package gui
 import (
 	"bytes"
 	"fmt"
+	"image/color"
 	"math/rand"
 	"net/url"
 	"os"
 	"time"
 
+	"github.com/mikeflynn/hardhat-honeybear/internal/entity"
 	"github.com/mikeflynn/hardhat-honeybear/internal/gui/assets"
 	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot"
 
@@ -58,7 +60,8 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 	}
 
 	buttonNose := widget.NewButton("", func() {
-		overrideBear = "Laughing"
+		subcat := "react"
+		overrideBear = bears.GetBearByCategory("standard", &subcat).Name
 	})
 	buttonNose.Importance = widget.LowImportance
 
@@ -112,17 +115,43 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 		),
 	)
 
+	notifications := container.NewVBox(
+		createNotification(&entity.Event{User: "mike", Host: "localhost", Action: "whoami"}),
+	)
+
 	w.SetContent(container.New(
 		layout.NewStackLayout(),
 		background,
 		dataOverlays,
-		//notifications,
+		container.NewPadded(
+			container.NewHBox(
+				notifications,
+				layout.NewSpacer(),
+			),
+		),
 		functionToolbar,
 	))
 
 	// Pot Event Channel
+	eventChan := entity.EventSubscribe("notifications")
 	go func() {
+		for {
+			select {
+			case event := <-eventChan:
+				if event == nil {
+					break
+				}
 
+				notifications.Add(createNotification(event))
+				notifications.Refresh()
+
+				//log.Info("Event: ", "User", event.User, "Host", event.Host, "App", event.App, "Source", event.Source, "Type", event.Type, "Action", event.Action, "Timestamp", event.Timestamp)
+
+				emotionFactor += 1
+			case <-time.After(60 * time.Second):
+				emotionFactor = 1
+			}
+		}
 	}()
 
 	// UI update loop
@@ -130,6 +159,7 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 		for range time.Tick(2 * time.Second) {
 			r := rand.Intn(100)
 			cat := "standard"
+			subcat := "idle"
 			if r < emotionFactor {
 				cat = "emote"
 			}
@@ -139,7 +169,7 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 				newBear = bears.GetBear(overrideBear)
 				overrideBear = ""
 			} else {
-				newBear = bears.GetBearByCategory(cat, nil)
+				newBear = bears.GetBearByCategory(cat, &subcat)
 			}
 
 			if newBear == nil {
@@ -171,7 +201,9 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 	w.SetFullScreen(fullscreen) // Inital full screen state
 	w.SetPadded(false)
 	w.ShowAndRun()
-	shutdown()
+
+	// Cleanup
+	entity.EventUnsubscribe("notifications")
 }
 
 func showBear(bear Bear) *canvas.Image {
@@ -186,11 +218,6 @@ func showBear(bear Bear) *canvas.Image {
 	image.Move(fyne.NewPos(0, 0))
 
 	return image
-}
-
-func shutdown() {
-	// Run any clean up tasks here
-	return
 }
 
 func aboutButton() *widget.Button {
@@ -237,4 +264,38 @@ func aboutButton() *widget.Button {
 	aboutButton.Importance = widget.LowImportance
 
 	return aboutButton
+}
+
+func createNotification(event *entity.Event) *fyne.Container {
+	fontSize := float32(18)
+
+	bg := canvas.NewRectangle(color.RGBA{255, 255, 255, 64})
+	bg.Resize(fyne.NewSize(240, 40))
+
+	from := canvas.NewText(maxLen(fmt.Sprintf("%s@%s", event.User, event.Host), 25), color.Black)
+	from.TextSize = fontSize
+	from.TextStyle = fyne.TextStyle{Bold: true}
+
+	what := canvas.NewText(maxLen(fmt.Sprintf("> %s", event.Action), 25), color.Black)
+	what.TextSize = fontSize
+	what.TextStyle = fyne.TextStyle{Bold: true}
+
+	return container.NewStack(
+		//canvas.NewRectangle(theme.Color(theme.ColorNameOverlayBackground)),
+		bg,
+		container.NewPadded(
+			container.NewVBox(
+				from,
+				what,
+			),
+		),
+	)
+}
+
+func maxLen(s string, l int) string {
+	if len(s) > l {
+		return s[:l-3] + "..."
+	}
+
+	return s
 }

@@ -30,7 +30,7 @@ func EventInitialization() string {
 }
 
 func EventSubscribe(name string) chan *Event {
-	c := make(chan *Event)
+	c := make(chan *Event, 10)
 	EventSubscriptions[name] = c
 	return c
 }
