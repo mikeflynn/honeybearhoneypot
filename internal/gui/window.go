@@ -115,9 +115,7 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 		),
 	)
 
-	notifications := container.NewVBox(
-		createNotification(&entity.Event{User: "mike", Host: "localhost", Action: "whoami"}),
-	)
+	notifications := container.NewVBox()
 
 	w.SetContent(container.New(
 		layout.NewStackLayout(),
@@ -134,6 +132,8 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 
 	// Pot Event Channel
 	eventChan := entity.EventSubscribe("notifications")
+	nq := &notificationQueue{maxLength: 5, maxAge: 30 * time.Second}
+
 	go func() {
 		for {
 			select {
@@ -142,8 +142,7 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 					break
 				}
 
-				notifications.Add(createNotification(event))
-				notifications.Refresh()
+				nq.Push(event)
 
 				//log.Info("Event: ", "User", event.User, "Host", event.Host, "App", event.App, "Source", event.Source, "Type", event.Type, "Action", event.Action, "Timestamp", event.Timestamp)
 
@@ -157,6 +156,7 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 	// UI update loop
 	go func() {
 		for range time.Tick(2 * time.Second) {
+			// Randomly change the bear
 			r := rand.Intn(100)
 			cat := "standard"
 			subcat := "idle"
@@ -191,8 +191,16 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 				background.Refresh()
 			}
 
+			// Update the current user count
 			statCurrentUsers.Text = fmt.Sprintf("%d / %d", honeypot.StatActiveUsers(), honeypot.StatMaxUsers())
 			dataOverlays.Refresh()
+
+			// Update the notifications
+			notifications.RemoveAll()
+			for _, container := range nq.Draw() {
+				notifications.Add(container)
+			}
+			notifications.Refresh()
 		}
 	}()
 
@@ -266,36 +274,72 @@ func aboutButton() *widget.Button {
 	return aboutButton
 }
 
-func createNotification(event *entity.Event) *fyne.Container {
-	fontSize := float32(18)
-
-	bg := canvas.NewRectangle(color.RGBA{255, 255, 255, 64})
-	bg.Resize(fyne.NewSize(240, 40))
-
-	from := canvas.NewText(maxLen(fmt.Sprintf("%s@%s", event.User, event.Host), 25), color.Black)
-	from.TextSize = fontSize
-	from.TextStyle = fyne.TextStyle{Bold: true}
-
-	what := canvas.NewText(maxLen(fmt.Sprintf("> %s", event.Action), 25), color.Black)
-	what.TextSize = fontSize
-	what.TextStyle = fyne.TextStyle{Bold: true}
-
-	return container.NewStack(
-		//canvas.NewRectangle(theme.Color(theme.ColorNameOverlayBackground)),
-		bg,
-		container.NewPadded(
-			container.NewVBox(
-				from,
-				what,
-			),
-		),
-	)
-}
-
-func maxLen(s string, l int) string {
+func maxStringLen(s string, l int) string {
 	if len(s) > l {
 		return s[:l-3] + "..."
 	}
 
 	return s
+}
+
+type notificationQueue struct {
+	notifications []*entity.Event
+	maxLength     int
+	maxAge        time.Duration
+}
+
+func (n *notificationQueue) Push(event *entity.Event) {
+	if len(n.notifications) >= n.maxLength {
+		n.Pop()
+	}
+
+	n.notifications = append(n.notifications, event)
+}
+
+func (n *notificationQueue) Pop() *entity.Event {
+	if len(n.notifications) == 0 {
+		return nil
+	}
+
+	event := n.notifications[0]
+	n.notifications = n.notifications[1:]
+
+	return event
+}
+
+func (n *notificationQueue) Draw() []*fyne.Container {
+	containers := []*fyne.Container{}
+
+	for i := len(n.notifications) - 1; i >= 0; i-- {
+		event := n.notifications[i]
+		if event.Timestamp.Add(n.maxAge).Before(time.Now()) {
+			continue
+		}
+
+		fontSize := float32(18)
+
+		bg := canvas.NewRectangle(color.RGBA{255, 255, 255, 64})
+		bg.Resize(fyne.NewSize(240, 40))
+
+		from := canvas.NewText(maxStringLen(fmt.Sprintf("%s@%s", event.User, event.Host), 25), color.Black)
+		from.TextSize = fontSize
+		from.TextStyle = fyne.TextStyle{Bold: true}
+
+		what := canvas.NewText(maxStringLen(fmt.Sprintf("> %s", event.Action), 25), color.Black)
+		what.TextSize = fontSize
+		what.TextStyle = fyne.TextStyle{Bold: true}
+
+		containers = append(containers, container.NewStack(
+			//canvas.NewRectangle(theme.Color(theme.ColorNameOverlayBackground)),
+			bg,
+			container.NewPadded(
+				container.NewVBox(
+					from,
+					what,
+				),
+			),
+		))
+	}
+
+	return containers
 }
