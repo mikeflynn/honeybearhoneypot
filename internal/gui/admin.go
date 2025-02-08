@@ -5,12 +5,12 @@ import (
 	"time"
 
 	fyne "fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"github.com/mikeflynn/hardhat-honeybear/internal/gui/keypad"
 )
 
 const (
@@ -28,7 +28,18 @@ func getAdminButton() *widget.Button {
 		approved := 0
 		approvalBinding := binding.BindInt(&approved)
 
-		authPopup = widget.NewModalPopUp(adminAuthenticate(approvalBinding), w.Canvas())
+		passSuccessFunc := func() {
+			approvalBinding.Set(authSuccess)
+		}
+
+		passCancelFunc := func() {
+			authPopup.Hide()
+			approvalBinding.Set(authCancel)
+		}
+
+		password := "1234"
+		keypad := keypad.Keypad(passSuccessFunc, passCancelFunc, nil, &password)
+		authPopup = widget.NewModalPopUp(keypad, w.Canvas())
 		go func() {
 			i := 0
 			for range time.Tick(time.Second) {
@@ -84,84 +95,6 @@ func getAdminMenu() *fyne.Container {
 	adminPopupContent.Resize(fyne.NewSize(900, 400))
 
 	return adminPopupContent
-}
-
-func adminAuthenticate(approved binding.ExternalInt) *fyne.Container {
-	selectedLabel := canvas.NewText("", theme.Color(theme.ColorNameForeground))
-	selectedLabel.Alignment = fyne.TextAlignCenter
-	selectedLabel.TextStyle = fyne.TextStyle{Monospace: true}
-	selectedLabel.TextSize = 48
-	selectedLabel.Resize(fyne.NewSize(300, 50))
-
-	maxDigits := 9
-	addDigit := func(digit string) {
-		if len(selectedLabel.Text) >= maxDigits {
-			return
-		}
-
-		selectedLabel.Text += digit
-		selectedLabel.Refresh()
-	}
-
-	submitBtn := widget.NewButtonWithIcon("Submit", theme.ConfirmIcon(), func() {
-		if selectedLabel.Text == "1234" {
-			approved.Set(authSuccess)
-		} else {
-			selectedLabel.Text = ""
-		}
-
-		selectedLabel.Refresh()
-	})
-
-	submitBtn.Importance = widget.HighImportance
-
-	keypad := container.NewVBox(
-		selectedLabel,
-		container.NewGridWithRows(3,
-			container.NewGridWithColumns(3,
-				widget.NewButton("1", func() {
-					addDigit("1")
-				}),
-				widget.NewButton("2", func() {
-					addDigit("2")
-				}),
-				widget.NewButton("3", func() {
-					addDigit("3")
-				}),
-			),
-			container.NewGridWithColumns(3,
-				widget.NewButton("4", func() {
-					addDigit("4")
-				}),
-				widget.NewButton("5", func() {
-					addDigit("5")
-				}),
-				widget.NewButton("6", func() {
-					addDigit("6")
-				}),
-			),
-			container.NewGridWithColumns(3,
-				widget.NewButton("7", func() {
-					addDigit("7")
-				}),
-				widget.NewButton("8", func() {
-					addDigit("8")
-				}),
-				widget.NewButton("9", func() {
-					addDigit("9")
-				}),
-			),
-		),
-		container.NewHBox(
-			widget.NewButtonWithIcon("", theme.WindowCloseIcon(), func() {
-				authPopup.Hide()
-				approved.Set(authCancel)
-			}),
-			submitBtn,
-		),
-	)
-
-	return keypad
 }
 
 func adminBearTab() *fyne.Container {
