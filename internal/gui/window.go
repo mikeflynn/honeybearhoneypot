@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"fmt"
 	"image/color"
-	"math/rand"
+	rand "math/rand/v2"
 	"net/url"
 	"os"
 	"time"
@@ -157,7 +157,7 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 	go func() {
 		for range time.Tick(2 * time.Second) {
 			// Randomly change the bear
-			r := rand.Intn(100)
+			r := rand.IntN(100)
 			cat := "standard"
 			subcat := "idle"
 			if r < emotionFactor {
