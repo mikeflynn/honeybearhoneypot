@@ -6,8 +6,8 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot/confetti"
-	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot/embedded"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/confetti"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/embedded"
 )
 
 var (

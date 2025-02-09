@@ -3,7 +3,7 @@ package entity
 import (
 	"time"
 
-	"github.com/mikeflynn/hardhat-honeybear/internal/db"
+	"github.com/mikeflynn/honeybearhoneypot/internal/db"
 )
 
 const (

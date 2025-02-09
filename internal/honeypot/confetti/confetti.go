@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot/simulation"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/simulation"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/harmonica"

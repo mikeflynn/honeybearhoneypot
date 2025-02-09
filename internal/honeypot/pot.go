@@ -22,10 +22,10 @@ import (
 	"github.com/charmbracelet/wish/elapsed"
 	"github.com/charmbracelet/wish/logging"
 	"github.com/google/shlex"
-	"github.com/mikeflynn/hardhat-honeybear/internal/entity"
-	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot/confetti"
-	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot/embedded"
-	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot/filesystem"
+	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/confetti"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/embedded"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/filesystem"
 	"github.com/muesli/reflow/wordwrap"
 )
 
@@ -38,7 +38,7 @@ var (
 	activeUsers int
 )
 
-func StartHoneyPot(port string) {
+func StartHoneyPot(port string, additionalListener *net.Listener) {
 	activeUsers = 0
 	maxUsers := entity.OptionGetInt(entity.KeyPotMaxUsers)
 	if maxUsers == 0 {
@@ -97,6 +97,15 @@ func StartHoneyPot(port string) {
 			done <- nil
 		}
 	}()
+
+	if additionalListener != nil {
+		go func() {
+			if err = s.Serve(*additionalListener); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
+				log.Error("Could not start server", "error", err)
+				done <- nil
+			}
+		}()
+	}
 
 	<-done
 	log.Info("Stopping SSH server")

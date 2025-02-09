@@ -11,9 +11,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/mikeflynn/hardhat-honeybear/internal/entity"
-	"github.com/mikeflynn/hardhat-honeybear/internal/gui/assets"
-	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot"
+	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
+	"github.com/mikeflynn/honeybearhoneypot/internal/gui/assets"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot"
 
 	fyne "fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"

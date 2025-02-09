@@ -3,7 +3,7 @@ package honeypot
 import (
 	"time"
 
-	"github.com/mikeflynn/hardhat-honeybear/internal/entity"
+	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
 )
 
 func historyPush(m *model, command string) {

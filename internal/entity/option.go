@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/log"
-	"github.com/mikeflynn/hardhat-honeybear/internal/db"
+	"github.com/mikeflynn/honeybearhoneypot/internal/db"
 )
 
 const (

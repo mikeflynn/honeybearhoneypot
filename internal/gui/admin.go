@@ -11,8 +11,8 @@ import (
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 	"github.com/charmbracelet/log"
-	"github.com/mikeflynn/hardhat-honeybear/internal/entity"
-	"github.com/mikeflynn/hardhat-honeybear/internal/gui/keypad"
+	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
+	"github.com/mikeflynn/honeybearhoneypot/internal/gui/keypad"
 )
 
 const (

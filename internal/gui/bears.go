@@ -3,7 +3,7 @@ package gui
 import (
 	"math/rand"
 
-	"github.com/mikeflynn/hardhat-honeybear/internal/gui/assets"
+	"github.com/mikeflynn/honeybearhoneypot/internal/gui/assets"
 )
 
 // Other Bear Ideas: Winking, More Looking, Concerned Looking, Blushing?, ...

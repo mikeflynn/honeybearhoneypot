@@ -1,7 +1,7 @@
 package honeypot
 
 import (
-	"github.com/mikeflynn/hardhat-honeybear/internal/entity"
+	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
 )
 
 func StatActiveUsers() int {
