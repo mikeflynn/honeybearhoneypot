@@ -10,6 +10,8 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"github.com/charmbracelet/log"
+	"github.com/mikeflynn/hardhat-honeybear/internal/entity"
 	"github.com/mikeflynn/hardhat-honeybear/internal/gui/keypad"
 )
 
@@ -28,8 +30,15 @@ func getAdminButton() *widget.Button {
 		approved := 0
 		approvalBinding := binding.BindInt(&approved)
 
-		passSuccessFunc := func() {
-			approvalBinding.Set(authSuccess)
+		adminPIN := entity.OptionGet(entity.KeyAdminPIN)
+		if adminPIN == "" {
+			adminPIN = "1234"
+		}
+
+		passSuccessFunc := func(val string) {
+			if val == adminPIN {
+				approvalBinding.Set(authSuccess)
+			}
 		}
 
 		passCancelFunc := func() {
@@ -37,8 +46,7 @@ func getAdminButton() *widget.Button {
 			approvalBinding.Set(authCancel)
 		}
 
-		password := "1234"
-		keypad := keypad.Keypad(passSuccessFunc, passCancelFunc, nil, &password)
+		keypad := keypad.Keypad(passSuccessFunc, passCancelFunc, nil)
 		authPopup = widget.NewModalPopUp(keypad, w.Canvas())
 		go func() {
 			i := 0
@@ -115,7 +123,24 @@ func adminPotTab() *fyne.Container {
 	return container.NewVBox(
 		container.NewGridWithRows(2,
 			container.NewGridWithColumns(2,
-				widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
+				widget.NewButtonWithIcon("Set Max Users", theme.AccountIcon(), func() {
+					var sp *widget.PopUp
+
+					keypad := keypad.Keypad(
+						func(val string) {
+							log.Debug(entity.KeyPotMaxUsers, "val", val)
+							entity.OptionSet(entity.KeyPotMaxUsers, val)
+							sp.Hide()
+						},
+						func() {
+							sp.Hide()
+						},
+						nil,
+					)
+
+					sp = widget.NewModalPopUp(keypad, w.Canvas())
+					sp.Show()
+				}),
 				widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
 			),
 			container.NewGridWithColumns(2,
@@ -133,7 +158,24 @@ func adminSystemTab() *fyne.Container {
 				widget.NewButtonWithIcon("Quit App", theme.LogoutIcon(), func() {
 					os.Exit(0)
 				}),
-				widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
+				widget.NewButtonWithIcon("Change PIN", theme.SettingsIcon(), func() {
+					var sp *widget.PopUp
+
+					keypad := keypad.Keypad(
+						func(val string) {
+							log.Debug(entity.KeyAdminPIN, "val", val)
+							entity.OptionSet(entity.KeyAdminPIN, val)
+							sp.Hide()
+						},
+						func() {
+							sp.Hide()
+						},
+						nil,
+					)
+
+					sp = widget.NewModalPopUp(keypad, w.Canvas())
+					sp.Show()
+				}),
 			),
 			container.NewGridWithColumns(2,
 				widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),

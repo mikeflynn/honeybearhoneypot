@@ -25,6 +25,7 @@ func main() {
 	widthFlag := flag.Int("width", 0, "The width of the GUI window")
 	heightFlag := flag.Int("height", 0, "The height of the GUI window")
 	logLevel := flag.String("log-level", "info", "Log level (debug, info, warn, error, fatal)")
+	pinOverride := flag.String("pin-reset", "", "Reset the admin PIN to a specific value")
 	flag.Parse()
 
 	log.SetLevel(translateLogLevel(*logLevel))
@@ -39,6 +40,10 @@ func main() {
 
 		gui.StartGUI(!*noFS, float32(*widthFlag), float32(*heightFlag))
 	} else {
+		if *pinOverride != "" {
+			entity.OptionSet("gui_pin", *pinOverride)
+		}
+
 		honeypot.StartHoneyPot(*sshPort)
 	}
 
@@ -62,7 +67,7 @@ func setup() {
 		}
 	}
 
-	log.Debug("App data directory: %s\n", appConfigDir)
+	log.Debug("App Data Directory", "path", appConfigDir)
 
 	// Initialize the database
 	db.Initialize(

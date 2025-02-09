@@ -22,6 +22,7 @@ import (
 	"github.com/charmbracelet/wish/elapsed"
 	"github.com/charmbracelet/wish/logging"
 	"github.com/google/shlex"
+	"github.com/mikeflynn/hardhat-honeybear/internal/entity"
 	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot/confetti"
 	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot/embedded"
 	"github.com/mikeflynn/hardhat-honeybear/internal/honeypot/filesystem"
@@ -29,8 +30,8 @@ import (
 )
 
 const (
-	host     = "0.0.0.0"
-	maxUsers = 10
+	host            = "0.0.0.0"
+	defaultMaxUsers = 10
 )
 
 var (
@@ -39,11 +40,19 @@ var (
 
 func StartHoneyPot(port string) {
 	activeUsers = 0
+	maxUsers := entity.OptionGetInt(entity.KeyPotMaxUsers)
+	if maxUsers == 0 {
+		maxUsers = defaultMaxUsers
+	}
 
 	s, err := wish.NewServer(
 		wish.WithAddress(net.JoinHostPort(host, port)),
 		wish.WithHostKeyPath(".ssh/id_ed25519"),
 		wish.WithPasswordAuth(func(ctx ssh.Context, password string) bool {
+			if activeUsers+1 > maxUsers {
+				return false
+			}
+
 			log.Info(fmt.Sprintf("Authorization used: %s, %s", ctx.User(), password))
 			return true
 		}),
@@ -67,7 +76,6 @@ func StartHoneyPot(port string) {
 					if activeUsers < 0 {
 						activeUsers = 0
 					}
-
 				}
 			},
 			activeterm.Middleware(), // Bubble Tea apps usually require a PTY.

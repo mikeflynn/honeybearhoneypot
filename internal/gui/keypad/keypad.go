@@ -4,6 +4,7 @@ import (
 	fyne "fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
@@ -16,10 +17,10 @@ var (
 	selectedLabel *canvas.Text
 )
 
-func Keypad(successFunc func(), cancelFunc func(), defaultVal *string, password *string) *fyne.Container {
+func Keypad(successFunc func(val string), cancelFunc func(), value *string) *fyne.Container {
 	defaultLabel := ""
-	if defaultVal != nil {
-		defaultLabel = *defaultVal
+	if value != nil {
+		defaultLabel = *value
 	}
 
 	selectedLabel = canvas.NewText(defaultLabel, theme.Color(theme.ColorNameForeground))
@@ -30,14 +31,7 @@ func Keypad(successFunc func(), cancelFunc func(), defaultVal *string, password 
 
 	cancelBtn := widget.NewButtonWithIcon("", theme.WindowCloseIcon(), cancelFunc)
 	submitBtn := widget.NewButtonWithIcon("Submit", theme.ConfirmIcon(), func() {
-		if password != nil {
-			if selectedLabel.Text == *password {
-				successFunc()
-			}
-		} else {
-			successFunc()
-		}
-
+		successFunc(selectedLabel.Text)
 		selectedLabel.Text = ""
 		selectedLabel.Refresh()
 	})
@@ -46,7 +40,7 @@ func Keypad(successFunc func(), cancelFunc func(), defaultVal *string, password 
 
 	return container.NewVBox(
 		selectedLabel,
-		container.NewGridWithRows(3,
+		container.NewGridWithRows(4,
 			container.NewGridWithColumns(3,
 				widget.NewButton("1", func() {
 					addDigit("1")
@@ -79,6 +73,13 @@ func Keypad(successFunc func(), cancelFunc func(), defaultVal *string, password 
 				widget.NewButton("9", func() {
 					addDigit("9")
 				}),
+			),
+			container.NewGridWithColumns(3,
+				layout.NewSpacer(),
+				widget.NewButton("0", func() {
+					addDigit("0")
+				}),
+				layout.NewSpacer(),
 			),
 		),
 		container.NewHBox(
