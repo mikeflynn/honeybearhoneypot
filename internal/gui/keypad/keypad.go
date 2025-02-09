@@ -15,13 +15,11 @@ const (
 
 var (
 	selectedLabel *canvas.Text
+	typed         string
 )
 
-func Keypad(successFunc func(val string), cancelFunc func(), value *string) *fyne.Container {
+func Keypad(successFunc func(val string), cancelFunc func(), hideTyped bool) *fyne.Container {
 	defaultLabel := ""
-	if value != nil {
-		defaultLabel = *value
-	}
 
 	selectedLabel = canvas.NewText(defaultLabel, theme.Color(theme.ColorNameForeground))
 	selectedLabel.Alignment = fyne.TextAlignCenter
@@ -31,9 +29,8 @@ func Keypad(successFunc func(val string), cancelFunc func(), value *string) *fyn
 
 	cancelBtn := widget.NewButtonWithIcon("", theme.WindowCloseIcon(), cancelFunc)
 	submitBtn := widget.NewButtonWithIcon("Submit", theme.ConfirmIcon(), func() {
-		successFunc(selectedLabel.Text)
-		selectedLabel.Text = ""
-		selectedLabel.Refresh()
+		successFunc(typed)
+		clearTyped()
 	})
 
 	submitBtn.Importance = widget.HighImportance
@@ -43,41 +40,41 @@ func Keypad(successFunc func(val string), cancelFunc func(), value *string) *fyn
 		container.NewGridWithRows(4,
 			container.NewGridWithColumns(3,
 				widget.NewButton("1", func() {
-					addDigit("1")
+					addDigit("1", hideTyped)
 				}),
 				widget.NewButton("2", func() {
-					addDigit("2")
+					addDigit("2", hideTyped)
 				}),
 				widget.NewButton("3", func() {
-					addDigit("3")
+					addDigit("3", hideTyped)
 				}),
 			),
 			container.NewGridWithColumns(3,
 				widget.NewButton("4", func() {
-					addDigit("4")
+					addDigit("4", hideTyped)
 				}),
 				widget.NewButton("5", func() {
-					addDigit("5")
+					addDigit("5", hideTyped)
 				}),
 				widget.NewButton("6", func() {
-					addDigit("6")
+					addDigit("6", hideTyped)
 				}),
 			),
 			container.NewGridWithColumns(3,
 				widget.NewButton("7", func() {
-					addDigit("7")
+					addDigit("7", hideTyped)
 				}),
 				widget.NewButton("8", func() {
-					addDigit("8")
+					addDigit("8", hideTyped)
 				}),
 				widget.NewButton("9", func() {
-					addDigit("9")
+					addDigit("9", hideTyped)
 				}),
 			),
 			container.NewGridWithColumns(3,
 				layout.NewSpacer(),
 				widget.NewButton("0", func() {
-					addDigit("0")
+					addDigit("0", hideTyped)
 				}),
 				layout.NewSpacer(),
 			),
@@ -89,11 +86,23 @@ func Keypad(successFunc func(val string), cancelFunc func(), value *string) *fyn
 	)
 }
 
-func addDigit(digit string) {
+func addDigit(digit string, hideTyped bool) {
 	if len(selectedLabel.Text) >= maxDigits {
 		return
 	}
 
-	selectedLabel.Text += digit
+	if hideTyped {
+		selectedLabel.Text += "*"
+	} else {
+		selectedLabel.Text += digit
+	}
+
+	typed += digit
+	selectedLabel.Refresh()
+}
+
+func clearTyped() {
+	typed = ""
+	selectedLabel.Text = typed
 	selectedLabel.Refresh()
 }

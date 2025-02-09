@@ -46,7 +46,7 @@ func getAdminButton() *widget.Button {
 			approvalBinding.Set(authCancel)
 		}
 
-		keypad := keypad.Keypad(passSuccessFunc, passCancelFunc, nil)
+		keypad := keypad.Keypad(passSuccessFunc, passCancelFunc, true)
 		authPopup = widget.NewModalPopUp(keypad, w.Canvas())
 		go func() {
 			i := 0
@@ -135,7 +135,7 @@ func adminPotTab() *fyne.Container {
 						func() {
 							sp.Hide()
 						},
-						nil,
+						false,
 					)
 
 					sp = widget.NewModalPopUp(keypad, w.Canvas())
@@ -170,7 +170,7 @@ func adminSystemTab() *fyne.Container {
 						func() {
 							sp.Hide()
 						},
-						nil,
+						false,
 					)
 
 					sp = widget.NewModalPopUp(keypad, w.Canvas())
