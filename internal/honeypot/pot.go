@@ -38,7 +38,7 @@ var (
 	activeUsers int
 )
 
-func StartHoneyPot(port string, additionalListener *net.Listener) {
+func StartHoneyPot(port string, additionalListeners ...*net.Listener) {
 	activeUsers = 0
 	maxUsers := entity.OptionGetInt(entity.KeyPotMaxUsers)
 	if maxUsers == 0 {
@@ -98,13 +98,19 @@ func StartHoneyPot(port string, additionalListener *net.Listener) {
 		}
 	}()
 
-	if additionalListener != nil {
-		go func() {
-			if err = s.Serve(*additionalListener); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
-				log.Error("Could not start server", "error", err)
-				done <- nil
+	if len(additionalListeners) > 0 {
+		for _, additionalListener := range additionalListeners {
+			if additionalListener == nil {
+				continue
 			}
-		}()
+
+			go func() {
+				if err = s.Serve(*additionalListener); err != nil && !errors.Is(err, ssh.ErrServerClosed) {
+					log.Error("Could not start server", "error", err)
+					done <- nil
+				}
+			}()
+		}
 	}
 
 	<-done

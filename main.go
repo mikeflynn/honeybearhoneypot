@@ -7,13 +7,13 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/charmbracelet/log"
 	"github.com/mikeflynn/honeybearhoneypot/internal/db"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
 	"github.com/mikeflynn/honeybearhoneypot/internal/gui"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot"
-	"tailscale.com/tsnet"
 )
 
 const (
@@ -23,38 +23,38 @@ const (
 func main() {
 	noGui := flag.Bool("no-gui", false, "Run the honey pot without the GUI")
 	noFS := flag.Bool("no-fs", false, "Don't start the gui in full screen mode")
-	sshPort := flag.String("ssh-port", "1337", "The port to listen on for honey pot SSH connections")
+	sshPort := flag.String("ssh-port", "1337", "The port to listen on for honey pot SSH connections. Comma separated list for multiple ports.")
 	widthFlag := flag.Int("width", 0, "The width of the GUI window")
 	heightFlag := flag.Int("height", 0, "The height of the GUI window")
 	logLevel := flag.String("log-level", "info", "Log level (debug, info, warn, error, fatal)")
 	pinOverride := flag.String("pin-reset", "", "Reset the admin PIN to a specific value")
-	tailscaleAuthKey := flag.String("tailscale-key", "", "A Tailscale Auth Key to use for public internet access.")
 	flag.Parse()
 
 	log.SetLevel(translateLogLevel(*logLevel))
 	log.Info("Starting Honey Bear Honey Pot...")
 
-	appConfigDir := setup()
+	setup()
 
-	var additionalListener *net.Listener
-	if *tailscaleAuthKey != "" {
-		tsSrv := new(tsnet.Server)
-		tsSrv.AuthKey = *tailscaleAuthKey
-		tsSrv.Hostname = "honeybearhoneypot"
-		tsSrv.Dir = appConfigDir
-		tsSrv.Ephemeral = true
-		tsl, err := tsSrv.ListenFunnel("tcp", ":10000")
-		if err != nil {
-			log.Fatal("Tailscale failed to connect.", "Err", err)
+	var primaryPort string
+	var additionalListeners []*net.Listener
+	ports := strings.Split(*sshPort, ",")
+	for x, port := range ports {
+		log.Debug("Adding listener", "port", port)
+		if x == 0 {
+			primaryPort = port
+			continue
 		}
 
-		additionalListener = &tsl
-		defer tsSrv.Close()
+		if listener, err := net.Listen("tcp", ":"+port); err == nil {
+			additionalListeners = append(additionalListeners, &listener)
+		} else {
+			log.Error("Failed to add listener", "port", port, "err", err)
+		}
 	}
 
 	if *noGui == false {
 		go func() {
-			honeypot.StartHoneyPot(*sshPort, additionalListener)
+			honeypot.StartHoneyPot(primaryPort, additionalListeners...)
 		}()
 
 		if *pinOverride != "" {
@@ -63,7 +63,7 @@ func main() {
 
 		gui.StartGUI(!*noFS, float32(*widthFlag), float32(*heightFlag))
 	} else {
-		honeypot.StartHoneyPot(*sshPort, additionalListener)
+		honeypot.StartHoneyPot(primaryPort, additionalListeners...)
 	}
 
 	cleanup()
