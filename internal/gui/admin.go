@@ -81,22 +81,26 @@ func getAdminButton() *widget.Button {
 }
 
 func getAdminMenu() *fyne.Container {
-	adminSettingsHeader := widget.NewLabel("Settings")
+	adminSettingsHeader := widget.NewLabel("Admin Menu")
+
+	adminCloseButton := widget.NewButtonWithIcon("", theme.WindowCloseIcon(), func() {
+		adminPopup.Hide() // Function to hide the pop-up
+	})
+	adminCloseButton.Alignment = widget.ButtonAlignTrailing
+
 	adminPopupContent := container.New(
 		layout.NewCenterLayout(),
 		container.NewVBox(
-			container.NewGridWithColumns(4,
+			container.NewGridWithColumns(3,
 				adminSettingsHeader,
 				layout.NewSpacer(),
-				layout.NewSpacer(),
-				widget.NewButtonWithIcon("", theme.WindowCloseIcon(), func() {
-					adminPopup.Hide() // Function to hide the pop-up
-				}),
+				adminCloseButton,
 			),
 			container.NewAppTabs(
+				container.NewTabItem("Stats", adminStatsTab()),
 				container.NewTabItem("Bear", adminBearTab()),
 				container.NewTabItem("Pot", adminPotTab()),
-				container.NewTabItem("System", adminSystemTab()),
+				container.NewTabItem("App", adminSystemTab()),
 			),
 		),
 	)
@@ -108,13 +112,16 @@ func getAdminMenu() *fyne.Container {
 func adminBearTab() *fyne.Container {
 	return container.NewVBox(
 		container.NewGridWithRows(2,
-			container.NewGridWithColumns(2,
-				widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
-				widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
-			),
 			widget.NewButtonWithIcon("Toggle Fullscreen", theme.ViewFullScreenIcon(), func() {
 				w.SetFullScreen(!w.FullScreen())
 			}),
+			layout.NewSpacer(),
+			/*
+				container.NewGridWithColumns(2,
+					widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
+					widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
+				),
+			*/
 		),
 	)
 }
@@ -141,12 +148,9 @@ func adminPotTab() *fyne.Container {
 					sp = widget.NewModalPopUp(keypad, w.Canvas())
 					sp.Show()
 				}),
-				widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
+				layout.NewSpacer(),
 			),
-			container.NewGridWithColumns(2,
-				widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
-				widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
-			),
+			layout.NewSpacer(),
 		),
 	)
 }
@@ -177,9 +181,27 @@ func adminSystemTab() *fyne.Container {
 					sp.Show()
 				}),
 			),
+			/*
+				container.NewGridWithColumns(2,
+					widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
+					widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
+				),
+			*/
+			layout.NewSpacer(),
+		),
+	)
+}
+
+func adminStatsTab() *fyne.Container {
+	return container.NewVBox(
+		container.NewGridWithRows(2,
 			container.NewGridWithColumns(2,
-				widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
-				widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
+				widget.NewButtonWithIcon("Leaderboard", theme.ContentPasteIcon(), func() {}),
+				widget.NewButtonWithIcon("Top Commands", theme.ComputerIcon(), func() {}),
+			),
+			container.NewGridWithColumns(2,
+				widget.NewButtonWithIcon("Activity Graph", theme.BrokenImageIcon(), func() {}),
+				layout.NewSpacer(),
 			),
 		),
 	)
