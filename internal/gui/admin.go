@@ -148,7 +148,9 @@ func adminPotTab() *fyne.Container {
 					sp = widget.NewModalPopUp(keypad, w.Canvas())
 					sp.Show()
 				}),
-				layout.NewSpacer(),
+				widget.NewButtonWithIcon("Purge Logs/Stats", theme.DeleteIcon(), func() {
+					// Do nothing.
+				}),
 			),
 			layout.NewSpacer(),
 		),
