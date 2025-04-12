@@ -45,7 +45,7 @@ var (
 	tunnelPort              = "22"          // Port of remote SSH server
 	tunnelRemoteBind        = "127.0.0.1"   // IP address to bind to on the *remote* server (0.0.0.0 for all)
 	tunnelRemoteForwardPort = "2222"        // Port to open on the *remote* server for forwarding
-	knownHostsPath          string          // Path to known hosts file.
+	knownHostsPath          = ""            // Path to known hosts file.
 )
 
 func SetPort(port string) error {

@@ -3,12 +3,13 @@ package honeypot
 import (
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"os"
 	"time"
 
+	"github.com/charmbracelet/log"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/knownhosts"
 )
 
 // Helper function to load the private key
@@ -33,31 +34,35 @@ func setupReverseTunnel(
 	remoteBindAddr string, // Address to bind on remote server (e.g., "0.0.0.0")
 	remoteForwardPort string, // Port to forward on remote server (e.g., 8022)
 ) {
-	log.Printf("Attempting to set up reverse tunnel:")
-	log.Printf("  Remote Host: %s@%s:%s", tunnelUser, tunnelHost, tunnelSSHPort)
-	log.Printf("  SSH Key: %s", sshKeyPath)
-	log.Printf("  Known Hosts: %s", knownHostsPath)
-	log.Printf("  Forwarding Remote Port: %s:%s", remoteBindAddr, remoteForwardPort)
-	log.Printf("  To Local Web Service: %s", localServiceAddr)
+	log.Info(
+		"Attempting to set up reverse tunnel.",
+		"Remote Host:", fmt.Sprintf("%s@%s:%s", tunnelUser, tunnelHost, tunnelSSHPort),
+		"SSH Key:", sshKeyPath,
+		"Known Hosts:", knownHostsPath,
+		"Forwarding Remote Port:", fmt.Sprintf("%s:%s", remoteBindAddr, remoteForwardPort),
+		"Local Service:", localServiceAddr,
+	)
 
 	// Get SSH Auth Method
 	authMethod, err := publicKeyFile(sshKeyPath)
 	if err != nil {
-		log.Fatalf("Failed to load private key: %v", err)
+		log.Error("Failed to load private key: %v", err)
+		return
 	}
 
 	// Host Key Verification (Recommended)
-	/*
-		hostKeyCallback, err := knownhosts.New(knownHostsPath)
+	hostKeyCallback := ssh.InsecureIgnoreHostKey()
+	if knownHostsPath != "" {
+		hostKeyCallback, err = knownhosts.New(knownHostsPath)
 		if err != nil {
 			// If known_hosts doesn't exist or is invalid, fallback is less secure.
 			// Consider if you want to *require* known_hosts.
-			log.Printf("WARN: Could not load known_hosts file '%s': %v. Using InsecureIgnoreHostKey.", knownHostsPath, err)
-			// **SECURITY RISK**: Only use InsecureIgnoreHostKey if you understand the implications (MitM vulnerability)
-			//hostKeyCallback = ssh.InsecureIgnoreHostKey()
-			log.Fatalf("Known hosts file is required for security. Please create or specify a valid file.") // Safer default
+			log.Warn("Could not load known_hosts file. Using InsecureIgnoreHostKey.", "file", knownHostsPath, "error", err)
 		}
-	*/
+	} else {
+		log.Warn("No known host file set. Using InsecureIgnoreHostKey.")
+
+	}
 
 	// Configure SSH Client
 	sshConfig := &ssh.ClientConfig{
@@ -65,41 +70,41 @@ func setupReverseTunnel(
 		Auth: []ssh.AuthMethod{
 			authMethod,
 		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		HostKeyCallback: hostKeyCallback,
 		Timeout:         15 * time.Second, // Connection timeout
 	}
 
 	// Connect to remote SSH server
 	remoteServerAddr := fmt.Sprintf("%s:%s", tunnelHost, tunnelSSHPort)
-	log.Printf("Connecting to remote SSH server %s...", remoteServerAddr)
+	log.Info("Connecting to remote SSH server...", "host", remoteServerAddr)
 
 	// Loop for potential reconnection (optional, basic implementation)
 	for {
 		sshClient, err := ssh.Dial("tcp", remoteServerAddr, sshConfig)
 		if err != nil {
-			log.Printf("Failed to dial remote SSH server: %v. Retrying in 10 seconds...", err)
+			log.Info("Failed to dial remote SSH server. Retrying in 10 seconds...", "error", err)
 			time.Sleep(10 * time.Second)
 			continue // Retry connection
 		}
-		log.Println("Successfully connected to remote SSH server.")
+		log.Info("Successfully connected to remote SSH server.")
 
 		// Request the remote side to listen and forward
 		remoteListenAddr := fmt.Sprintf("%s:%s", remoteBindAddr, remoteForwardPort)
-		log.Printf("Requesting remote server to listen on %s...", remoteListenAddr)
+		log.Info("Requesting remote server to listen on...", "host", remoteListenAddr)
 		listener, err := sshClient.Listen("tcp", remoteListenAddr)
 		if err != nil {
-			log.Printf("Failed to request remote listener: %v. (Check remote sshd_config AllowTcpForwarding). Retrying connection in 10 seconds...", err)
+			log.Warn("Failed to request remote listener: %v. (Check remote sshd_config AllowTcpForwarding). Retrying connection in 10 seconds...", err)
 			sshClient.Close() // Close the potentially broken client
 			time.Sleep(10 * time.Second)
 			continue // Retry connection
 		}
-		log.Printf("Remote server is now listening on %s and forwarding to %s.", remoteListenAddr, localServiceAddr)
+		log.Info("Remote server is now active!", "listening on", remoteListenAddr, "forwarding to", localServiceAddr)
 
 		// --- Accept loop: Handle incoming connections from the tunnel ---
 		acceptLoop(listener, localServiceAddr)
 
 		// If acceptLoop returns, it means the listener failed (likely SSH connection dropped)
-		log.Println("Tunnel listener closed. Attempting to reconnect...")
+		log.Warn("Tunnel listener closed. Attempting to reconnect...")
 		sshClient.Close()           // Ensure client is closed before retrying
 		time.Sleep(5 * time.Second) // Wait a bit before reconnecting
 	}
@@ -112,11 +117,11 @@ func acceptLoop(listener net.Listener, localServiceAddr string) {
 		remoteConn, err := listener.Accept()
 		if err != nil {
 			// This error often happens if the SSH connection drops or listener is closed.
-			log.Printf("Failed to accept incoming tunnel connection: %v.", err)
+			log.Warn("Failed to accept incoming tunnel connection.", "error", err)
 			// Exit the loop so the outer function can attempt reconnection.
 			return
 		}
-		log.Printf("Accepted tunneled connection from %s", remoteConn.RemoteAddr())
+		log.Info("Accepted tunneled connection.", "from", remoteConn.RemoteAddr())
 
 		// Handle the connection in a new goroutine
 		go func(tunneledConn net.Conn) {
@@ -125,14 +130,14 @@ func acceptLoop(listener net.Listener, localServiceAddr string) {
 			// Dial the local web service
 			localConn, err := net.DialTimeout("tcp", localServiceAddr, 10*time.Second) // Added timeout
 			if err != nil {
-				log.Printf("Failed to dial local web service %s: %v", localServiceAddr, err)
+				log.Warn("Failed to dial local web service.", "host", localServiceAddr, "error", err)
 				return // Close the tunneled connection
 			}
 			defer localConn.Close()
-			log.Printf("Successfully connected to local web service %s for tunneled connection", localServiceAddr)
+			log.Debug("Successfully connected to local web service or tunneled connection", "addr", localServiceAddr)
 
 			// Proxy data
-			log.Printf("Proxying data between tunneled %s <--> local %s", tunneledConn.RemoteAddr(), localConn.RemoteAddr())
+			log.Debug("Proxying data between tunneled <--> local", "tunneled", tunneledConn.RemoteAddr(), "local", localConn.RemoteAddr())
 			errChan := make(chan error, 2)
 			go func() { _, err := io.Copy(localConn, tunneledConn); errChan <- err }()
 			go func() { _, err := io.Copy(tunneledConn, localConn); errChan <- err }()
@@ -140,9 +145,9 @@ func acceptLoop(listener net.Listener, localServiceAddr string) {
 			// Wait for one side to finish/error
 			err = <-errChan
 			if err != nil && err != io.EOF {
-				log.Printf("Proxy copy error: %v", err)
+				log.Error("Proxy copy error.", "error", err)
 			}
-			log.Printf("Finished proxying for tunneled connection from %s", tunneledConn.RemoteAddr())
+			log.Info("Finished proxying for tunneled connection.", "tunnel", tunneledConn.RemoteAddr())
 
 		}(remoteConn)
 	}
