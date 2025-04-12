@@ -28,6 +28,8 @@ func main() {
 	heightFlag := flag.Int("height", 0, "The height of the GUI window")
 	logLevel := flag.String("log-level", "info", "Log level (debug, info, warn, error, fatal)")
 	pinOverride := flag.String("pin-reset", "", "Reset the admin PIN to a specific value")
+	tunnelHost := flag.String("tunnel", "", "The user and host to connect to via SSH. Ex: user@server.com:22")
+	tunnelKey := flag.String("tunnel-key", "", "The SSH key to use to connect to the specified remote host.")
 	flag.Parse()
 
 	log.SetLevel(translateLogLevel(*logLevel))
@@ -52,9 +54,13 @@ func main() {
 		}
 	}
 
+	honeypot.SetPort(primaryPort)
+	honeypot.SetTunnel(tunnelHost, tunnelKey)
+	honeypot.AddListeners(additionalListeners...)
+
 	if *noGui == false {
 		go func() {
-			honeypot.StartHoneyPot(primaryPort, additionalListeners...)
+			honeypot.StartHoneyPot()
 		}()
 
 		if *pinOverride != "" {
@@ -63,7 +69,7 @@ func main() {
 
 		gui.StartGUI(!*noFS, float32(*widthFlag), float32(*heightFlag))
 	} else {
-		honeypot.StartHoneyPot(primaryPort, additionalListeners...)
+		honeypot.StartHoneyPot()
 	}
 
 	cleanup()
