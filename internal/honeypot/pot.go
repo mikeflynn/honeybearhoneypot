@@ -33,15 +33,19 @@ const (
 )
 
 var (
-	activeUsers            int
-	potPort                string
-	potAdditionalListeners []*net.Listener
-	tunnelUser             string
-	tunnelAddr             string
-	tunnelKey              string
-	tunnelRemotePort       = "22"
-	tunnelLocalHost        = "127.0.0.1"
-	tunnelLocalPort        = "2222"
+	// State
+	activeUsers int
+
+	// Config
+	potPort                 string          // Primary port the honey pot will answer on.
+	potAdditionalListeners  []*net.Listener // Optional additional ports for the honey pot.
+	tunnelUser              string          // Username for remote SSH server
+	tunnelAddr              string          // Hostname or IP of remote SSH server
+	tunnelKey               string          // Path to private SSH key for remote server
+	tunnelPort              = "22"          // Port of remote SSH server
+	tunnelRemoteBind        = "127.0.0.1"   // IP address to bind to on the *remote* server (0.0.0.0 for all)
+	tunnelRemoteForwardPort = "2222"        // Port to open on the *remote* server for forwarding
+	knownHostsPath          string          // Path to known hosts file.
 )
 
 func SetPort(port string) error {
@@ -72,7 +76,7 @@ func SetTunnel(host *string, keyPath *string) error {
 		tunnelAddr = parts[1]
 	} else {
 		tunnelAddr = hp[0]
-		tunnelRemotePort = hp[1]
+		tunnelPort = hp[1]
 	}
 
 	tunnelKey = *keyPath
@@ -155,6 +159,16 @@ func StartHoneyPot() {
 				}
 			}()
 		}
+	}
+
+	// SSH Reverse Tunnel
+	if tunnelKey != "" || tunnelAddr != "" || tunnelUser != "" {
+		go setupReverseTunnel(
+			tunnelUser, tunnelAddr, tunnelPort,
+			tunnelKey, knownHostsPath,
+			fmt.Sprintf("localhost:%s", potPort), // The primary address of the honey pot.
+			tunnelRemoteBind, tunnelRemoteForwardPort,
+		)
 	}
 
 	<-done
