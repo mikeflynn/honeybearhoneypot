@@ -44,7 +44,7 @@ var (
 	tunnelKey               string          // Path to private SSH key for remote server
 	tunnelPort              = "22"          // Port of remote SSH server
 	tunnelRemoteBind        = "127.0.0.1"   // IP address to bind to on the *remote* server (0.0.0.0 for all)
-	tunnelRemoteForwardPort = "2222"        // Port to open on the *remote* server for forwarding
+	tunnelRemoteForwardPort = "8022"        // Port to open on the *remote* server for forwarding
 	knownHostsPath          = ""            // Path to known hosts file.
 )
 
