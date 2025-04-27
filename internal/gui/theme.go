@@ -14,7 +14,7 @@ var _ fyne.Theme = (*touchTheme)(nil)
 func (m touchTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
 	switch name {
 	case theme.ColorNameBackground:
-		return color.RGBA{R: 0xaf, G: 0x62, B: 0x31, A: 0xff}
+		return color.RGBA{R: 0xd5, G: 0xa0, B: 0x5c, A: 0xff}
 	case theme.ColorNameButton:
 		return color.RGBA{R: 0x00, G: 0x00, B: 0x00, A: 0x00}
 	default:
