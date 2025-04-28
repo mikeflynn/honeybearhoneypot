@@ -80,6 +80,8 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 		),
 	)
 
+	tunnelIcon := widget.NewIcon(tunnelStatus())
+
 	functionToolbar := container.NewPadded(
 		container.NewHBox(
 			layout.NewSpacer(),
@@ -98,8 +100,13 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 			container.NewVBox(
 				container.NewStack(
 					canvas.NewRectangle(theme.Color(theme.ColorNameOverlayBackground)),
-					container.NewPadded(
-						statCurrentUsers,
+					container.NewHBox(
+						container.NewPadded(
+							statCurrentUsers,
+						),
+						container.NewPadded(
+							tunnelIcon,
+						),
 					),
 				),
 				/*
@@ -195,6 +202,10 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 			statCurrentUsers.Text = fmt.Sprintf("%d / %d", honeypot.StatActiveUsers(), honeypot.StatMaxUsers())
 			dataOverlays.Refresh()
 
+			// Update the tunnel button
+			tunnelIcon.Resource = tunnelStatus()
+			tunnelIcon.Refresh()
+
 			// Update the notifications
 			notifications.RemoveAll()
 			for _, container := range nq.Draw() {
@@ -272,6 +283,20 @@ func aboutButton() *widget.Button {
 	aboutButton.Importance = widget.LowImportance
 
 	return aboutButton
+}
+
+func tunnelStatus() fyne.Resource {
+	status := honeypot.StatTunnelActive()
+	if status == -1 {
+		return nil
+	}
+
+	icon := theme.RadioButtonIcon()
+	if status == 1 {
+		icon = theme.RadioButtonCheckedIcon()
+	}
+
+	return icon
 }
 
 func maxStringLen(s string, l int) string {

@@ -34,7 +34,8 @@ const (
 
 var (
 	// State
-	activeUsers int
+	activeUsers  int = 0
+	tunnelActive int = -1 // -1 = not configured, 0 = not connected, 1 = connected
 
 	// Config
 	potPort                 string          // Primary port the honey pot will answer on.
@@ -63,6 +64,8 @@ func SetTunnel(host *string, keyPath *string) error {
 		// Flags not set, tunnel not needed.
 		return nil
 	}
+
+	tunnelActive = 0 // Not connected yet.
 
 	parts := strings.Split(*host, "@")
 	if len(parts) < 2 {

@@ -79,6 +79,7 @@ func setupReverseTunnel(
 	log.Info("Connecting to remote SSH server...", "host", remoteServerAddr)
 
 	// Loop for potential reconnection (optional, basic implementation)
+	retryWaitFactor := 1
 	for {
 		sshClient, err := ssh.Dial("tcp", remoteServerAddr, sshConfig)
 		if err != nil {
@@ -93,12 +94,18 @@ func setupReverseTunnel(
 		log.Info("Requesting remote server to listen on...", "host", remoteListenAddr)
 		listener, err := sshClient.Listen("tcp", remoteListenAddr)
 		if err != nil {
-			log.Warn("Failed to request remote listener: %v. (Check remote sshd_config AllowTcpForwarding). Retrying connection in 10 seconds...", err)
+			log.Warn("Failed to request remote listener: %v. (Check remote sshd_config AllowTcpForwarding). Retrying connection in %d seconds...", err, retryWaitFactor*10)
 			sshClient.Close() // Close the potentially broken client
-			time.Sleep(10 * time.Second)
-			continue // Retry connection
+			tunnelActive = 0  // Tunnel is not active
+
+			time.Sleep(time.Duration(10*retryWaitFactor) * time.Second)
+			retryWaitFactor++ // Increase wait time for next retry
+			continue          // Retry connection
 		}
+
 		log.Info("Remote server is now active!", "listening on", remoteListenAddr, "forwarding to", localServiceAddr)
+		tunnelActive = 1    // Tunnel is active
+		retryWaitFactor = 1 // Reset retry wait factor
 
 		// --- Accept loop: Handle incoming connections from the tunnel ---
 		acceptLoop(listener, localServiceAddr)

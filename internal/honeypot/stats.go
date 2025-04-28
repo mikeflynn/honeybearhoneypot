@@ -19,3 +19,7 @@ func StatMaxUsers() int {
 
 	return maxUsers
 }
+
+func StatTunnelActive() int {
+	return tunnelActive
+}
