@@ -34,7 +34,7 @@ func setupReverseTunnel(
 	remoteBindAddr string, // Address to bind on remote server (e.g., "0.0.0.0")
 	remoteForwardPort string, // Port to forward on remote server (e.g., 8022)
 ) {
-	log.Info(
+	log.Debug(
 		"Attempting to set up reverse tunnel.",
 		"Remote Host:", fmt.Sprintf("%s@%s:%s", tunnelUser, tunnelHost, tunnelSSHPort),
 		"SSH Key:", sshKeyPath,
@@ -76,22 +76,22 @@ func setupReverseTunnel(
 
 	// Connect to remote SSH server
 	remoteServerAddr := fmt.Sprintf("%s:%s", tunnelHost, tunnelSSHPort)
-	log.Info("Connecting to remote SSH server...", "host", remoteServerAddr)
+	log.Debug("Connecting to remote SSH server...", "host", remoteServerAddr)
 
 	// Loop for potential reconnection (optional, basic implementation)
 	retryWaitFactor := 1
 	for {
 		sshClient, err := ssh.Dial("tcp", remoteServerAddr, sshConfig)
 		if err != nil {
-			log.Info("Failed to dial remote SSH server. Retrying in 10 seconds...", "error", err)
+			log.Warn("Failed to dial remote SSH server. Retrying in 10 seconds...", "error", err)
 			time.Sleep(10 * time.Second)
 			continue // Retry connection
 		}
-		log.Info("Successfully connected to remote SSH server.")
+		log.Debug("Successfully connected to remote SSH server.")
 
 		// Request the remote side to listen and forward
 		remoteListenAddr := fmt.Sprintf("%s:%s", remoteBindAddr, remoteForwardPort)
-		log.Info("Requesting remote server to listen on...", "host", remoteListenAddr)
+		log.Debug("Requesting remote server to listen on...", "host", remoteListenAddr)
 		listener, err := sshClient.Listen("tcp", remoteListenAddr)
 		if err != nil {
 			log.Warn("Failed to request remote listener: %v. (Check remote sshd_config AllowTcpForwarding). Retrying connection in %d seconds...", err, retryWaitFactor*10)
