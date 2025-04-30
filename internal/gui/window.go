@@ -11,6 +11,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/charmbracelet/log"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
 	"github.com/mikeflynn/honeybearhoneypot/internal/gui/assets"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot"
@@ -151,7 +152,16 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 
 				nq.Push(event)
 
-				//log.Info("Event: ", "User", event.User, "Host", event.Host, "App", event.App, "Source", event.Source, "Type", event.Type, "Action", event.Action, "Timestamp", event.Timestamp)
+				log.Debug(
+					"Event: ",
+					"User", event.User,
+					"Host", event.Host,
+					"App", event.App,
+					"Source", event.Source,
+					"Type", event.Type,
+					"Action", event.Action,
+					"Timestamp", event.Timestamp,
+				)
 
 				emotionFactor += 1
 			case <-time.After(60 * time.Second):
@@ -183,35 +193,37 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 				newBear = currentBear
 			}
 
-			if currentBear != newBear {
-				if currentBear.Category != newBear.Category {
-					glitch := bears.GetBearByCategory("glitch", nil)
-					if glitch != nil {
-						background.Objects[0] = showBear(*glitch)
-						background.Refresh()
-						time.Sleep(175 * time.Millisecond)
+			fyne.Do(func() {
+				if currentBear != newBear {
+					if currentBear.Category != newBear.Category {
+						glitch := bears.GetBearByCategory("glitch", nil)
+						if glitch != nil {
+							background.Objects[0] = showBear(*glitch)
+							background.Refresh()
+							time.Sleep(175 * time.Millisecond)
+						}
 					}
+
+					currentBear = newBear
+					background.Objects[0] = showBear(*currentBear)
+					background.Refresh()
 				}
 
-				currentBear = newBear
-				background.Objects[0] = showBear(*currentBear)
-				background.Refresh()
-			}
+				// Update the current user count
+				statCurrentUsers.Text = fmt.Sprintf("%d / %d", honeypot.StatActiveUsers(), honeypot.StatMaxUsers())
+				dataOverlays.Refresh()
 
-			// Update the current user count
-			statCurrentUsers.Text = fmt.Sprintf("%d / %d", honeypot.StatActiveUsers(), honeypot.StatMaxUsers())
-			dataOverlays.Refresh()
+				// Update the tunnel button
+				tunnelIcon.Resource = tunnelStatus()
+				tunnelIcon.Refresh()
 
-			// Update the tunnel button
-			tunnelIcon.Resource = tunnelStatus()
-			tunnelIcon.Refresh()
-
-			// Update the notifications
-			notifications.RemoveAll()
-			for _, container := range nq.Draw() {
-				notifications.Add(container)
-			}
-			notifications.Refresh()
+				// Update the notifications
+				notifications.RemoveAll()
+				for _, container := range nq.Draw() {
+					notifications.Add(container)
+				}
+				notifications.Refresh()
+			})
 		}
 	}()
 

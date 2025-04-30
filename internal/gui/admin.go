@@ -51,21 +51,28 @@ func getAdminButton() *widget.Button {
 		go func() {
 			i := 0
 			for range time.Tick(time.Second) {
+
 				i++
 				if i >= maxAuthSeconds {
-					authPopup.Hide()
+					fyne.Do(func() {
+						authPopup.Hide()
+					})
 					return
 				}
 
 				isApproved, _ := approvalBinding.Get()
 				if isApproved == authCancel {
-					authPopup.Hide()
+					fyne.Do(func() {
+						authPopup.Hide()
+					})
 					return
 				} else if isApproved == authSuccess {
-					authPopup.Hide()
+					fyne.Do(func() {
+						authPopup.Hide()
 
-					adminPopup = widget.NewModalPopUp(getAdminMenu(), w.Canvas())
-					adminPopup.Show()
+						adminPopup = widget.NewModalPopUp(getAdminMenu(), w.Canvas())
+						adminPopup.Show()
+					})
 					return
 				}
 			}
