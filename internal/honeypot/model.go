@@ -47,6 +47,7 @@ type model struct {
 }
 
 func (m model) Init() tea.Cmd {
+	NewEvent(&m, true, "login", "Logged in!")
 	return doTick()
 }
 
