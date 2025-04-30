@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	version       = "v0.1.0"
+	version       = "v5.1.0"
 	defaultWidth  = 800
 	defaultHeight = 480
 )
@@ -264,7 +264,7 @@ func aboutButton() *widget.Button {
 	logo.FillMode = canvas.ImageFillStretch
 	logo.SetMinSize(fyne.NewSize(300, 350))
 
-	link, _ := url.Parse("https://hydrox.fun")
+	link, _ := url.Parse("https://honeybear.hydrox.fun")
 
 	aboutButton := widget.NewButtonWithIcon("", theme.HelpIcon(), func() {
 		var aboutPopup *widget.PopUp
@@ -283,7 +283,7 @@ func aboutButton() *widget.Button {
 						widget.NewRichTextWithText("Honey Bear Honey Pot: "+version),
 						widget.NewSeparator(),
 						widget.NewRichTextWithText("Another useless hydrox project."),
-						widget.NewHyperlink("hydrox.fun", link),
+						widget.NewHyperlink("honeybear.hydrox.fun", link),
 						widget.NewRichTextWithText("License: MIT"),
 					),
 				),
