@@ -415,6 +415,55 @@ func Initialize() {
 									return &cmd
 								},
 							},
+							{
+								Name:      "uname",
+								Path:      "/usr/bin/uname",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								HelpText:  "Usage: uname [OPTION]...\n Print system information.",
+								Exec: func(dir *Node, params []string) *tea.Cmd {
+									s := "Linux"
+									n := "Hardhat"
+									r := "6.22.0-81-generic"
+									v := "#148-HardHat SMP Fri Mar 14 19:05:48 UTC 2025"
+									m := "x86_64"
+									o := "Hardhat Linux"
+									output := []string{}
+
+									if len(params) == 0 {
+										output = append(output, o)
+									} else {
+										for _, param := range params {
+											switch param {
+											case "-a":
+												output = append(output, fmt.Sprintf("%s %s %s %s %s %s", s, n, r, v, m, o))
+											case "-s":
+												output = append(output, s)
+											case "-n":
+												output = append(output, n)
+											case "-r":
+												output = append(output, r)
+											case "-v":
+												output = append(output, v)
+											case "-m", "-p", "-i":
+												output = append(output, m)
+											case "-o":
+												output = append(output, o)
+											default:
+												output = []string{fmt.Sprintf("uname: invalid option -- '%s'", param)}
+											}
+										}
+									}
+
+									cmd := tea.Cmd(func() tea.Msg {
+										return OutputMsg(strings.Join(output, " "))
+									})
+
+									return &cmd
+								},
+							},
 						},
 						Owner: "root",
 						Group: "root",
