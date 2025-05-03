@@ -54,15 +54,14 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 
 	w = a.NewWindow("Honey Bear Honey Pot")
 
-	currentBear := bears.GetBearByCategory("boot", nil)
+	currentBear := bears.GetBearByCategory("boot", "")
 	if currentBear == nil {
 		fmt.Println("Error loading boot bear")
 		os.Exit(1)
 	}
 
 	buttonNose := widget.NewButton("", func() {
-		subcat := "react"
-		overrideBear = bears.GetBearByCategory("standard", &subcat).Name
+		overrideBear = bears.GetBearByCategory("standard", "react").Name
 	})
 	buttonNose.Importance = widget.LowImportance
 
@@ -165,8 +164,10 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 
 				emotionFactor += 1
 			case <-time.After(60 * time.Second):
-				emotionFactor = 1
+				emotionFactor -= 1
 			}
+
+			log.Debug("Emotion Status:", "factor", emotionFactor)
 		}
 	}()
 
@@ -174,41 +175,27 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 	go func() {
 		for range time.Tick(2 * time.Second) {
 			// Randomly change the bear
-			r := rand.IntN(100)
 			cat := "standard"
 			subcat := "idle"
-			if r < emotionFactor {
+
+			if shouldShowEmotion() {
 				cat = "emote"
+				subcat = ""
 			}
 
 			var newBear *Bear
 			if overrideBear != "" {
 				newBear = bears.GetBear(overrideBear)
-				overrideBear = ""
 			} else {
-				newBear = bears.GetBearByCategory(cat, &subcat)
+				newBear = bears.GetBearByCategory(cat, subcat)
 			}
 
 			if newBear == nil {
+				log.Debug("No bear found. Using current bear.")
 				newBear = currentBear
 			}
 
 			fyne.Do(func() {
-				if currentBear != newBear {
-					if currentBear.Category != newBear.Category {
-						glitch := bears.GetBearByCategory("glitch", nil)
-						if glitch != nil {
-							background.Objects[0] = showBear(*glitch)
-							background.Refresh()
-							time.Sleep(175 * time.Millisecond)
-						}
-					}
-
-					currentBear = newBear
-					background.Objects[0] = showBear(*currentBear)
-					background.Refresh()
-				}
-
 				// Update the current user count
 				statCurrentUsers.Text = fmt.Sprintf("%d / %d", honeypot.StatActiveUsers(), honeypot.StatMaxUsers())
 				dataOverlays.Refresh()
@@ -223,6 +210,24 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 					notifications.Add(container)
 				}
 				notifications.Refresh()
+
+				// Update the bear
+				if overrideBear == "" && currentBear.Category != newBear.Category {
+					overrideBear = newBear.Name // Set the new bear to load after the glitch
+					log.Debug("Loading glitch bear")
+					glitch := bears.GetBearByCategory("glitch", "")
+					if glitch != nil {
+						background.Objects[0] = showBear(*glitch)
+						background.Refresh()
+						log.Debug("Glitch bear loaded. Waiting...", "bear", glitch.Name)
+					}
+				} else {
+					log.Debug("Loading bear:", "name", newBear.Name)
+					currentBear = newBear
+					background.Objects[0] = showBear(*currentBear)
+					background.Refresh()
+					overrideBear = "" // Reset the override bear
+				}
 			})
 		}
 	}()
@@ -249,6 +254,22 @@ func showBear(bear Bear) *canvas.Image {
 	image.Move(fyne.NewPos(0, 0))
 
 	return image
+}
+
+func shouldShowEmotion() bool {
+	max := (honeypot.StatActiveUsers() * 3) + (honeypot.StatMaxUsers() * 2)
+	r := rand.IntN(max)
+	log.Debug("Bear update:", "max", max, "r", r, "emotionFactor", emotionFactor)
+
+	resp := r <= emotionFactor
+	if resp {
+		emotionFactor -= 10
+		if emotionFactor < 0 {
+			emotionFactor = 1
+		}
+	}
+
+	return resp
 }
 
 func aboutButton() *widget.Button {

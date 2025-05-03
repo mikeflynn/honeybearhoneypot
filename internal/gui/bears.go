@@ -3,6 +3,7 @@ package gui
 import (
 	"math/rand"
 
+	"github.com/charmbracelet/log"
 	"github.com/mikeflynn/honeybearhoneypot/internal/gui/assets"
 )
 
@@ -47,16 +48,18 @@ func (b Bears) GetBear(name string) *Bear {
 	return nil
 }
 
-func (b Bears) GetBearByCategory(category string, subCategory *string) *Bear {
+func (b Bears) GetBearByCategory(category string, subCategory string) *Bear {
+	log.Debug("GetBearByCategory", "category", category, "subCategory", subCategory)
+
 	var bears []Bear
 	if category == "" {
 		bears = b
 	} else {
 		for _, bear := range b {
 			if bear.Category == category {
-				if subCategory != nil && bear.SubCategory == *subCategory {
+				if subCategory != "" && bear.SubCategory == subCategory {
 					bears = append(bears, bear)
-				} else if subCategory == nil {
+				} else if subCategory == "" {
 					bears = append(bears, bear)
 				}
 			}
