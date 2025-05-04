@@ -2,6 +2,7 @@ package filesystem
 
 import (
 	"fmt"
+	"math/rand/v2"
 	"strings"
 	"time"
 
@@ -120,6 +121,51 @@ func Initialize() {
 
 	catHelp := "Usage: cat [FILE]\n Displays the contents of a file."
 
+	bearSayExec := func(dir *Node, params []string) *tea.Cmd {
+		cmds := []tea.Cmd{}
+		cmds = append(cmds, tea.Cmd(func() tea.Msg {
+			return SetRunningCmd("bearsay")
+		}))
+
+		cmds = append(cmds, tea.Cmd(func() tea.Msg {
+			output := `
+				  __         __
+				 /  \.-"""-./  \
+				\    -   -    /
+				 |   o   o   |
+				 \  .-'''-.  /
+				  '-\__Y__/-'
+				     '---'
+				      (\__/)
+				      (='.'=)
+				      (")_(")
+
+				%s
+
+			`
+
+			if len(params) == 0 {
+				defaults := []string{
+					"Hello, world!",
+					"You're in!",
+					"I don't play well with others",
+					"Hack the planet!",
+					"Its in the place that I put that thing that time.",
+					"Stay curious!",
+				}
+
+				output = fmt.Sprintf(output, defaults[rand.IntN(len(defaults))])
+			} else {
+				output = fmt.Sprintf(output, strings.Join(params, " "))
+			}
+
+			return OutputMsg(output)
+		}))
+
+		batch := tea.Batch(cmds...)
+		return &batch
+	}
+
 	SystemRoot = &Node{
 		Name:      "",
 		Path:      "/",
@@ -217,13 +263,33 @@ func Initialize() {
 								},
 							},
 							{
+								Name:      "bearsay",
+								Path:      "/usr/bin/bearsay",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								HelpText:  "Usage: clear\n Clear the terminal screen.",
+								Exec:      bearSayExec,
+							},
+							{
+								Name:      "cowsay",
+								Path:      "/usr/bin/cowsay",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								HelpText:  "configurable speaking/thinking bear (and a bit more)",
+								Exec:      bearSayExec,
+							},
+							{
 								Name:      "echo",
 								Path:      "/usr/bin/echo",
 								Directory: false,
 								Owner:     "root",
 								Group:     "root",
 								Mode:      0711,
-								HelpText:  "Usage: echo\nDisplay a line of text.",
+								HelpText:  "configurable speaking/thinking bear (and a bit more)",
 								Exec: func(dir *Node, params []string) *tea.Cmd {
 									var cmd tea.Cmd
 									cmd = func() tea.Msg {
