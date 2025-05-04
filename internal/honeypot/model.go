@@ -113,6 +113,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.runningCommand = string(msg)
 	case filesystem.OutputMsg:
 		m.output += m.outputStyle.Render("\n" + string(msg) + "\n")
+	case filesystem.ListActiveUsersMsg:
+		m.output += fmt.Sprintf("04:25:58 up 10 days, 23:21,  %d users,  load average: 0.10, 0.18, 0.10\n", len(activeUsers))
+		m.output += fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%s\n", "USER", "TTY", "FROM", "LOGIN@", "IDLE", "JCPU", "PCPU WHAT")
+		for i, u := range activeUsers {
+			m.output += fmt.Sprintf("%s\tpts/%d\t%s\t%s\t%s\t%s\t%s\n", u, i, "--", "--", "--", "--", "--")
+		}
 	case filesystem.ClearOutputMsg:
 		m.output = ""
 	case filesystem.ChangeDirMsg:

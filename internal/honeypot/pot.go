@@ -34,7 +34,7 @@ const (
 
 var (
 	// State
-	activeUsers  int = 0
+	activeUsers  []string
 	tunnelActive int = -1 // -1 = not configured, 0 = not connected, 1 = connected
 
 	// Config
@@ -88,7 +88,7 @@ func SetTunnel(host *string, keyPath *string) error {
 }
 
 func StartHoneyPot() {
-	activeUsers = 0
+	activeUsers = []string{}
 	maxUsers := entity.OptionGetInt(entity.KeyPotMaxUsers)
 	if maxUsers == 0 {
 		maxUsers = defaultMaxUsers
@@ -98,7 +98,7 @@ func StartHoneyPot() {
 		wish.WithAddress(net.JoinHostPort(host, potPort)),
 		wish.WithHostKeyPath(".ssh/id_ed25519"),
 		wish.WithPasswordAuth(func(ctx ssh.Context, password string) bool {
-			if activeUsers+1 > maxUsers {
+			if len(activeUsers)+1 > maxUsers {
 				return false
 			}
 
@@ -117,13 +117,16 @@ func StartHoneyPot() {
 			bubbletea.Middleware(teaHandler),
 			func(next ssh.Handler) ssh.Handler {
 				return func(s ssh.Session) {
-					activeUsers++
+					activeUsers = append(activeUsers, s.User())
 
 					next(s)
 
-					activeUsers--
-					if activeUsers < 0 {
-						activeUsers = 0
+					for i, user := range activeUsers {
+						if user == s.User() {
+							// Remove the user from the list.
+							activeUsers = append(activeUsers[:i], activeUsers[i+1:]...)
+							break
+						}
 					}
 				}
 			},

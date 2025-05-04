@@ -2,7 +2,6 @@ package filesystem
 
 import (
 	"fmt"
-	"math/rand/v2"
 	"strings"
 	"time"
 
@@ -18,12 +17,13 @@ var (
 )
 
 type (
-	FileContentsMsg []byte
-	OutputMsg       string
-	ClearOutputMsg  string
-	HistoryListMsg  string
-	SetRunningCmd   string
-	ChangeDirMsg    struct {
+	FileContentsMsg    []byte
+	OutputMsg          string
+	ClearOutputMsg     string
+	HistoryListMsg     string
+	SetRunningCmd      string
+	ListActiveUsersMsg string
+	ChangeDirMsg       struct {
 		Path string
 		Node *Node
 	}
@@ -90,81 +90,7 @@ func Initialize() {
 		Group: "default",
 	}
 
-	// Shared exec functions
-	catExec := func(dir *Node, params []string) *tea.Cmd {
-		cmds := []tea.Cmd{}
-		cmds = append(cmds, tea.Cmd(func() tea.Msg {
-			return SetRunningCmd("cat")
-		}))
-
-		cmds = append(cmds, tea.Cmd(func() tea.Msg {
-			if len(params) == 0 {
-				return OutputMsg("cat: missing file operand")
-			}
-
-			target, err := GetNodeByPath(dir, params[0])
-			if err != nil || target == nil {
-				return OutputMsg(err.Error())
-			}
-
-			fileData, err := target.Open()
-			if err != nil {
-				return OutputMsg("cat: " + err.Error())
-			}
-
-			return FileContentsMsg(fileData)
-		}))
-
-		batch := tea.Batch(cmds...)
-		return &batch
-	}
-
 	catHelp := "Usage: cat [FILE]\n Displays the contents of a file."
-
-	bearSayExec := func(dir *Node, params []string) *tea.Cmd {
-		cmds := []tea.Cmd{}
-		cmds = append(cmds, tea.Cmd(func() tea.Msg {
-			return SetRunningCmd("bearsay")
-		}))
-
-		cmds = append(cmds, tea.Cmd(func() tea.Msg {
-			output := `
-				  __         __
-				 /  \.-"""-./  \
-				\    -   -    /
-				 |   o   o   |
-				 \  .-'''-.  /
-				  '-\__Y__/-'
-				     '---'
-				      (\__/)
-				      (='.'=)
-				      (")_(")
-
-				%s
-
-			`
-
-			if len(params) == 0 {
-				defaults := []string{
-					"Hello, world!",
-					"You're in!",
-					"I don't play well with others",
-					"Hack the planet!",
-					"Its in the place that I put that thing that time.",
-					"Stay curious!",
-				}
-
-				output = fmt.Sprintf(output, defaults[rand.IntN(len(defaults))])
-			} else {
-				output = fmt.Sprintf(output, strings.Join(params, " "))
-			}
-
-			return OutputMsg(output)
-		}))
-
-		batch := tea.Batch(cmds...)
-		return &batch
-	}
 
 	SystemRoot = &Node{
 		Name:      "",
@@ -240,6 +166,22 @@ func Initialize() {
 										}
 
 										return OutputMsg(output)
+									})
+
+									return &cmd
+								},
+							},
+							{
+								Name:      "w",
+								Path:      "/usr/bin/w",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								HelpText:  "w - Show who is logged on and what they are doing.",
+								Exec: func(dir *Node, params []string) *tea.Cmd {
+									cmd := tea.Cmd(func() tea.Msg {
+										return ListActiveUsersMsg("")
 									})
 
 									return &cmd
@@ -525,6 +467,47 @@ func Initialize() {
 
 									cmd := tea.Cmd(func() tea.Msg {
 										return OutputMsg(strings.Join(output, " "))
+									})
+
+									return &cmd
+								},
+							},
+							{
+								Name:      "lsb_release",
+								Path:      "/usr/bin/lsb_release",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								HelpText:  "w - Show who is logged on and what they are doing.",
+								Exec: func(dir *Node, params []string) *tea.Cmd {
+									cmd := tea.Cmd(func() tea.Msg {
+										if len(params) == 0 {
+											return OutputMsg("No LSB modules are available.")
+										}
+
+										for _, param := range params {
+											switch param {
+											case "-a":
+												return OutputMsg("Distributor ID: Hardhat\nDescription: Hardhat Linux 1.0\nRelease: 1.0\nCodename: hardhat")
+											case "-d":
+												return OutputMsg("Description: Hardhat Linux 1.0")
+											case "-r":
+												return OutputMsg("Release: 1.0")
+											case "-c":
+												return OutputMsg("Codename: hardhat")
+											case "-i":
+												return OutputMsg("Distributor ID: Hardhat")
+											case "-s":
+												return OutputMsg("Hardhat")
+											case "-v":
+												return OutputMsg("Hardhat Linux 1.0")
+											default:
+												return OutputMsg("lsb_release: invalid option -- '" + param + "'")
+											}
+										}
+
+										return OutputMsg("lsb_release: no options provided")
 									})
 
 									return &cmd

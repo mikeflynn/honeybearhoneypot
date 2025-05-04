@@ -5,7 +5,7 @@ import (
 )
 
 func StatActiveUsers() int {
-	return activeUsers
+	return len(activeUsers)
 }
 
 func StatMaxUsers() int {
