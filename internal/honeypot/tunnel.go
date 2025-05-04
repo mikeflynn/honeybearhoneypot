@@ -128,7 +128,7 @@ func acceptLoop(listener net.Listener, localServiceAddr string) {
 			// Exit the loop so the outer function can attempt reconnection.
 			return
 		}
-		log.Info("Accepted tunneled connection.", "from", remoteConn.RemoteAddr())
+		log.Debug("Accepted tunneled connection.", "from", remoteConn.RemoteAddr())
 
 		// Handle the connection in a new goroutine
 		go func(tunneledConn net.Conn) {
@@ -154,7 +154,7 @@ func acceptLoop(listener net.Listener, localServiceAddr string) {
 			if err != nil && err != io.EOF {
 				log.Error("Proxy copy error.", "error", err)
 			}
-			log.Info("Finished proxying for tunneled connection.", "tunnel", tunneledConn.RemoteAddr())
+			log.Debug("Finished proxying for tunneled connection.", "tunnel", tunneledConn.RemoteAddr())
 
 		}(remoteConn)
 	}

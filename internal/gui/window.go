@@ -173,7 +173,9 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 
 	// UI update loop
 	go func() {
-		for range time.Tick(2 * time.Second) {
+		for {
+			loopWait := time.Duration(2 * time.Second) // Default wait in seconds
+
 			// Randomly change the bear
 			cat := "standard"
 			subcat := "idle"
@@ -193,6 +195,17 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 			if newBear == nil {
 				log.Debug("No bear found. Using current bear.")
 				newBear = currentBear
+			} else {
+				if overrideBear == "" && currentBear.Category != newBear.Category {
+					overrideBear = newBear.Name // Set the new bear to load after the glitch
+					log.Debug("Loading glitch bear")
+					newBear = bears.GetBearByCategory("glitch", "")
+
+					loopWait = time.Duration(600 * time.Millisecond) // Brief wait for the glitch bear
+				} else {
+					currentBear = newBear // Set the current bear to the new bear
+					overrideBear = ""     // Reset the override bear
+				}
 			}
 
 			fyne.Do(func() {
@@ -212,23 +225,11 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 				notifications.Refresh()
 
 				// Update the bear
-				if overrideBear == "" && currentBear.Category != newBear.Category {
-					overrideBear = newBear.Name // Set the new bear to load after the glitch
-					log.Debug("Loading glitch bear")
-					glitch := bears.GetBearByCategory("glitch", "")
-					if glitch != nil {
-						background.Objects[0] = showBear(*glitch)
-						background.Refresh()
-						log.Debug("Glitch bear loaded. Waiting...", "bear", glitch.Name)
-					}
-				} else {
-					log.Debug("Loading bear:", "name", newBear.Name)
-					currentBear = newBear
-					background.Objects[0] = showBear(*currentBear)
-					background.Refresh()
-					overrideBear = "" // Reset the override bear
-				}
+				background.Objects[0] = showBear(*newBear)
+				background.Refresh()
 			})
+
+			time.Sleep(loopWait)
 		}
 	}()
 
