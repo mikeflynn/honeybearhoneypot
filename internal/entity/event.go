@@ -71,12 +71,39 @@ func EventQuery(query string, values ...any) ([]*Event, error) {
 	ret := []*Event{}
 
 	defer rows.Close()
-	if rows.Next() {
+	for rows.Next() {
 		e := &Event{}
 		err = rows.Scan(&e.ID, &e.User, &e.Host, &e.App, &e.Source, &e.Type, &e.Action, &e.Timestamp)
 		if err != nil {
 			return nil, err
 		}
+		ret = append(ret, e)
+	}
+
+	return ret, nil
+}
+
+type EventCount struct {
+	Value string
+	Count int
+}
+
+func EventCountQuery(query string, values ...any) ([]*EventCount, error) {
+	rows, err := db.MakeQuery(query, values...)
+	if err != nil {
+		return nil, err
+	}
+
+	ret := []*EventCount{}
+
+	defer rows.Close()
+	for rows.Next() {
+		e := &EventCount{}
+		err = rows.Scan(&e.Value, &e.Count)
+		if err != nil {
+			return nil, err
+		}
+
 		ret = append(ret, e)
 	}
 

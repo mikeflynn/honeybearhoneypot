@@ -1,10 +1,12 @@
 package gui
 
 import (
+	"fmt"
 	"os"
 	"time"
 
 	fyne "fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/layout"
@@ -202,16 +204,147 @@ func adminSystemTab() *fyne.Container {
 }
 
 func adminStatsTab() *fyne.Container {
+	userCounts, err := entity.EventCountQuery(
+		`SELECT
+			"1D" AS duration,
+			COUNT(*) AS total
+		FROM events
+		WHERE
+			events.type = "login"
+			AND events.timestamp >= datetime('now','-1 days')
+		UNION
+		SELECT
+			"7D" AS duration,
+			COUNT(*) AS total
+		FROM events
+		WHERE
+			events.type = "login"
+			AND events.timestamp >= datetime('now','-7 days')`,
+	)
+	if err != nil {
+		log.Error("Error querying user counts", err)
+	}
+
+	userCountsLabels := []fyne.CanvasObject{
+		widget.NewLabelWithStyle("Users:", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+	}
+
+	for _, e := range userCounts {
+		userCountsLabels = append(userCountsLabels, widget.NewLabelWithStyle(fmt.Sprintf("%d (%s)", e.Count, e.Value), fyne.TextAlignCenter, fyne.TextStyle{Monospace: true}))
+	}
+
 	return container.NewVBox(
-		container.NewGridWithRows(2,
-			container.NewGridWithColumns(2,
-				widget.NewButtonWithIcon("Leaderboard", theme.ContentPasteIcon(), func() {}),
-				widget.NewButtonWithIcon("Top Commands", theme.ComputerIcon(), func() {}),
+		container.NewGridWithRows(3,
+			container.NewGridWithColumns(3,
+				userCountsLabels...,
 			),
 			container.NewGridWithColumns(2,
-				widget.NewButtonWithIcon("Activity Graph", theme.BrokenImageIcon(), func() {}),
-				layout.NewSpacer(),
+				widget.NewButtonWithIcon("Leaderboard", theme.ContentPasteIcon(), func() {}),
+				widget.NewButtonWithIcon("Recent", theme.HistoryIcon(), func() {}),
+			),
+			container.NewGridWithColumns(2,
+				widget.NewButtonWithIcon("Top Commands", theme.ListIcon(), func() {
+					var sp *widget.PopUp
+
+					topCommands, err := entity.EventCountQuery(
+						`SELECT
+							action,
+							count(*) AS total
+						FROM events
+						WHERE
+							events.type = ?
+						GROUP BY events.action
+						ORDER by count(*) DESC
+						LIMIT 25`,
+						"typed",
+					)
+					if err != nil {
+						log.Error("Error querying top commands", err)
+						return
+					}
+
+					data := []string{}
+					for _, e := range topCommands {
+						data = append(data, e.Value)
+					}
+
+					sp = adminListModal("Top Commands", data, func() {
+						sp.Hide()
+					})
+					sp.Resize(fyne.NewSize(700, 400))
+					sp.Show()
+				}),
+				widget.NewButtonWithIcon("Top Users", theme.ListIcon(), func() {
+					var sp *widget.PopUp
+
+					topCommands, err := entity.EventCountQuery(
+						`SELECT
+							events.user,
+							count(*) AS total
+						FROM events
+						WHERE
+							events.type = "login"
+						GROUP BY events.user
+						ORDER by count(*) DESC
+						LIMIT 25`,
+						"typed",
+					)
+					if err != nil {
+						log.Error("Error querying top users", err)
+						return
+					}
+
+					data := []string{}
+					for _, e := range topCommands {
+						data = append(data, fmt.Sprintf("%s (%d)", e.Value, e.Count))
+					}
+
+					sp = adminListModal("Top Users", data, func() {
+						sp.Hide()
+					})
+					sp.Resize(fyne.NewSize(700, 400))
+					sp.Show()
+				}),
 			),
 		),
 	)
+}
+
+func adminListModal(title string, rows []string, closeFn func()) *widget.PopUp {
+	// Add a blank line to the start of the list to get the #1 item to show below the modal header.
+	rows = append([]string{""}, rows...)
+
+	// Create new binding list
+	listBinding := binding.BindStringList(&rows)
+
+	data := widget.NewListWithData(
+		listBinding,
+		func() fyne.CanvasObject { return widget.NewLabel("") },
+		func(i binding.DataItem, o fyne.CanvasObject) {
+			o.(*widget.Label).Bind(i.(binding.String))
+			o.(*widget.Label).TextStyle = fyne.TextStyle{Monospace: true}
+			o.(*widget.Label).SizeName = theme.SizeNameCaptionText
+		},
+	)
+
+	data.Resize(fyne.NewSize(700, 300))
+
+	header := container.NewVBox(
+		container.NewStack(
+			canvas.NewRectangle(theme.Color(theme.ColorNameOverlayBackground)),
+			container.NewHBox(
+				container.NewPadded(widget.NewLabel(title)),
+				layout.NewSpacer(),
+				container.NewPadded((widget.NewButtonWithIcon("", theme.WindowCloseIcon(), closeFn))),
+			),
+		),
+		layout.NewSpacer(),
+	)
+
+	return widget.NewModalPopUp(
+		container.NewStack(
+			data,
+			header,
+		),
+		w.Canvas())
 }
