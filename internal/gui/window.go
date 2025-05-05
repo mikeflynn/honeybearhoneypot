@@ -304,7 +304,7 @@ func aboutButton() *widget.Button {
 					container.NewVBox(
 						widget.NewRichTextWithText("Honey Bear Honey Pot: "+version),
 						widget.NewSeparator(),
-						widget.NewRichTextWithText("Another useless hydrox project."),
+						widget.NewRichTextWithText("Another weird hydrox project."),
 						widget.NewHyperlink("honeybear.hydrox.fun", link),
 						widget.NewRichTextWithText("License: MIT"),
 					),
