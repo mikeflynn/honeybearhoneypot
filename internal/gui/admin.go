@@ -107,8 +107,7 @@ func getAdminMenu() *fyne.Container {
 			),
 			container.NewAppTabs(
 				container.NewTabItem("Stats", adminStatsTab()),
-				container.NewTabItem("Bear", adminBearTab()),
-				container.NewTabItem("Pot", adminPotTab()),
+				container.NewTabItem("SSH", adminPotTab()),
 				container.NewTabItem("App", adminSystemTab()),
 			),
 		),
@@ -116,23 +115,6 @@ func getAdminMenu() *fyne.Container {
 	adminPopupContent.Resize(fyne.NewSize(900, 400))
 
 	return adminPopupContent
-}
-
-func adminBearTab() *fyne.Container {
-	return container.NewVBox(
-		container.NewGridWithRows(2,
-			widget.NewButtonWithIcon("Toggle Fullscreen", theme.ViewFullScreenIcon(), func() {
-				w.SetFullScreen(!w.FullScreen())
-			}),
-			layout.NewSpacer(),
-			/*
-				container.NewGridWithColumns(2,
-					widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
-					widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
-				),
-			*/
-		),
-	)
 }
 
 func adminPotTab() *fyne.Container {
@@ -156,9 +138,6 @@ func adminPotTab() *fyne.Container {
 
 					sp = widget.NewModalPopUp(keypad, w.Canvas())
 					sp.Show()
-				}),
-				widget.NewButtonWithIcon("Purge Logs/Stats", theme.DeleteIcon(), func() {
-					// Do nothing.
 				}),
 			),
 			layout.NewSpacer(),
@@ -192,13 +171,9 @@ func adminSystemTab() *fyne.Container {
 					sp.Show()
 				}),
 			),
-			/*
-				container.NewGridWithColumns(2,
-					widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
-					widget.NewButtonWithIcon("Nothing", theme.WarningIcon(), func() {}),
-				),
-			*/
-			layout.NewSpacer(),
+			widget.NewButtonWithIcon("Toggle Fullscreen", theme.ViewFullScreenIcon(), func() {
+				w.SetFullScreen(!w.FullScreen())
+			}),
 		),
 	)
 }
