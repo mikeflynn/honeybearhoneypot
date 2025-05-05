@@ -215,7 +215,35 @@ func adminStatsTab() *fyne.Container {
 			),
 			container.NewGridWithColumns(2,
 				widget.NewButtonWithIcon("Leaderboard", theme.ContentPasteIcon(), func() {}),
-				widget.NewButtonWithIcon("Recent", theme.HistoryIcon(), func() {}),
+				widget.NewButtonWithIcon("Recent", theme.HistoryIcon(), func() {
+					var sp *widget.PopUp
+
+					topCommands, err := entity.EventQuery(
+						`SELECT *
+						 FROM events
+						 WHERE app = "ssh"
+						 ORDER by timestamp DESC
+						 LIMIT 100`,
+						"typed",
+					)
+					if err != nil {
+						log.Error("Error querying top commands", err)
+						return
+					}
+
+					data := []string{}
+					tz, _ := time.LoadLocation("America/Los_Angeles")
+
+					for _, e := range topCommands {
+						data = append(data, fmt.Sprintf("%s (%s) > %s", e.User, e.Timestamp.In(tz).Format(time.Kitchen), e.Action))
+					}
+
+					sp = adminListModal("Recent Events", data, func() {
+						sp.Hide()
+					})
+					sp.Resize(fyne.NewSize(700, 400))
+					sp.Show()
+				}),
 			),
 			container.NewGridWithColumns(2,
 				widget.NewButtonWithIcon("Top Commands", theme.ListIcon(), func() {
