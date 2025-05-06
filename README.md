@@ -6,17 +6,50 @@ See more information about this project: [honeybear.hydrox.fun](https://honeybea
 
 ## Configuration
 
-[ TO DO ]
+The honeypot can be configured using command-line flags when starting the application:
+
+- `-fs`: Start the GUI in full screen mode
+- `-height`: Set the height of the GUI window
+- `-width`: Set the width of the GUI window
+- `-log-level`: Set logging level (debug, info, warn, error, fatal) (default "info")
+- `-no-gui`: Run the honey pot without the GUI
+- `-pin-reset`: Reset the admin PIN to a specific value
+- `-ssh-port`: The port(s) to listen on for honey pot SSH connections (comma separated for multiple ports, default "1337")
+- `-tunnel`: Set up SSH reverse tunnel (format: user@server.com:22)
+- `-tunnel-key`: Path to SSH key for reverse tunnel authentication
 
 ## Usage
 
 ### The GUI
 
-[ TO DO ]
+The GUI provides a visual interface for monitoring and managing the honeypot:
+
+- **Main Display**: Features an animated bear that reacts to user activity
+- **Current Users**: Shows active SSH connections and maximum allowed users
+- **Admin Menu**: Access administrative functions through a PIN-protected interface:
+  - Stats: View login statistics, top commands, and recent activity
+  - SSH: Configure maximum concurrent users
+  - App: System controls including PIN changes and fullscreen toggle
+- **Tunnel Status**: Indicates reverse tunnel connection status when configured
+- **Notifications**: Displays real-time SSH connection and command activity
 
 ### The SSH Honey Pot
 
-[ TO DO ]
+The SSH honeypot component provides a simulated Linux environment:
+
+- Accepts any username/password combination for authentication
+- Configurable maximum concurrent user limit
+- Includes common Linux commands and utilities:
+  - File system navigation (ls, cd, pwd)
+  - File viewing (cat, less, more)
+  - System information (uname, w, history)
+  - Fun extras (bearsay, celebrate, matrix)
+- Records all user activity including:
+  - Login attempts
+  - Commands executed
+  - Connection details
+- Optional SSH reverse tunnel support for remote access
+- SQLite database for persistent activity logging
 
 ## Development / Running Locally
 
