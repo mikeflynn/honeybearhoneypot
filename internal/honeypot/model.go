@@ -12,6 +12,7 @@ import (
 	"github.com/google/shlex"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/confetti"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/filesystem"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/matrix"
 	"github.com/muesli/reflow/wordwrap"
 )
 
@@ -37,6 +38,7 @@ type model struct {
 	viewport      viewport.Model
 	viewportReady bool
 	confetti      tea.Model
+	matrix        tea.Model
 	helpText      string
 	events        map[string]time.Time
 	// Data
@@ -98,6 +100,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		m.confetti.Update(msg)
+		m.matrix.Update(matrix.MatrixResized{
+			Width:  msg.Width,
+			Height: msg.Height,
+		})
 
 		//cmds = append(cmds, viewport.Sync(m.viewport))
 	case filesystem.FileContentsMsg:
@@ -199,6 +205,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "ctrl+c":
 			if m.runningCommand != "" {
+				if m.runningCommand == "matrix" {
+					m.matrix.Update(matrix.MatrixStop{})
+				}
+
 				m.viewport.SetContent("")
 				m.runningCommand = ""
 			}
@@ -219,6 +229,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.confetti = cp
 		cmds = append(cmds, cmd)
+	case "matrix":
+		matrixModel, cmd := m.matrix.Update(msg)
+		mm, ok := matrixModel.(matrix.Matrix)
+		if !ok {
+			return m, tea.Quit
+		}
+		m.matrix = mm
+
+		cmds = append(cmds, tea.Batch(
+			//m.matrix.Init(),
+			cmd,
+		))
 	default:
 		m.textInput, cmd = m.textInput.Update(msg)
 		cmds = append(cmds, cmd)
@@ -251,6 +273,9 @@ func (m model) View() string {
 	} else if m.runningCommand == "confetti" {
 		content = m.confetti.View()
 		help = "Press 'q' to quit or any other key to make more confetti."
+	} else if m.runningCommand == "matrix" {
+		content = m.matrix.View()
+		help = "Press 'ctrl + c' to quit."
 	}
 
 	return fmt.Sprintf("%s\n%s\n%s\n", content, m.textInput.View(), m.quitStyle.Render(help))

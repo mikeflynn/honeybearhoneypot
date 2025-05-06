@@ -25,6 +25,7 @@ import (
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/confetti"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/embedded"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/filesystem"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/matrix"
 )
 
 const (
@@ -240,6 +241,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 			"session_start": time.Now(),
 		},
 		confetti:   confetti.InitialModel(),
+		matrix:     matrix.InitialModel(pty.Window.Width, pty.Window.Height),
 		output:     "",
 		helpText:   "Type 'help' to see some commands; Use up/down for history.",
 		historyIdx: 0,

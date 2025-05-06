@@ -8,6 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/confetti"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/embedded"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/matrix"
 )
 
 var (
@@ -377,7 +378,7 @@ func Initialize() {
 										return SetRunningCmd("confetti")
 									}))
 
-									// Star the confetti animation after a short delay for the previous command to finish.
+									// Start the confetti animation after a short delay for the previous command to finish.
 									cmds = append(cmds, tea.Cmd(func() tea.Msg {
 										time.Sleep(time.Millisecond * 100)
 										return confetti.Burst()
@@ -387,6 +388,28 @@ func Initialize() {
 									cmds = append(cmds, tea.Cmd(func() tea.Msg {
 										time.Sleep(time.Second * 4)
 										return SetRunningCmd("")
+									}))
+
+									batch := tea.Batch(cmds...)
+									return &batch
+								},
+							},
+							{
+								Name:      "matrix",
+								Path:      "/usr/bin/matrix",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								Exec: func(dir *Node, params []string) *tea.Cmd {
+									cmds := []tea.Cmd{}
+									cmds = append(cmds, tea.Cmd(func() tea.Msg {
+										return SetRunningCmd("matrix")
+									}))
+
+									cmds = append(cmds, tea.Cmd(func() tea.Msg {
+										time.Sleep(time.Millisecond * 100)
+										return matrix.Start()
 									}))
 
 									batch := tea.Batch(cmds...)
