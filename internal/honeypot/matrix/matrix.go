@@ -10,19 +10,19 @@ import (
 )
 
 var (
-	matrixBg = lipgloss.ANSIColor(235)
+	matrixBg = lipgloss.Color("#111111")
 
-	matrixPalettes = []lipgloss.ANSIColor{
-		lipgloss.ANSIColor(022),
-		lipgloss.ANSIColor(023),
-		lipgloss.ANSIColor(034),
-		lipgloss.ANSIColor(035),
-		lipgloss.ANSIColor(040),
-		lipgloss.ANSIColor(041),
-		lipgloss.ANSIColor(076),
-		lipgloss.ANSIColor(077),
-		lipgloss.ANSIColor(253),
-		lipgloss.ANSIColor(255),
+	matrixPalettes = []lipgloss.Color{
+		lipgloss.Color("#000048"),
+		lipgloss.Color("#5e5e5e"),
+		lipgloss.Color("#5a5a5a"),
+		lipgloss.Color("#009a22"),
+		lipgloss.Color("#36ba01"),
+		lipgloss.Color("#002706"),
+		lipgloss.Color("#00ff00"),
+		lipgloss.Color("#009a22"),
+		lipgloss.Color("#00ff2b"),
+		lipgloss.Color("#36ba01"),
 	}
 
 	matrixGlyphs    = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ12345678909qwertyuiopasdfghjklzxcvbnm")
@@ -70,7 +70,7 @@ func (m Matrix) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var newCmd tea.Cmd
 
 	switch msg := msg.(type) {
-	case MatrixResized:
+	case tea.WindowSizeMsg:
 		m.Width = msg.Width
 		m.Height = msg.Height
 		m = m.initSymbols()

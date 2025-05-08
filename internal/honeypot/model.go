@@ -90,7 +90,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !m.viewportReady {
 			m.viewport = viewport.New(msg.Width, msg.Height-verticalMargin)
 			m.viewport.YPosition = 0
-			m.viewport.HighPerformanceRendering = false
+			//m.viewport.HighPerformanceRendering = false
 			m.viewport.Style = m.outputStyle.Border(lipgloss.NormalBorder(), false, false, true, false)
 			m.viewport.SetContent("")
 			m.viewportReady = true
@@ -100,10 +100,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		m.confetti.Update(msg)
-		m.matrix.Update(matrix.MatrixResized{
-			Width:  msg.Width,
-			Height: msg.Height,
-		})
+		m.matrix.Update(msg)
 
 		//cmds = append(cmds, viewport.Sync(m.viewport))
 	case filesystem.FileContentsMsg:
