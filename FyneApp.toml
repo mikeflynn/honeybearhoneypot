@@ -1,8 +1,8 @@
 Website = "https://honeybear.hydrox.fun"
 
 [Details]
-Icon = "Icon.png"
-Name = "Honey Bear Honey Pot"
-ID = "com.github.com/mikeflynn/hardhat-honeybear"
-Version = "1.0.1"
-Build = 12
+  Icon = "Icon.png"
+  Name = "Honey Bear Honey Pot"
+  ID = "com.github.com/mikeflynn/hardhat-honeybear"
+  Version = "1.0.1"
+  Build = 13
