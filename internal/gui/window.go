@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	version       = "v0.8.1"
+	version       = "v1.0.1"
 	defaultWidth  = 800
 	defaultHeight = 480
 )
@@ -276,7 +276,7 @@ func shouldShowEmotion() bool {
 func aboutButton() *widget.Button {
 	var logo *canvas.Image
 
-	logoData, err := assets.Images.ReadFile("hydrox.png")
+	logoData, err := assets.Images.ReadFile("qr.png")
 	if err != nil {
 		fmt.Println("Error loading logo:", err)
 		return nil
@@ -284,7 +284,7 @@ func aboutButton() *widget.Button {
 
 	logo = canvas.NewImageFromReader(bytes.NewReader(logoData), "hydrox")
 	logo.FillMode = canvas.ImageFillStretch
-	logo.SetMinSize(fyne.NewSize(300, 350))
+	logo.SetMinSize(fyne.NewSize(300, 300))
 
 	link, _ := url.Parse("https://honeybear.hydrox.fun")
 
@@ -293,7 +293,7 @@ func aboutButton() *widget.Button {
 		aboutPopup = widget.NewModalPopUp(
 			container.NewVBox(
 				container.NewHBox(
-					widget.NewLabel("About"),
+					widget.NewLabel("Honey Bear Honey Pot: "+version),
 					layout.NewSpacer(),
 					widget.NewButtonWithIcon("", theme.WindowCloseIcon(), func() {
 						aboutPopup.Hide()
@@ -302,11 +302,9 @@ func aboutButton() *widget.Button {
 				container.NewHBox(
 					logo,
 					container.NewVBox(
-						widget.NewRichTextWithText("Honey Bear Honey Pot: "+version),
+						widget.NewRichTextWithText("Questions?\nCheck out the website\nfor answers, build process,\nand how to connect!"),
 						widget.NewSeparator(),
-						widget.NewRichTextWithText("Another weird hydrox project."),
 						widget.NewHyperlink("honeybear.hydrox.fun", link),
-						widget.NewRichTextWithText("License: MIT"),
 					),
 				),
 			),
