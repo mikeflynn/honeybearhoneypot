@@ -38,6 +38,7 @@ var (
 	w             fyne.Window
 	width         float32 = defaultWidth
 	height        float32 = defaultHeight
+	liveImage     *canvas.Image
 )
 
 func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
@@ -80,8 +81,6 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 		),
 	)
 
-	tunnelIcon := widget.NewIcon(tunnelStatus())
-
 	functionToolbar := container.NewPadded(
 		container.NewHBox(
 			layout.NewSpacer(),
@@ -94,19 +93,18 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 	)
 
 	statCurrentUsers := canvas.NewText(fmt.Sprintf("%d / %d", 0, honeypot.StatMaxUsers()), theme.Color(theme.ColorNameForeground))
+	status := container.NewVBox(
+		statCurrentUsers,
+	)
+
 	dataOverlays := container.NewPadded(
 		container.NewHBox(
 			layout.NewSpacer(),
 			container.NewVBox(
 				container.NewStack(
 					canvas.NewRectangle(theme.Color(theme.ColorNameOverlayBackground)),
-					container.NewHBox(
-						container.NewPadded(
-							statCurrentUsers,
-						),
-						container.NewPadded(
-							tunnelIcon,
-						),
+					container.NewPadded(
+						status,
 					),
 				),
 				/*
@@ -211,11 +209,21 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 			fyne.Do(func() {
 				// Update the current user count
 				statCurrentUsers.Text = fmt.Sprintf("%d / %d", honeypot.StatActiveUsers(), honeypot.StatMaxUsers())
-				dataOverlays.Refresh()
 
 				// Update the tunnel button
-				tunnelIcon.Resource = tunnelStatus()
-				tunnelIcon.Refresh()
+				tunnelStatus := tunnelStatus()
+				if tunnelStatus == nil {
+					status.Objects = []fyne.CanvasObject{
+						statCurrentUsers,
+					}
+				} else {
+					status.Objects = []fyne.CanvasObject{
+						tunnelStatus,
+						statCurrentUsers,
+					}
+				}
+
+				dataOverlays.Refresh()
 
 				// Update the notifications
 				notifications.RemoveAll()
@@ -282,7 +290,7 @@ func aboutButton() *widget.Button {
 		return nil
 	}
 
-	logo = canvas.NewImageFromReader(bytes.NewReader(logoData), "hydrox")
+	logo = canvas.NewImageFromReader(bytes.NewReader(logoData), "qr")
 	logo.FillMode = canvas.ImageFillStretch
 	logo.SetMinSize(fyne.NewSize(300, 300))
 
@@ -317,18 +325,29 @@ func aboutButton() *widget.Button {
 	return aboutButton
 }
 
-func tunnelStatus() fyne.Resource {
+func tunnelStatus() *canvas.Image {
 	status := honeypot.StatTunnelActive()
 	if status == -1 {
 		return nil
 	}
 
-	icon := theme.RadioButtonIcon()
 	if status == 1 {
-		icon = theme.RadioButtonCheckedIcon()
+		if liveImage == nil {
+			liveBytes, err := assets.Images.ReadFile("live.png")
+			if err != nil {
+				fmt.Println("Error loading logo:", err)
+				return canvas.NewImageFromResource(theme.ErrorIcon())
+			}
+
+			liveImage = canvas.NewImageFromReader(bytes.NewReader(liveBytes), "live")
+			liveImage.FillMode = canvas.ImageFillStretch
+			liveImage.SetMinSize(fyne.NewSize(20, 25))
+		}
+
+		return liveImage
 	}
 
-	return icon
+	return nil
 }
 
 func maxStringLen(s string, l int) string {
