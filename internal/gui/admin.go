@@ -214,7 +214,37 @@ func adminStatsTab() *fyne.Container {
 				userCountsLabels...,
 			),
 			container.NewGridWithColumns(2,
-				widget.NewButtonWithIcon("Leaderboard", theme.ContentPasteIcon(), func() {}),
+				widget.NewButtonWithIcon("Rare Commands", theme.ContentPasteIcon(), func() {
+					var sp *widget.PopUp
+
+					topCommands, err := entity.EventCountQuery(
+						`SELECT
+							action,
+							count(*) AS total
+						FROM events
+						WHERE
+							events.type = ?
+						GROUP BY events.action
+						ORDER by count(*) ASC, length(action) DESC
+						LIMIT 25`,
+						"typed",
+					)
+					if err != nil {
+						log.Error("Error querying rare commands", err)
+						return
+					}
+
+					data := []string{}
+					for _, e := range topCommands {
+						data = append(data, e.Value)
+					}
+
+					sp = adminListModal("Rare Commands", data, func() {
+						sp.Hide()
+					})
+					sp.Resize(fyne.NewSize(700, 400))
+					sp.Show()
+				}),
 				widget.NewButtonWithIcon("Recent", theme.HistoryIcon(), func() {
 					var sp *widget.PopUp
 
