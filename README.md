@@ -83,7 +83,12 @@ On first run, it will be a bit slower, but you will see the GUI application pop 
 
 ## Deployment / Exporting
 
-If you would like to build a binary, you will need the [fyne-cross](https://github.com/fyne-io/fyne-cross) application and Docker to cross compile the application for different platforms.
+To build a binary for your local environment, you can install the fyne app (`$ go install fyne.io/demo@latest`) and then run:
+```bash
+$ fyne build
+```
+
+If you would like to cross-compile a binary, you will need the [fyne-cross](https://github.com/fyne-io/fyne-cross) application and Docker to cross compile the application for different platforms.
 
 ```bash
 $ go install github.com/fyne-io/fyne-cross@latest
@@ -91,6 +96,8 @@ $ fyne-cross linux
 ```
 
 The app will be exported to the `fyne-cross/dist` directory as tar file with a Makefile and the application binary.
+
+See more info on the [Fyne app site](https://fyne.io).
 
 ## Contributing
 
