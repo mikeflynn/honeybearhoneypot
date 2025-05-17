@@ -89,7 +89,7 @@ func SetTunnel(host *string, keyPath *string) error {
 	return nil
 }
 
-func StartHoneyPot() {
+func StartHoneyPot(appConfigDir string) {
 	activeUsers = []string{}
 	usersThisSession = 0
 	maxUsers := entity.OptionGetInt(entity.KeyPotMaxUsers)
@@ -99,7 +99,7 @@ func StartHoneyPot() {
 
 	s, err := wish.NewServer(
 		wish.WithAddress(net.JoinHostPort(host, potPort)),
-		wish.WithHostKeyPath(".ssh/id_ed25519"),
+		wish.WithHostKeyPath(appConfigDir+"/.ssh/id_ed25519"),
 		wish.WithPasswordAuth(func(ctx ssh.Context, password string) bool {
 			if len(activeUsers)+1 > maxUsers {
 				return false

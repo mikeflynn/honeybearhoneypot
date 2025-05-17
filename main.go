@@ -35,7 +35,7 @@ func main() {
 	log.SetLevel(translateLogLevel(*logLevel))
 	log.Info("Starting Honey Bear Honey Pot...")
 
-	setup()
+	appConfigDir := setup()
 
 	var primaryPort string
 	var additionalListeners []*net.Listener
@@ -60,7 +60,7 @@ func main() {
 
 	if *noGui == false {
 		go func() {
-			honeypot.StartHoneyPot()
+			honeypot.StartHoneyPot(appConfigDir)
 		}()
 
 		if *pinOverride != "" {
@@ -69,7 +69,7 @@ func main() {
 
 		gui.StartGUI(*fullScreen, float32(*widthFlag), float32(*heightFlag))
 	} else {
-		honeypot.StartHoneyPot()
+		honeypot.StartHoneyPot(appConfigDir)
 	}
 
 	cleanup()
