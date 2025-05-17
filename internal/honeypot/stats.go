@@ -8,6 +8,10 @@ func StatActiveUsers() int {
 	return len(activeUsers)
 }
 
+func StatUsersThisSession() int {
+	return usersThisSession
+}
+
 func StatMaxUsers() int {
 	// This should up updated to subscribe to the options change
 	// and update the value on change rather than querying the database each time.

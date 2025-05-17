@@ -92,9 +92,15 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 		),
 	)
 
-	statCurrentUsers := canvas.NewText(fmt.Sprintf("%d / %d", 0, honeypot.StatMaxUsers()), theme.Color(theme.ColorNameForeground))
+	statCurrentUsers := canvas.NewText("----", theme.Color(theme.ColorNameForeground))
+	statCurrentUsers.TextStyle.Monospace = true
+	statSessionUsers := canvas.NewText("----", theme.Color(theme.ColorNameForeground))
+	statSessionUsers.TextStyle.Monospace = true
 	status := container.NewVBox(
+		textLabel("NOW", 12),
 		statCurrentUsers,
+		textLabel("TODAY", 12),
+		statSessionUsers,
 	)
 
 	dataOverlays := container.NewPadded(
@@ -107,14 +113,6 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 						status,
 					),
 				),
-				/*
-					container.NewStack(
-						canvas.NewRectangle(theme.Color(theme.ColorNameOverlayBackground)),
-						container.NewPadded(
-							canvas.NewText("38%", theme.Color(theme.ColorNameForeground)),
-						),
-					),
-				*/
 				layout.NewSpacer(),
 			),
 		),
@@ -208,19 +206,21 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 
 			fyne.Do(func() {
 				// Update the current user count
-				statCurrentUsers.Text = fmt.Sprintf("%d / %d", honeypot.StatActiveUsers(), honeypot.StatMaxUsers())
+				statCurrentUsers.Text = fmt.Sprintf("%04d", honeypot.StatActiveUsers())
+				statSessionUsers.Text = fmt.Sprintf("%04d", honeypot.StatUsersThisSession())
+
+				status.Objects = []fyne.CanvasObject{
+					textLabel("NOW", 12),
+					statCurrentUsers,
+					textLabel("TODAY", 12),
+					statSessionUsers,
+				}
 
 				// Update the tunnel button
 				tunnelStatus := tunnelStatus()
-				if tunnelStatus == nil {
-					status.Objects = []fyne.CanvasObject{
-						statCurrentUsers,
-					}
-				} else {
-					status.Objects = []fyne.CanvasObject{
-						tunnelStatus,
-						statCurrentUsers,
-					}
+				if tunnelStatus != nil {
+					// Prepend the tunnel status to the status.Objects
+					status.Objects = append([]fyne.CanvasObject{tunnelStatus, separator()}, status.Objects...)
 				}
 
 				dataOverlays.Refresh()
@@ -249,6 +249,22 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 
 	// Cleanup
 	entity.EventUnsubscribe("notifications")
+}
+
+func textLabel(text string, fontSize int) *canvas.Text {
+	label := canvas.NewText(text, theme.Color(theme.ColorNameForeground))
+	label.TextSize = float32(fontSize)
+	label.TextStyle = fyne.TextStyle{Bold: true}
+
+	return label
+}
+
+func separator() *canvas.Rectangle {
+	sep := canvas.NewRectangle(theme.Color(theme.ColorNameDisabled))
+	sep.SetMinSize(fyne.NewSize(1, 1))
+	sep.Resize(fyne.NewSize(1, 20))
+
+	return sep
 }
 
 func showBear(bear Bear) *canvas.Image {

@@ -35,8 +35,9 @@ const (
 
 var (
 	// State
-	activeUsers  []string
-	tunnelActive int = -1 // -1 = not configured, 0 = not connected, 1 = connected
+	activeUsers      []string
+	usersThisSession int = 0
+	tunnelActive     int = -1 // -1 = not configured, 0 = not connected, 1 = connected
 
 	// Config
 	potPort                 string          // Primary port the honey pot will answer on.
@@ -90,6 +91,7 @@ func SetTunnel(host *string, keyPath *string) error {
 
 func StartHoneyPot() {
 	activeUsers = []string{}
+	usersThisSession = 0
 	maxUsers := entity.OptionGetInt(entity.KeyPotMaxUsers)
 	if maxUsers == 0 {
 		maxUsers = defaultMaxUsers
@@ -104,6 +106,7 @@ func StartHoneyPot() {
 			}
 
 			log.Info(fmt.Sprintf("Authorization used: %s, %s", ctx.User(), password))
+			usersThisSession++
 			return true
 		}),
 		wish.WithBannerHandler(func(ctx ssh.Context) string {
