@@ -94,13 +94,13 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 
 	statCurrentUsers := canvas.NewText("----", theme.Color(theme.ColorNameForeground))
 	statCurrentUsers.TextStyle.Monospace = true
-	statSessionUsers := canvas.NewText("----", theme.Color(theme.ColorNameForeground))
-	statSessionUsers.TextStyle.Monospace = true
+	statTotalUsers := canvas.NewText("----", theme.Color(theme.ColorNameForeground))
+	statTotalUsers.TextStyle.Monospace = true
 	status := container.NewVBox(
 		textLabel("NOW", 12),
 		statCurrentUsers,
-		textLabel("TODAY", 12),
-		statSessionUsers,
+		textLabel("ALL TIME", 12),
+		statTotalUsers,
 	)
 
 	dataOverlays := container.NewPadded(
@@ -207,13 +207,13 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 			fyne.Do(func() {
 				// Update the current user count
 				statCurrentUsers.Text = fmt.Sprintf("%04d", honeypot.StatActiveUsers())
-				statSessionUsers.Text = fmt.Sprintf("%04d", honeypot.StatUsersThisSession())
+				statTotalUsers.Text = fmt.Sprintf("%04d", honeypot.StatUsersAllTime())
 
 				status.Objects = []fyne.CanvasObject{
 					textLabel("NOW", 12),
 					statCurrentUsers,
-					textLabel("TODAY", 12),
-					statSessionUsers,
+					textLabel("ALL TIME", 12),
+					statTotalUsers,
 				}
 
 				// Update the tunnel button
