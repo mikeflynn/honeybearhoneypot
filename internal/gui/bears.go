@@ -16,15 +16,15 @@ var bears = Bears{
 	{Name: "Look Right", File: "bear_look_right.jpg", Category: "standard", SubCategory: "idle"},
 	{Name: "Surprised", File: "bear_surprised.jpg", Category: "standard", SubCategory: "react"},
 
-	{Name: "Talking - Bored", File: "bear_talk_bored.jpg", Category: "standard", SubCategory: "talk", Wait: getDurationSeconds(4)},
-	{Name: "Talking - QR", File: "bear_talk_qr.jpg", Category: "standard", SubCategory: "talk", Wait: getDurationSeconds(6)},
-	{Name: "Talking - Rickroll", File: "bear_talk_rickroll.jpg", Category: "standard", SubCategory: "talk", Wait: getDurationSeconds(6)},
-	{Name: "Talking - Hydrox", File: "bear_talk_hydrox.jpg", Category: "standard", SubCategory: "talk", Wait: getDurationSeconds(6)},
-	{Name: "Talking - SSH", File: "bear_talk_ssh.jpg", Category: "standard", SubCategory: "talk", Wait: getDurationSeconds(6)},
-	{Name: "Talking - Pot", File: "bear_talk_honeypot.jpg", Category: "standard", SubCategory: "talk", Wait: getDurationSeconds(4)},
-	{Name: "Talking - Voices", File: "bear_talk_voices.jpg", Category: "standard", SubCategory: "talk", Wait: getDurationSeconds(4)},
-	{Name: "Talking - Game", File: "bear_talk_game.jpg", Category: "standard", SubCategory: "talk", Wait: getDurationSeconds(4)},
-	{Name: "Talking - Hack", File: "bear_talk_hack.jpg", Category: "standard", SubCategory: "talk", Wait: getDurationSeconds(6)},
+	{Name: "Talking - Bored", File: "bear_talk_bored.jpg", Category: "standard", SubCategory: "talk", SkipFrames: 2},
+	{Name: "Talking - QR", File: "bear_talk_qr.jpg", Category: "standard", SubCategory: "talk", SkipFrames: 3},
+	{Name: "Talking - Rickroll", File: "bear_talk_rickroll.jpg", Category: "standard", SubCategory: "talk", SkipFrames: 3},
+	{Name: "Talking - Hydrox", File: "bear_talk_hydrox.jpg", Category: "standard", SubCategory: "talk", SkipFrames: 3},
+	{Name: "Talking - SSH", File: "bear_talk_ssh.jpg", Category: "standard", SubCategory: "talk", SkipFrames: 3},
+	{Name: "Talking - Pot", File: "bear_talk_honeypot.jpg", Category: "standard", SubCategory: "talk", SkipFrames: 2},
+	{Name: "Talking - Voices", File: "bear_talk_voices.jpg", Category: "standard", SubCategory: "talk", SkipFrames: 2},
+	{Name: "Talking - Game", File: "bear_talk_game.jpg", Category: "standard", SubCategory: "talk", SkipFrames: 2},
+	{Name: "Talking - Hack", File: "bear_talk_hack.jpg", Category: "standard", SubCategory: "talk", SkipFrames: 3},
 
 	{Name: "Angry", File: "bear_angry.jpg", Category: "emote", SubCategory: "angry"},
 	{Name: "Cool", File: "bear_cool.jpg", Category: "emote", SubCategory: "happy"},
@@ -46,7 +46,7 @@ type Bear struct {
 	File        string
 	Category    string
 	SubCategory string
-	Wait        *time.Duration
+	SkipFrames  int
 }
 
 func (b Bear) FileData() ([]byte, error) {

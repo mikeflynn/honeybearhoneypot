@@ -171,6 +171,7 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 	go func() {
 		cat := "standard"
 		subcat := []string{"idle", "talk"}
+		skipFrames := 0
 
 		for {
 			loopWait := time.Duration(2 * time.Second) // Default wait in seconds
@@ -179,21 +180,24 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 			if overrideBear != "" {
 				newBear = bears.GetBear(overrideBear)
 			} else {
-				if shouldShowEmotion() {
-					newBear = bears.GetBearByCategory("emote", "")
+				if skipFrames > 0 {
+					skipFrames--
 				} else {
-					newBear = bears.GetBearByCategory(cat, subcat...)
+					if shouldShowEmotion() {
+						newBear = bears.GetBearByCategory("emote", "")
+					} else {
+						newBear = bears.GetBearByCategory(cat, subcat...)
 
-					if newBear.SubCategory == "talk" {
-						subcat = []string{"idle"}
-						go func() {
-							<-time.After(30 * time.Second)
-							subcat = []string{"idle", "talk"} // Reset subcategory after 30 seconds
-						}()
+						if newBear.SubCategory == "talk" {
+							subcat = []string{"idle"}
+							go func() {
+								<-time.After(30 * time.Second)
+								subcat = []string{"idle", "talk"} // Reset subcategory after 30 seconds
+							}()
+						}
 					}
-				}
-				if newBear.Wait != nil {
-					loopWait = *newBear.Wait
+
+					skipFrames = newBear.SkipFrames // Get the skip frames for the new bear
 				}
 			}
 
