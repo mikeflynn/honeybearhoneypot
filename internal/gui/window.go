@@ -169,23 +169,29 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 
 	// UI update loop
 	go func() {
+		cat := "standard"
+		subcat := []string{"idle", "talk"}
+
 		for {
 			loopWait := time.Duration(2 * time.Second) // Default wait in seconds
-
-			// Randomly change the bear
-			cat := "standard"
-			subcat := []string{"idle", "talk"}
-
-			if shouldShowEmotion() {
-				cat = "emote"
-				subcat = []string{""}
-			}
 
 			var newBear *Bear
 			if overrideBear != "" {
 				newBear = bears.GetBear(overrideBear)
 			} else {
-				newBear = bears.GetBearByCategory(cat, subcat...)
+				if shouldShowEmotion() {
+					newBear = bears.GetBearByCategory("emote", "")
+				} else {
+					newBear = bears.GetBearByCategory(cat, subcat...)
+
+					if newBear.SubCategory == "talk" {
+						subcat = []string{"idle"}
+						go func() {
+							<-time.After(30 * time.Second)
+							subcat = []string{"idle", "talk"} // Reset subcategory after 30 seconds
+						}()
+					}
+				}
 				if newBear.Wait != nil {
 					loopWait = *newBear.Wait
 				}
