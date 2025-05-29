@@ -174,18 +174,21 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 
 			// Randomly change the bear
 			cat := "standard"
-			subcat := "idle"
+			subcat := []string{"idle", "talk"}
 
 			if shouldShowEmotion() {
 				cat = "emote"
-				subcat = ""
+				subcat = []string{""}
 			}
 
 			var newBear *Bear
 			if overrideBear != "" {
 				newBear = bears.GetBear(overrideBear)
 			} else {
-				newBear = bears.GetBearByCategory(cat, subcat)
+				newBear = bears.GetBearByCategory(cat, subcat...)
+				if newBear.Wait != nil {
+					loopWait = *newBear.Wait
+				}
 			}
 
 			if newBear == nil {
