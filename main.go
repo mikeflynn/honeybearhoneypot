@@ -36,6 +36,7 @@ func main() {
 	log.Info("Starting Honey Bear Honey Pot...")
 
 	appConfigDir := setup()
+	defer cleanup()
 
 	var primaryPort string
 	var additionalListeners []*net.Listener
@@ -71,8 +72,6 @@ func main() {
 	} else {
 		honeypot.StartHoneyPot(appConfigDir)
 	}
-
-	cleanup()
 }
 
 func setup() string {
