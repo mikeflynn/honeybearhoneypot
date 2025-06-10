@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"sync"
 	"time"
 
 	"github.com/mikeflynn/honeybearhoneypot/internal/db"
@@ -11,7 +12,10 @@ const (
 	EventSourceUser   = "user"
 )
 
-var EventSubscriptions = map[string]chan *Event{}
+var (
+	eventSubscriptionsMu sync.RWMutex
+	EventSubscriptions   = map[string]chan *Event{}
+)
 
 func EventInitialization() string {
 	return `
@@ -31,13 +35,19 @@ func EventInitialization() string {
 
 func EventSubscribe(name string) chan *Event {
 	c := make(chan *Event, 10)
+	eventSubscriptionsMu.Lock()
 	EventSubscriptions[name] = c
+	eventSubscriptionsMu.Unlock()
 	return c
 }
 
 func EventUnsubscribe(name string) {
-	close(EventSubscriptions[name])
-	delete(EventSubscriptions, name)
+	eventSubscriptionsMu.Lock()
+	if ch, ok := EventSubscriptions[name]; ok {
+		close(ch)
+		delete(EventSubscriptions, name)
+	}
+	eventSubscriptionsMu.Unlock()
 }
 
 type Event struct {
@@ -57,9 +67,11 @@ func (e *Event) Save() error {
 }
 
 func (e *Event) Publish() {
+	eventSubscriptionsMu.RLock()
 	for _, c := range EventSubscriptions {
 		c <- e
 	}
+	eventSubscriptionsMu.RUnlock()
 }
 
 func EventQuery(query string, values ...any) ([]*Event, error) {
