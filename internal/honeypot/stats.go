@@ -13,11 +13,11 @@ var (
 )
 
 func StatActiveUsers() int {
-	return len(activeUsers)
+	return activeUsersLen()
 }
 
 func StatUsersThisSession() int {
-	return usersThisSession
+	return usersThisSessionCount()
 }
 
 func StatUsersAllTime() int {
