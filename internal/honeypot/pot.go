@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -37,6 +38,7 @@ var (
 	// State
 	activeUsers      []string
 	usersThisSession int = 0
+	activeUsersMu    sync.Mutex
 	tunnelActive     int = -1 // -1 = not configured, 0 = not connected, 1 = connected
 
 	// Config
@@ -50,6 +52,49 @@ var (
 	tunnelRemoteForwardPort = "8022"        // Port to open on the *remote* server for forwarding
 	knownHostsPath          = ""            // Path to known hosts file.
 )
+
+func addActiveUser(user string) {
+	activeUsersMu.Lock()
+	activeUsers = append(activeUsers, user)
+	activeUsersMu.Unlock()
+}
+
+func removeActiveUser(user string) {
+	activeUsersMu.Lock()
+	for i, u := range activeUsers {
+		if u == user {
+			activeUsers = append(activeUsers[:i], activeUsers[i+1:]...)
+			break
+		}
+	}
+	activeUsersMu.Unlock()
+}
+
+func activeUsersLen() int {
+	activeUsersMu.Lock()
+	defer activeUsersMu.Unlock()
+	return len(activeUsers)
+}
+
+func activeUsersSnapshot() []string {
+	activeUsersMu.Lock()
+	defer activeUsersMu.Unlock()
+	snapshot := make([]string, len(activeUsers))
+	copy(snapshot, activeUsers)
+	return snapshot
+}
+
+func incrementUsersThisSession() {
+	activeUsersMu.Lock()
+	usersThisSession++
+	activeUsersMu.Unlock()
+}
+
+func usersThisSessionCount() int {
+	activeUsersMu.Lock()
+	defer activeUsersMu.Unlock()
+	return usersThisSession
+}
 
 func SetPort(port string) error {
 	potPort = port
@@ -90,8 +135,10 @@ func SetTunnel(host *string, keyPath *string) error {
 }
 
 func StartHoneyPot(appConfigDir string) {
+	activeUsersMu.Lock()
 	activeUsers = []string{}
 	usersThisSession = 0
+	activeUsersMu.Unlock()
 	maxUsers := entity.OptionGetInt(entity.KeyPotMaxUsers)
 	if maxUsers == 0 {
 		maxUsers = defaultMaxUsers
@@ -101,12 +148,12 @@ func StartHoneyPot(appConfigDir string) {
 		wish.WithAddress(net.JoinHostPort(host, potPort)),
 		wish.WithHostKeyPath(appConfigDir+"/.ssh/id_ed25519"),
 		wish.WithPasswordAuth(func(ctx ssh.Context, password string) bool {
-			if len(activeUsers)+1 > maxUsers {
+			if activeUsersLen()+1 > maxUsers {
 				return false
 			}
 
 			log.Info(fmt.Sprintf("Authorization used: %s, %s", ctx.User(), password))
-			usersThisSession++
+			incrementUsersThisSession()
 			return true
 		}),
 		wish.WithBannerHandler(func(ctx ssh.Context) string {
@@ -121,17 +168,11 @@ func StartHoneyPot(appConfigDir string) {
 			bubbletea.Middleware(teaHandler),
 			func(next ssh.Handler) ssh.Handler {
 				return func(s ssh.Session) {
-					activeUsers = append(activeUsers, s.User())
+					addActiveUser(s.User())
 
 					next(s)
 
-					for i, user := range activeUsers {
-						if user == s.User() {
-							// Remove the user from the list.
-							activeUsers = append(activeUsers[:i], activeUsers[i+1:]...)
-							break
-						}
-					}
+					removeActiveUser(s.User())
 				}
 			},
 			activeterm.Middleware(), // Bubble Tea apps usually require a PTY.
