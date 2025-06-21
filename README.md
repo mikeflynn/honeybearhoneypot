@@ -14,7 +14,7 @@ The honeypot can be configured using command-line flags when starting the applic
 - `-log-level`: Set logging level (debug, info, warn, error, fatal) (default "info")
 - `-no-gui`: Run the honey pot without the GUI
 - `-pin-reset`: Reset the admin PIN to a specific value
-- `-ssh-port`: The port(s) to listen on for honey pot SSH connections (comma separated for multiple ports, default "1337")
+- `-ssh-port`: The port(s) to listen on for honey pot SSH connections (comma separated for multiple ports)
 - `-tunnel`: Set up SSH reverse tunnel (format: user@server.com:22)
 - `-tunnel-key`: Path to SSH key for reverse tunnel authentication
 - `-config`: Path to a JSON configuration file with the same options
@@ -69,13 +69,13 @@ Usage of /***/main
   -height int
         The height of the GUI window
   -log-level string
-        Log level (debug, info, warn, error, fatal) (default "info")
+        Log level (debug, info, warn, error, fatal)
   -no-gui
         Run the honey pot without the GUI
   -pin-reset string
         Reset the admin PIN to a specific value
   -ssh-port string
-        The port to listen on for honey pot SSH connections. Comma separated list for multiple ports. (default "1337")
+        The port to listen on for honey pot SSH connections. Comma separated list for multiple ports.
   -tunnel string
         The user and host to connect to via SSH. Ex: user@server.com:22
   -tunnel-key string
