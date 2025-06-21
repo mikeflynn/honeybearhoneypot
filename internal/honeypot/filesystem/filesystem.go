@@ -566,4 +566,6 @@ func Initialize() {
 		Owner: "root",
 		Group: "root",
 	}
+
+	applyAdditionalNodes()
 }

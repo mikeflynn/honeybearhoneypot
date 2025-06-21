@@ -13,6 +13,7 @@ import (
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
 	"github.com/mikeflynn/honeybearhoneypot/internal/gui"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/filesystem"
 )
 
 const (
@@ -24,6 +25,8 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to parse configuration", "error", err)
 	}
+
+	filesystem.SetAdditionalNodes(cfg.Filesystem)
 
 	log.SetLevel(translateLogLevel(cfg.LogLevel))
 	log.Info("Starting Honey Bear Honey Pot...")
