@@ -17,6 +17,9 @@ The honeypot can be configured using command-line flags when starting the applic
 - `-ssh-port`: The port(s) to listen on for honey pot SSH connections (comma separated for multiple ports, default "1337")
 - `-tunnel`: Set up SSH reverse tunnel (format: user@server.com:22)
 - `-tunnel-key`: Path to SSH key for reverse tunnel authentication
+- `-config`: Path to a JSON configuration file with the same options
+
+The configuration file can also define additional settings like extra filesystem nodes or CTF tasks. See `misc/config.sample.json` for an example.
 
 ## Usage
 
@@ -59,6 +62,8 @@ To run the application locally, you will need to have Go installed on your machi
 $ go run main.go -h
 
 Usage of /***/main
+  -config string
+        Path to optional JSON configuration file
   -fs
         Start the gui in full screen mode
   -height int

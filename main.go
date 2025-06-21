@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/log"
+	"github.com/mikeflynn/honeybearhoneypot/internal/config"
 	"github.com/mikeflynn/honeybearhoneypot/internal/db"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
 	"github.com/mikeflynn/honeybearhoneypot/internal/gui"
@@ -21,16 +22,59 @@ const (
 )
 
 func main() {
+	configPath := flag.String("config", "", "Path to optional JSON config file")
 	noGui := flag.Bool("no-gui", false, "Run the honey pot without the GUI")
 	fullScreen := flag.Bool("fs", false, "Start the gui in full screen mode")
-	sshPort := flag.String("ssh-port", "1337", "The port to listen on for honey pot SSH connections. Comma separated list for multiple ports.")
+	sshPort := flag.String("ssh-port", "", "The port to listen on for honey pot SSH connections. Comma separated list for multiple ports.")
 	widthFlag := flag.Int("width", 0, "The width of the GUI window")
 	heightFlag := flag.Int("height", 0, "The height of the GUI window")
-	logLevel := flag.String("log-level", "info", "Log level (debug, info, warn, error, fatal)")
+	logLevel := flag.String("log-level", "", "Log level (debug, info, warn, error, fatal)")
 	pinOverride := flag.String("pin-reset", "", "Reset the admin PIN to a specific value")
 	tunnelHost := flag.String("tunnel", "", "The user and host to connect to via SSH. Ex: user@server.com:22")
 	tunnelKey := flag.String("tunnel-key", "", "The SSH key to use to connect to the specified remote host.")
 	flag.Parse()
+
+	var cfg *config.Config
+	if *configPath != "" {
+		var err error
+		cfg, err = config.Load(*configPath)
+		if err != nil {
+			log.Fatal("Failed to load config file", "error", err)
+		}
+	} else {
+		cfg = &config.Config{}
+	}
+
+	if len(cfg.SSHPorts) > 0 && *sshPort == "" {
+		*sshPort = strings.Join(cfg.SSHPorts, ",")
+	}
+	if cfg.LogLevel != "" && *logLevel == "" {
+		*logLevel = cfg.LogLevel
+	}
+	if cfg.NoGUI {
+		*noGui = true
+	}
+	if cfg.FullScreen {
+		*fullScreen = true
+	}
+	if cfg.Width != 0 && *widthFlag == 0 {
+		*widthFlag = cfg.Width
+	}
+	if cfg.Height != 0 && *heightFlag == 0 {
+		*heightFlag = cfg.Height
+	}
+	if cfg.Tunnel != "" && *tunnelHost == "" {
+		*tunnelHost = cfg.Tunnel
+	}
+	if cfg.TunnelKey != "" && *tunnelKey == "" {
+		*tunnelKey = cfg.TunnelKey
+	}
+	if *sshPort == "" {
+		*sshPort = "1337"
+	}
+	if *logLevel == "" {
+		*logLevel = "info"
+	}
 
 	log.SetLevel(translateLogLevel(*logLevel))
 	log.Info("Starting Honey Bear Honey Pot...")
