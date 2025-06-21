@@ -4,3 +4,4 @@ hardhat-honeybear
 honeybear.db
 .ssh
 *.zip
+config.json

@@ -3,13 +3,12 @@ package main
 // https://github.com/charmbracelet/wish
 
 import (
-	"flag"
 	"net"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/charmbracelet/log"
+	"github.com/mikeflynn/honeybearhoneypot/internal/config"
 	"github.com/mikeflynn/honeybearhoneypot/internal/db"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
 	"github.com/mikeflynn/honeybearhoneypot/internal/gui"
@@ -21,18 +20,12 @@ const (
 )
 
 func main() {
-	noGui := flag.Bool("no-gui", false, "Run the honey pot without the GUI")
-	fullScreen := flag.Bool("fs", false, "Start the gui in full screen mode")
-	sshPort := flag.String("ssh-port", "1337", "The port to listen on for honey pot SSH connections. Comma separated list for multiple ports.")
-	widthFlag := flag.Int("width", 0, "The width of the GUI window")
-	heightFlag := flag.Int("height", 0, "The height of the GUI window")
-	logLevel := flag.String("log-level", "info", "Log level (debug, info, warn, error, fatal)")
-	pinOverride := flag.String("pin-reset", "", "Reset the admin PIN to a specific value")
-	tunnelHost := flag.String("tunnel", "", "The user and host to connect to via SSH. Ex: user@server.com:22")
-	tunnelKey := flag.String("tunnel-key", "", "The SSH key to use to connect to the specified remote host.")
-	flag.Parse()
+	cfg, _, err := config.Parse()
+	if err != nil {
+		log.Fatal("Failed to parse configuration", "error", err)
+	}
 
-	log.SetLevel(translateLogLevel(*logLevel))
+	log.SetLevel(translateLogLevel(cfg.LogLevel))
 	log.Info("Starting Honey Bear Honey Pot...")
 
 	appConfigDir := setup()
@@ -40,7 +33,7 @@ func main() {
 
 	var primaryPort string
 	var additionalListeners []*net.Listener
-	ports := strings.Split(*sshPort, ",")
+	ports := cfg.SSHPorts
 	for x, port := range ports {
 		log.Debug("Adding listener", "port", port)
 		if x == 0 {
@@ -56,19 +49,21 @@ func main() {
 	}
 
 	honeypot.SetPort(primaryPort)
-	honeypot.SetTunnel(tunnelHost, tunnelKey)
+	host := cfg.Tunnel
+	key := cfg.TunnelKey
+	honeypot.SetTunnel(&host, &key)
 	honeypot.AddListeners(additionalListeners...)
 
-	if *noGui == false {
+	if !cfg.NoGUI {
 		go func() {
 			honeypot.StartHoneyPot(appConfigDir)
 		}()
 
-		if *pinOverride != "" {
-			entity.OptionSet("gui_pin", *pinOverride)
+		if cfg.PinReset != "" {
+			entity.OptionSet("gui_pin", cfg.PinReset)
 		}
 
-		gui.StartGUI(*fullScreen, float32(*widthFlag), float32(*heightFlag))
+		gui.StartGUI(cfg.FullScreen, float32(cfg.Width), float32(cfg.Height))
 	} else {
 		honeypot.StartHoneyPot(appConfigDir)
 	}
