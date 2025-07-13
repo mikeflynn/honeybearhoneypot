@@ -17,6 +17,12 @@ func Start() tea.Msg { return startMsg{} }
 // startMsg is used to bootstrap the game from the filesystem command.
 type startMsg struct{}
 
+// quitMsg is sent when the user wants to exit the CTF without quitting the host program.
+type quitMsg struct{}
+
+// Quit returns a message that signals the parent model to close the CTF view.
+func Quit() tea.Msg { return quitMsg{} }
+
 // gameState indicates which screen we're showing.
 type gameState int
 
@@ -38,7 +44,9 @@ type item struct {
 	task Task
 }
 
-func (i item) Title() string       { return i.task.Name }
+func (i item) Title() string {
+	return fmt.Sprintf("%s (%d pts)", i.task.Name, i.task.Points)
+}
 func (i item) Description() string { return i.task.Description }
 func (i item) FilterValue() string { return i.task.Name }
 
@@ -47,6 +55,9 @@ type Model struct {
 	username string
 	password string
 	user     *entity.CTFUser
+
+	width  int
+	height int
 
 	usernameInput textinput.Model
 	passwordInput textinput.Model
@@ -81,21 +92,30 @@ func InitialModel(tasks []Task) Model {
 	l := list.New(items, list.NewDefaultDelegate(), 0, 0)
 	l.Title = "Challenges"
 
+	width := 0
+	height := 0
+
 	return Model{
 		state:         stateLogin,
 		usernameInput: ti,
 		passwordInput: pi,
 		answerInput:   ai,
 		list:          l,
+		width:         width,
+		height:        height,
 	}
 }
 
 func (m Model) Init() tea.Cmd { return nil }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg.(type) {
+	switch msg := msg.(type) {
 	case startMsg:
 		return m, nil
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+		m.list.SetSize(msg.Width-4, msg.Height-10)
 	}
 
 	switch m.state {
@@ -106,7 +126,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case stateAnswer:
 		return m.updateAnswer(msg)
 	case stateDone:
-		return m, tea.Quit
+		return m, func() tea.Msg { return quitMsg{} }
 	}
 	return m, nil
 }
@@ -136,37 +156,39 @@ func (m *Model) authenticate() tea.Cmd {
 }
 
 func (m Model) updateLogin(msg tea.Msg) (tea.Model, tea.Cmd) {
-        var cmd tea.Cmd
-        switch msg := msg.(type) {
-        case tea.KeyMsg:
-                switch msg.String() {
-                case "enter":
-                        return m, m.authenticate()
-                case "tab", "down":
-                        if m.usernameInput.Focused() {
-                                m.usernameInput.Blur()
-                                m.passwordInput.Focus()
-                        } else {
-                                m.passwordInput.Blur()
-                                m.usernameInput.Focus()
-                        }
-                        return m, nil
-                case "shift+tab", "up":
-                        if m.passwordInput.Focused() {
-                                m.passwordInput.Blur()
-                                m.usernameInput.Focus()
-                        } else {
-                                m.usernameInput.Blur()
-                                m.passwordInput.Focus()
-                        }
-                        return m, nil
-                }
-        }
-        m.usernameInput, cmd = m.usernameInput.Update(msg)
-        if m.usernameInput.Focused() {
-                return m, cmd
-        }
+	var cmd tea.Cmd
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "enter":
+			return m, m.authenticate()
+		case "tab", "down":
+			if m.usernameInput.Focused() {
+				m.usernameInput.Blur()
+				m.passwordInput.Focus()
+			} else {
+				m.passwordInput.Blur()
+				m.usernameInput.Focus()
+			}
+			return m, nil
+		case "shift+tab", "up":
+			if m.passwordInput.Focused() {
+				m.passwordInput.Blur()
+				m.usernameInput.Focus()
+			} else {
+				m.usernameInput.Blur()
+				m.passwordInput.Focus()
+			}
+			return m, nil
+		}
+	}
+	m.usernameInput, cmd = m.usernameInput.Update(msg)
+	if m.usernameInput.Focused() {
+		m.list, _ = m.list.Update(msg)
+		return m, cmd
+	}
 	m.passwordInput, cmd = m.passwordInput.Update(msg)
+	m.list, _ = m.list.Update(msg)
 	return m, cmd
 }
 
@@ -185,7 +207,7 @@ func (m Model) updateMenu(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case "q", "ctrl+c":
 			m.state = stateDone
-			return m, tea.Quit
+			return m, func() tea.Msg { return quitMsg{} }
 		}
 	}
 	m.list, cmd = m.list.Update(msg)
@@ -220,19 +242,19 @@ func (m Model) updateAnswer(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-        titleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)
-       welcome := lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Render("Welcome to the Honey Bear Honey Pot CTF!\n" +
-               "Create an account by entering a new username and password or login with your existing credentials.")
-        switch m.state {
-        case stateLogin:
-                return lipgloss.JoinVertical(lipgloss.Left,
-                        titleStyle.Render("Honey Bear Honey Pot CTF"),
-                        welcome,
-                        m.list.View(),
-                        m.errMsg,
-                        "username: "+m.usernameInput.View(),
-                        "password: "+m.passwordInput.View(),
-                )
+	titleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)
+	welcome := lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Render("Welcome to the Honey Bear Honey Pot CTF!\n" +
+		"Create an account by entering a new username and password or login with your existing credentials.")
+	switch m.state {
+	case stateLogin:
+		return lipgloss.JoinVertical(lipgloss.Left,
+			titleStyle.Render("Honey Bear Honey Pot CTF"),
+			welcome,
+			m.list.View(),
+			m.errMsg,
+			"username: "+m.usernameInput.View(),
+			"password: "+m.passwordInput.View(),
+		)
 	case stateMenu:
 		header := fmt.Sprintf("Honey Bear Honey Pot CTF - %s (%d pts)", m.user.Username, m.user.Points)
 		m.list.Title = header

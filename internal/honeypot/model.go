@@ -147,6 +147,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		m.output += m.outputStyle.Render("\n")
+	case ctf.quitMsg:
+		m.viewport.SetContent("")
+		m.runningCommand = ""
+		return m, nil
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
