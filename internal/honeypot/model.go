@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/google/shlex"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/confetti"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/ctf"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/filesystem"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/matrix"
 	"github.com/muesli/reflow/wordwrap"
@@ -147,7 +148,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		m.output += m.outputStyle.Render("\n")
-	case ctf.quitMsg:
+	case ctf.QuitMsg:
 		m.viewport.SetContent("")
 		m.runningCommand = ""
 		return m, nil

@@ -17,11 +17,12 @@ func Start() tea.Msg { return startMsg{} }
 // startMsg is used to bootstrap the game from the filesystem command.
 type startMsg struct{}
 
-// quitMsg is sent when the user wants to exit the CTF without quitting the host program.
-type quitMsg struct{}
+// QuitMsg is sent when the user wants to exit the CTF without quitting the host
+// program.
+type QuitMsg struct{}
 
 // Quit returns a message that signals the parent model to close the CTF view.
-func Quit() tea.Msg { return quitMsg{} }
+func Quit() tea.Msg { return QuitMsg{} }
 
 // gameState indicates which screen we're showing.
 type gameState int
@@ -126,7 +127,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case stateAnswer:
 		return m.updateAnswer(msg)
 	case stateDone:
-		return m, func() tea.Msg { return quitMsg{} }
+		return m, func() tea.Msg { return QuitMsg{} }
 	}
 	return m, nil
 }
@@ -207,7 +208,7 @@ func (m Model) updateMenu(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case "q", "ctrl+c":
 			m.state = stateDone
-			return m, func() tea.Msg { return quitMsg{} }
+			return m, func() tea.Msg { return QuitMsg{} }
 		}
 	}
 	m.list, cmd = m.list.Update(msg)
