@@ -312,16 +312,3 @@ func (m model) EventTime(event string) *time.Time {
 func (m model) SetEventTime(event string) {
 	m.events[event] = time.Now()
 }
-
-func convertTasks(t []config.Task) []ctf.Task {
-	out := make([]ctf.Task, len(t))
-	for i, task := range t {
-		out[i] = ctf.Task{
-			Name:        task.Name,
-			Description: task.Description,
-			Flag:        task.Flag,
-			Points:      task.Points,
-		}
-	}
-	return out
-}
