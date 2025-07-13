@@ -307,6 +307,9 @@ func convertTasks(t []config.Task) []ctf.Task {
 		if _, ok := seen[task.Name]; ok {
 			log.Fatalf("duplicate CTF task name: %s", task.Name)
 		}
+		if used, err := entity.TaskNameUsed(task.Name); err == nil && used {
+			log.Fatalf("duplicate CTF task name (database): %s", task.Name)
+		}
 		seen[task.Name] = struct{}{}
 		out = append(out, ctf.Task{
 			Name:        task.Name,
