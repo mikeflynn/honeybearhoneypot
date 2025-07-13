@@ -118,21 +118,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *Model) authenticate() tea.Cmd {
-	u := &entity.CTFUser{Username: m.usernameInput.Value()}
+	pass := strings.TrimSpace(m.passwordInput.Value())
+	if pass == "" {
+		m.errMsg = "password required"
+		return nil
+	}
+
+	u := &entity.CTFUser{Username: strings.TrimSpace(m.usernameInput.Value())}
 	err := u.Load()
 	if err != nil {
-		// create
+		// create new account
 		u.Username = m.usernameInput.Value()
-		u.Password = m.passwordInput.Value()
+		u.Password = pass
 		if err := u.Save(); err != nil {
 			m.errMsg = err.Error()
 			return nil
 		}
 	}
-	if u.Password != m.passwordInput.Value() {
+
+	if u.Password != pass {
 		m.errMsg = "invalid password"
 		return nil
 	}
+
 	m.user = u
 	m.username = u.Username
 	m.password = u.Password
@@ -216,13 +224,15 @@ func (m Model) updateAnswer(msg tea.Msg) (tea.Model, tea.Cmd) {
 				} else {
 					m.errMsg = fmt.Sprintf("Correct! +%d points", m.selectedTask.Points)
 				}
-			} else {
-				m.errMsg = "Incorrect flag"
+				m.state = stateMenu
+				return m, nil
 			}
-			m.state = stateMenu
+
+			m.errMsg = "Incorrect flag"
 			return m, nil
 		case "esc":
 			m.state = stateMenu
+			m.errMsg = ""
 			return m, nil
 		}
 	}
@@ -267,14 +277,21 @@ func (m Model) View() string {
 
 func (m Model) renderTasks(showAllDesc bool) string {
 	var b strings.Builder
+	bullet := lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Render("•")
+	selectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(lipgloss.Color("6")).Bold(true)
+	normalStyle := lipgloss.NewStyle()
+	descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
+
 	for i, t := range m.tasks {
-		prefix := "  "
+		line := fmt.Sprintf("%s %s (%d pts)", bullet, t.Name, t.Points)
 		if m.state == stateMenu && i == m.cursor {
-			prefix = ">"
+			line = selectedStyle.Render(line)
+		} else {
+			line = normalStyle.Render(line)
 		}
-		b.WriteString(fmt.Sprintf("%s %s (%d pts)\n", prefix, t.Name, t.Points))
+		b.WriteString(line + "\n")
 		if showAllDesc || (m.state == stateMenu && i == m.cursor) {
-			b.WriteString("    " + t.Description + "\n")
+			b.WriteString("  " + descStyle.Render(t.Description) + "\n")
 		}
 	}
 	return strings.TrimRight(b.String(), "\n")
