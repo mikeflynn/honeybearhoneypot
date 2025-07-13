@@ -136,18 +136,36 @@ func (m *Model) authenticate() tea.Cmd {
 }
 
 func (m Model) updateLogin(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "enter":
-			return m, m.authenticate()
-		}
-	}
-	m.usernameInput, cmd = m.usernameInput.Update(msg)
-	if m.usernameInput.Focused() {
-		return m, cmd
-	}
+        var cmd tea.Cmd
+        switch msg := msg.(type) {
+        case tea.KeyMsg:
+                switch msg.String() {
+                case "enter":
+                        return m, m.authenticate()
+                case "tab", "down":
+                        if m.usernameInput.Focused() {
+                                m.usernameInput.Blur()
+                                m.passwordInput.Focus()
+                        } else {
+                                m.passwordInput.Blur()
+                                m.usernameInput.Focus()
+                        }
+                        return m, nil
+                case "shift+tab", "up":
+                        if m.passwordInput.Focused() {
+                                m.passwordInput.Blur()
+                                m.usernameInput.Focus()
+                        } else {
+                                m.usernameInput.Blur()
+                                m.passwordInput.Focus()
+                        }
+                        return m, nil
+                }
+        }
+        m.usernameInput, cmd = m.usernameInput.Update(msg)
+        if m.usernameInput.Focused() {
+                return m, cmd
+        }
 	m.passwordInput, cmd = m.passwordInput.Update(msg)
 	return m, cmd
 }
@@ -202,15 +220,19 @@ func (m Model) updateAnswer(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	titleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)
-	switch m.state {
-	case stateLogin:
-		return lipgloss.JoinVertical(lipgloss.Left,
-			titleStyle.Render("Honey Bear Honey Pot CTF"),
-			m.errMsg,
-			"username: "+m.usernameInput.View(),
-			"password: "+m.passwordInput.View(),
-		)
+        titleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)
+       welcome := lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Render("Welcome to the Honey Bear Honey Pot CTF!\n" +
+               "Create an account by entering a new username and password or login with your existing credentials.")
+        switch m.state {
+        case stateLogin:
+                return lipgloss.JoinVertical(lipgloss.Left,
+                        titleStyle.Render("Honey Bear Honey Pot CTF"),
+                        welcome,
+                        m.list.View(),
+                        m.errMsg,
+                        "username: "+m.usernameInput.View(),
+                        "password: "+m.passwordInput.View(),
+                )
 	case stateMenu:
 		header := fmt.Sprintf("Honey Bear Honey Pot CTF - %s (%d pts)", m.user.Username, m.user.Points)
 		m.list.Title = header
