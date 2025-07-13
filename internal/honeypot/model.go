@@ -63,7 +63,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case filesystem.TickMsg:
 		cmds := []tea.Cmd{}
-		if time.Since(*m.EventTime("session_start")) > 3*time.Minute && m.EventTime("knock") == nil {
+		if time.Since(*m.EventTime("session_start")) > 45*time.Second && m.EventTime("knock") == nil {
 			m.SetEventTime("knock")
 			cmds = append(
 				cmds,
@@ -73,6 +73,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				tea.Cmd(func() tea.Msg {
 					time.Sleep(time.Second * 1)
 					return filesystem.OutputMsg("Knock, knock, Neo.")
+				}),
+				tea.Cmd(func() tea.Msg {
+					time.Sleep(time.Second * 10)
+					return filesystem.OutputMsg("If you don't know what to do, type 'help' or 'ctf' to play a game.")
 				}),
 			)
 		}
