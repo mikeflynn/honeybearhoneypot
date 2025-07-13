@@ -2,10 +2,12 @@ package filesystem
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/confetti"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/ctf"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/embedded"
@@ -434,6 +436,37 @@ func Initialize() {
 									}))
 									batch := tea.Batch(cmds...)
 									return &batch
+								},
+							},
+							{
+								Name:      "leaderboard",
+								Path:      "/usr/bin/leaderboard",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								HelpText:  "Show CTF leaderboard",
+								Exec: func(dir *Node, params []string) *tea.Cmd {
+									var cmd tea.Cmd
+									cmd = func() tea.Msg {
+										limit := 10
+										if len(params) > 0 {
+											if v, err := strconv.Atoi(params[0]); err == nil {
+												limit = v
+											}
+										}
+										board, err := entity.Leaderboard(limit)
+										if err != nil {
+											return OutputMsg(err.Error())
+										}
+										lines := []string{"Leaderboard:"}
+										for i, u := range board {
+											lines = append(lines, fmt.Sprintf("%d. %s - %d pts", i+1, u.Username, u.Points))
+										}
+										return OutputMsg(strings.Join(lines, "\n"))
+									}
+
+									return &cmd
 								},
 							},
 							{

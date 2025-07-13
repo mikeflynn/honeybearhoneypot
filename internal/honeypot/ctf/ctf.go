@@ -38,6 +38,7 @@ type Task struct {
 	Description string
 	Flag        string
 	Points      int
+	Completed   bool
 }
 
 type Model struct {
@@ -59,6 +60,26 @@ type Model struct {
 	selectedTask *Task
 
 	errMsg string
+}
+
+func (m *Model) loadCompleted() {
+	if m.user == nil {
+		return
+	}
+	tasks, err := m.user.CompletedTasks()
+	if err != nil {
+		m.errMsg = err.Error()
+		return
+	}
+	done := map[string]struct{}{}
+	for _, t := range tasks {
+		done[t] = struct{}{}
+	}
+	for i := range m.tasks {
+		if _, ok := done[m.tasks[i].Name]; ok {
+			m.tasks[i].Completed = true
+		}
+	}
 }
 
 func InitialModel(tasks []Task) Model {
@@ -146,6 +167,7 @@ func (m *Model) authenticate() tea.Cmd {
 	m.password = u.Password
 	m.state = stateMenu
 	m.errMsg = ""
+	m.loadCompleted()
 	return nil
 }
 
@@ -198,6 +220,9 @@ func (m Model) updateMenu(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "enter":
 			if len(m.tasks) > 0 {
+				if m.tasks[m.cursor].Completed {
+					return m, nil
+				}
 				m.selectedTask = &m.tasks[m.cursor]
 				m.state = stateAnswer
 				m.answerInput.SetValue("")
@@ -223,6 +248,7 @@ func (m Model) updateAnswer(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.errMsg = err.Error()
 				} else {
 					m.errMsg = fmt.Sprintf("Correct! +%d points", m.selectedTask.Points)
+					m.selectedTask.Completed = true
 				}
 				m.state = stateMenu
 				return m, nil
@@ -278,16 +304,23 @@ func (m Model) View() string {
 func (m Model) renderTasks(showAllDesc bool) string {
 	var b strings.Builder
 	bullet := lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Render("•")
+	doneBullet := lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Render("✓")
 	selectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(lipgloss.Color("6")).Bold(true)
 	normalStyle := lipgloss.NewStyle()
 	descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
 
 	for i, t := range m.tasks {
-		line := fmt.Sprintf("%s %s (%d pts)", bullet, t.Name, t.Points)
+		blet := bullet
+		style := normalStyle
+		if t.Completed {
+			blet = doneBullet
+			style = normalStyle.Foreground(lipgloss.Color("8"))
+		}
+		line := fmt.Sprintf("%s %s (%d pts)", blet, t.Name, t.Points)
 		if m.state == stateMenu && i == m.cursor {
 			line = selectedStyle.Render(line)
 		} else {
-			line = normalStyle.Render(line)
+			line = style.Render(line)
 		}
 		b.WriteString(line + "\n")
 		if showAllDesc || (m.state == stateMenu && i == m.cursor) {

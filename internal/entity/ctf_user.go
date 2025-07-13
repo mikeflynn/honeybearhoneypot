@@ -89,3 +89,41 @@ func (u *CTFUser) CompleteTask(task string, points int) error {
 
 	return u.AddPoints(points)
 }
+
+// CompletedTasks returns a list of task names the user has finished.
+func (u *CTFUser) CompletedTasks() ([]string, error) {
+	rows, err := db.MakeQuery("SELECT task FROM ctf_user_tasks WHERE username=?", u.Username)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tasks []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, name)
+	}
+	return tasks, nil
+}
+
+// Leaderboard returns the top users ordered by points.
+func Leaderboard(limit int) ([]CTFUser, error) {
+	rows, err := db.MakeQuery("SELECT username, points FROM ctf_users ORDER BY points DESC LIMIT ?", limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []CTFUser
+	for rows.Next() {
+		var u CTFUser
+		if err := rows.Scan(&u.Username, &u.Points); err != nil {
+			return nil, err
+		}
+		out = append(out, u)
+	}
+	return out, nil
+}
