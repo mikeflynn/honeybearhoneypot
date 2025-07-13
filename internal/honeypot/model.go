@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/google/shlex"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/confetti"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/ctf"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/filesystem"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/matrix"
 	"github.com/muesli/reflow/wordwrap"
@@ -39,6 +40,7 @@ type model struct {
 	viewportReady bool
 	confetti      tea.Model
 	matrix        tea.Model
+	ctf           tea.Model
 	helpText      string
 	events        map[string]time.Time
 	// Data
@@ -105,6 +107,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.confetti.Update(msg)
 		m.matrix.Update(msg)
+		m.ctf.Update(msg)
 
 		//cmds = append(cmds, viewport.Sync(m.viewport))
 	case filesystem.FileContentsMsg:
@@ -243,6 +246,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			//m.matrix.Init(),
 			cmd,
 		))
+	case "ctf":
+		np, cmd := m.ctf.Update(msg)
+		m.ctf = np
+		cmds = append(cmds, cmd)
 	default:
 		m.textInput, cmd = m.textInput.Update(msg)
 		cmds = append(cmds, cmd)
@@ -277,6 +284,9 @@ func (m model) View() string {
 		help = "Press 'q' to quit or any other key to make more confetti."
 	} else if m.runningCommand == "matrix" {
 		content = m.matrix.View()
+		help = "Press 'ctrl + c' to quit."
+	} else if m.runningCommand == "ctf" {
+		content = m.ctf.View()
 		help = "Press 'ctrl + c' to quit."
 	}
 

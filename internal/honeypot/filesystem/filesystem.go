@@ -7,6 +7,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/confetti"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/ctf"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/embedded"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/matrix"
 )
@@ -412,6 +413,25 @@ func Initialize() {
 										return matrix.Start()
 									}))
 
+									batch := tea.Batch(cmds...)
+									return &batch
+								},
+							},
+							{
+								Name:      "ctf",
+								Path:      "/usr/bin/ctf",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								HelpText:  "Start the Honey Bear Honey Pot CTF game",
+								Exec: func(dir *Node, params []string) *tea.Cmd {
+									cmds := []tea.Cmd{}
+									cmds = append(cmds, tea.Cmd(func() tea.Msg { return SetRunningCmd("ctf") }))
+									cmds = append(cmds, tea.Cmd(func() tea.Msg {
+										time.Sleep(time.Millisecond * 100)
+										return ctf.Start()
+									}))
 									batch := tea.Batch(cmds...)
 									return &batch
 								},

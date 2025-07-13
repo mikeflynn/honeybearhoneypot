@@ -96,6 +96,8 @@ func setup() string {
 		appConfigDir,
 		entity.EventInitialization(),
 		entity.OptionInitialization(),
+		entity.CTFUserInit,
+		entity.CTFUserTaskInit,
 	)
 
 	return appConfigDir
