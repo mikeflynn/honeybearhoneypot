@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -41,16 +40,6 @@ type Task struct {
 	Points      int
 }
 
-type item struct {
-	task Task
-}
-
-func (i item) Title() string {
-	return fmt.Sprintf("%s (%d pts)", i.task.Name, i.task.Points)
-}
-func (i item) Description() string { return i.task.Description }
-func (i item) FilterValue() string { return i.task.Name }
-
 type Model struct {
 	state    gameState
 	username string
@@ -64,7 +53,8 @@ type Model struct {
 	passwordInput textinput.Model
 	answerInput   textinput.Model
 
-	list list.Model
+	tasks  []Task
+	cursor int
 
 	selectedTask *Task
 
@@ -86,24 +76,15 @@ func InitialModel(tasks []Task) Model {
 	ai.Placeholder = "flag"
 	ai.CharLimit = 256
 
-	items := []list.Item{}
-	for _, t := range tasks {
-		items = append(items, item{task: t})
-	}
-	l := list.New(items, list.NewDefaultDelegate(), 0, 0)
-	l.Title = "Challenges"
-
-	width := 0
-	height := 0
-
 	return Model{
 		state:         stateLogin,
 		usernameInput: ti,
 		passwordInput: pi,
 		answerInput:   ai,
-		list:          l,
-		width:         width,
-		height:        height,
+		tasks:         tasks,
+		width:         0,
+		height:        0,
+		cursor:        0,
 	}
 }
 
@@ -112,11 +93,15 @@ func (m Model) Init() tea.Cmd { return nil }
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case startMsg:
+		m.state = stateLogin
+		m.errMsg = ""
+		m.cursor = 0
+		m.usernameInput.Focus()
+		m.passwordInput.Blur()
 		return m, nil
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.list.SetSize(msg.Width-4, msg.Height-10)
 	}
 
 	switch m.state {
@@ -185,34 +170,37 @@ func (m Model) updateLogin(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	m.usernameInput, cmd = m.usernameInput.Update(msg)
 	if m.usernameInput.Focused() {
-		m.list, _ = m.list.Update(msg)
 		return m, cmd
 	}
 	m.passwordInput, cmd = m.passwordInput.Update(msg)
-	m.list, _ = m.list.Update(msg)
 	return m, cmd
 }
 
 func (m Model) updateMenu(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
+		case "up", "k":
+			if m.cursor > 0 {
+				m.cursor--
+			}
+		case "down", "j":
+			if m.cursor < len(m.tasks)-1 {
+				m.cursor++
+			}
 		case "enter":
-			if it, ok := m.list.SelectedItem().(item); ok {
-				m.selectedTask = &it.task
+			if len(m.tasks) > 0 {
+				m.selectedTask = &m.tasks[m.cursor]
 				m.state = stateAnswer
 				m.answerInput.SetValue("")
 				m.answerInput.Focus()
 			}
-			return m, nil
 		case "q", "ctrl+c":
 			m.state = stateDone
 			return m, func() tea.Msg { return QuitMsg{} }
 		}
 	}
-	m.list, cmd = m.list.Update(msg)
-	return m, cmd
+	return m, nil
 }
 
 func (m Model) updateAnswer(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -246,20 +234,24 @@ func (m Model) View() string {
 	titleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)
 	welcome := lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Render("Welcome to the Honey Bear Honey Pot CTF!\n" +
 		"Create an account by entering a new username and password or login with your existing credentials.")
+
 	switch m.state {
 	case stateLogin:
 		return lipgloss.JoinVertical(lipgloss.Left,
 			titleStyle.Render("Honey Bear Honey Pot CTF"),
 			welcome,
-			m.list.View(),
+			m.renderTasks(true),
 			m.errMsg,
 			"username: "+m.usernameInput.View(),
 			"password: "+m.passwordInput.View(),
 		)
 	case stateMenu:
 		header := fmt.Sprintf("Honey Bear Honey Pot CTF - %s (%d pts)", m.user.Username, m.user.Points)
-		m.list.Title = header
-		return m.list.View()
+		return lipgloss.JoinVertical(lipgloss.Left,
+			titleStyle.Render(header),
+			m.renderTasks(false),
+			m.errMsg,
+		)
 	case stateAnswer:
 		return lipgloss.JoinVertical(lipgloss.Left,
 			titleStyle.Render(m.selectedTask.Name),
@@ -271,4 +263,19 @@ func (m Model) View() string {
 		return "Goodbye"
 	}
 	return ""
+}
+
+func (m Model) renderTasks(showAllDesc bool) string {
+	var b strings.Builder
+	for i, t := range m.tasks {
+		prefix := "  "
+		if m.state == stateMenu && i == m.cursor {
+			prefix = ">"
+		}
+		b.WriteString(fmt.Sprintf("%s %s (%d pts)\n", prefix, t.Name, t.Points))
+		if showAllDesc || (m.state == stateMenu && i == m.cursor) {
+			b.WriteString("    " + t.Description + "\n")
+		}
+	}
+	return strings.TrimRight(b.String(), "\n")
 }

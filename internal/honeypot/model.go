@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 	"github.com/google/shlex"
+	"github.com/mikeflynn/honeybearhoneypot/internal/config"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/confetti"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/ctf"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/filesystem"
@@ -151,6 +152,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ctf.QuitMsg:
 		m.viewport.SetContent("")
 		m.runningCommand = ""
+		m.ctf = ctf.InitialModel(convertTasks(config.Active.Tasks))
 		return m, nil
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -309,4 +311,17 @@ func (m model) EventTime(event string) *time.Time {
 
 func (m model) SetEventTime(event string) {
 	m.events[event] = time.Now()
+}
+
+func convertTasks(t []config.Task) []ctf.Task {
+	out := make([]ctf.Task, len(t))
+	for i, task := range t {
+		out[i] = ctf.Task{
+			Name:        task.Name,
+			Description: task.Description,
+			Flag:        task.Flag,
+			Points:      task.Points,
+		}
+	}
+	return out
 }
