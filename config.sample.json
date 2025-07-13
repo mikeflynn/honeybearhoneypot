@@ -18,7 +18,8 @@
     {
       "name": "demo",
       "description": "Example flag",
-      "flag": "flag{demo}"
+      "flag": "flag{demo}",
+      "points": 100
     }
   ]
 }
