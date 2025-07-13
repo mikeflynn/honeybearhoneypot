@@ -105,17 +105,18 @@ func RunNode(currentNode *Node, path string, params []string, user string, group
 }
 
 type Node struct {
-	Name      string
-	Path      string
-	Directory bool
-	Children  []*Node
-	AssetName string
-	Content   func() []byte
-	Exec      func(*Node, []string) *tea.Cmd
-	Owner     string
-	Group     string
-	Mode      int
-	HelpText  string
+	Name        string                         `json:"name"`
+	Path        string                         `json:"path"`
+	Directory   bool                           `json:"directory"`
+	Children    []*Node                        `json:"-"`                      // Children nodes, if applicable
+	AssetName   string                         `json:"asset_name,omitempty"`   // Only set if Directory is false
+	Content     func() []byte                  `json:"-"`                      // Function to get the content of the file, if applicable
+	ContentText string                         `json:"content_text,omitempty"` // Text content of the file, if applicable
+	Exec        func(*Node, []string) *tea.Cmd `json:"-"`                      // Function to execute the node, if applicable
+	Owner       string                         `json:"owner"`
+	Group       string                         `json:"group"`
+	Mode        int                            `json:"mode"`                // File mode (permissions)
+	HelpText    string                         `json:"help_text,omitempty"` // Help text for the node, if applicable
 }
 
 func (n *Node) IsDirectory() bool {
@@ -202,6 +203,8 @@ func (n *Node) Child(name string) *Node {
 func (n *Node) Open() ([]byte, error) {
 	if n.IsFile() && n.Content != nil {
 		return n.Content(), nil
+	} else if n.IsFile() && n.ContentText != "" {
+		return []byte(n.ContentText), nil
 	}
 
 	return nil, errors.New("not a file")
