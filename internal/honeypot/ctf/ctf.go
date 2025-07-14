@@ -294,7 +294,7 @@ func (m Model) View() string {
 			m.errMsg,
 		)
 	case stateAnswer:
-		desc := wordwrap.String(m.selectedTask.Description, uint(m.width-4))
+		desc := wordwrap.String(m.selectedTask.Description, m.width-4)
 		descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
 		box := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Padding(1, 2)
 		content := lipgloss.JoinVertical(lipgloss.Left,
