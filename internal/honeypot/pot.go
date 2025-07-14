@@ -301,22 +301,14 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 }
 
 func convertTasks(t []config.Task) []ctf.Task {
-	out := make([]ctf.Task, 0, len(t))
-	seen := map[string]struct{}{}
-	for _, task := range t {
-		if _, ok := seen[task.Name]; ok {
-			log.Fatalf("duplicate CTF task name: %s", task.Name)
-		}
-		if used, err := entity.TaskNameUsed(task.Name); err == nil && used {
-			log.Fatalf("duplicate CTF task name (database): %s", task.Name)
-		}
-		seen[task.Name] = struct{}{}
-		out = append(out, ctf.Task{
+	out := make([]ctf.Task, len(t))
+	for i, task := range t {
+		out[i] = ctf.Task{
 			Name:        task.Name,
 			Description: task.Description,
 			Flag:        task.Flag,
 			Points:      task.Points,
-		})
+		}
 	}
 	return out
 }

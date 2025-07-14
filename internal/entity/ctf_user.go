@@ -127,14 +127,3 @@ func Leaderboard(limit int) ([]CTFUser, error) {
 	}
 	return out, nil
 }
-
-// TaskNameUsed checks if any user has previously completed a task with the given name.
-func TaskNameUsed(name string) (bool, error) {
-	rows, err := db.MakeQuery("SELECT 1 FROM ctf_user_tasks WHERE task=? LIMIT 1", name)
-	if err != nil {
-		return false, err
-	}
-	defer rows.Close()
-
-	return rows.Next(), nil
-}
