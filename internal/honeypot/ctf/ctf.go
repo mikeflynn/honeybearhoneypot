@@ -8,6 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
+	"unicode"
 )
 
 // Start returns a tea.Msg used to launch the CTF game.
@@ -82,6 +83,34 @@ func (m *Model) loadCompleted() {
 	}
 }
 
+// wordWrap returns text wrapped to the given width. It tries to break on
+// whitespace characters when possible.
+func wordWrap(text string, width int) string {
+	if width <= 0 {
+		return text
+	}
+
+	var result strings.Builder
+	for len(text) > 0 {
+		if len(text) <= width {
+			result.WriteString(text)
+			break
+		}
+
+		cut := strings.LastIndexFunc(text[:width+1], unicode.IsSpace)
+		if cut <= 0 {
+			cut = width
+		}
+
+		line := strings.TrimRightFunc(text[:cut], unicode.IsSpace)
+		result.WriteString(line)
+		result.WriteByte('\n')
+		text = strings.TrimLeftFunc(text[cut:], unicode.IsSpace)
+	}
+
+	return result.String()
+}
+
 func InitialModel(tasks []Task) Model {
 	ti := textinput.New()
 	ti.Placeholder = "username"
@@ -95,6 +124,9 @@ func InitialModel(tasks []Task) Model {
 
 	ai := textinput.New()
 	ai.Placeholder = "flag"
+	ai.Prompt = "❯ "
+	ai.PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Bold(true)
+	ai.TextStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("11"))
 	ai.CharLimit = 256
 
 	return Model{
@@ -247,14 +279,15 @@ func (m Model) updateAnswer(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if err := m.user.CompleteTask(m.selectedTask.Name, m.selectedTask.Points); err != nil {
 					m.errMsg = err.Error()
 				} else {
-					m.errMsg = fmt.Sprintf("Correct! +%d points", m.selectedTask.Points)
+					m.errMsg = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true).Render(
+						fmt.Sprintf("🎉 Correct! +%d points! 🎉", m.selectedTask.Points))
 					m.selectedTask.Completed = true
 				}
 				m.state = stateMenu
 				return m, nil
 			}
 
-			m.errMsg = "Incorrect flag"
+			m.errMsg = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true).Render("Incorrect flag")
 			return m, nil
 		case "esc":
 			m.state = stateMenu
@@ -276,7 +309,7 @@ func (m Model) View() string {
 		return lipgloss.JoinVertical(lipgloss.Left,
 			titleStyle.Render("Honey Bear Honey Pot CTF"),
 			welcome,
-			m.renderTasks(true),
+			m.renderTasks(false),
 			m.errMsg,
 			"username: "+m.usernameInput.View(),
 			"password: "+m.passwordInput.View(),
@@ -289,12 +322,16 @@ func (m Model) View() string {
 			m.errMsg,
 		)
 	case stateAnswer:
-		return lipgloss.JoinVertical(lipgloss.Left,
+		desc := wordWrap(m.selectedTask.Description, m.width-4)
+		descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
+		box := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Padding(1, 2)
+		content := lipgloss.JoinVertical(lipgloss.Left,
 			titleStyle.Render(m.selectedTask.Name),
-			m.selectedTask.Description,
+			descStyle.Render(desc),
 			m.answerInput.View(),
 			m.errMsg,
 		)
+		return box.Render(content)
 	case stateDone:
 		return "Goodbye"
 	}
@@ -323,8 +360,16 @@ func (m Model) renderTasks(showAllDesc bool) string {
 			line = style.Render(line)
 		}
 		b.WriteString(line + "\n")
-		if showAllDesc || (m.state == stateMenu && i == m.cursor) {
-			b.WriteString("  " + descStyle.Render(t.Description) + "\n")
+		desc := t.Description
+		if !showAllDesc {
+			r := []rune(desc)
+			limit := 60
+			if len(r) > limit {
+				desc = string(r[:limit-3]) + "..."
+			}
+			b.WriteString("  " + descStyle.Render(desc) + "\n")
+		} else {
+			b.WriteString("  " + descStyle.Render(desc) + "\n")
 		}
 	}
 	return strings.TrimRight(b.String(), "\n")
