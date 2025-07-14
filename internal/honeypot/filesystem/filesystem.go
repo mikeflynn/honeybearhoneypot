@@ -460,19 +460,33 @@ func Initialize() {
 										if err != nil {
 											return OutputMsg(err.Error())
 										}
-										titleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Bold(true)
-										rankStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)
+
+										title := lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Bold(true)
 										nameStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
 										ptsStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("11"))
-										lines := []string{titleStyle.Render("Honey Bear Honey Pot CTF Leaderboard")}
+
+										lines := []string{title.Render("Honey Bear Honey Pot CTF Leaderboard")}
 										for i, u := range board {
+											col := "10"
+											switch i {
+											case 0:
+												col = "220"
+											case 1:
+												col = "250"
+											case 2:
+												col = "166"
+											}
+											rank := lipgloss.NewStyle().Foreground(lipgloss.Color(col)).Bold(true)
 											line := fmt.Sprintf("%s %s - %s",
-												rankStyle.Render(fmt.Sprintf("%2d.", i+1)),
+												rank.Render(fmt.Sprintf("%2d.", i+1)),
 												nameStyle.Render(u.Username),
 												ptsStyle.Render(fmt.Sprintf("%d pts", u.Points)))
 											lines = append(lines, line)
 										}
-										return OutputMsg(strings.Join(lines, "\n"))
+
+										content := lipgloss.JoinVertical(lipgloss.Left, lines...)
+										box := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(1, 2)
+										return OutputMsg(box.Render(content))
 									}
 
 									return &cmd
