@@ -8,6 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
+	"github.com/muesli/reflow/wordwrap"
 )
 
 // Start returns a tea.Msg used to launch the CTF game.
@@ -95,6 +96,9 @@ func InitialModel(tasks []Task) Model {
 
 	ai := textinput.New()
 	ai.Placeholder = "flag"
+	ai.Prompt = "❯ "
+	ai.PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Bold(true)
+	ai.TextStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("11"))
 	ai.CharLimit = 256
 
 	return Model{
@@ -247,14 +251,15 @@ func (m Model) updateAnswer(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if err := m.user.CompleteTask(m.selectedTask.Name, m.selectedTask.Points); err != nil {
 					m.errMsg = err.Error()
 				} else {
-					m.errMsg = fmt.Sprintf("Correct! +%d points", m.selectedTask.Points)
+					m.errMsg = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true).Render(
+						fmt.Sprintf("🎉 Correct! +%d points! 🎉", m.selectedTask.Points))
 					m.selectedTask.Completed = true
 				}
 				m.state = stateMenu
 				return m, nil
 			}
 
-			m.errMsg = "Incorrect flag"
+			m.errMsg = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true).Render("Incorrect flag")
 			return m, nil
 		case "esc":
 			m.state = stateMenu
@@ -289,12 +294,16 @@ func (m Model) View() string {
 			m.errMsg,
 		)
 	case stateAnswer:
-		return lipgloss.JoinVertical(lipgloss.Left,
+		desc := wordwrap.String(m.selectedTask.Description, uint(m.width-4))
+		descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
+		box := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Padding(1, 2)
+		content := lipgloss.JoinVertical(lipgloss.Left,
 			titleStyle.Render(m.selectedTask.Name),
-			m.selectedTask.Description,
+			descStyle.Render(desc),
 			m.answerInput.View(),
 			m.errMsg,
 		)
+		return box.Render(content)
 	case stateDone:
 		return "Goodbye"
 	}
@@ -323,8 +332,16 @@ func (m Model) renderTasks(showAllDesc bool) string {
 			line = style.Render(line)
 		}
 		b.WriteString(line + "\n")
-		if showAllDesc || (m.state == stateMenu && i == m.cursor) {
-			b.WriteString("  " + descStyle.Render(t.Description) + "\n")
+		desc := t.Description
+		if !showAllDesc {
+			r := []rune(desc)
+			limit := 60
+			if len(r) > limit {
+				desc = string(r[:limit-3]) + "..."
+			}
+			b.WriteString("  " + descStyle.Render(desc) + "\n")
+		} else {
+			b.WriteString("  " + descStyle.Render(desc) + "\n")
 		}
 	}
 	return strings.TrimRight(b.String(), "\n")
