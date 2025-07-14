@@ -8,7 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
-	"github.com/muesli/reflow/wordwrap"
+	"unicode"
 )
 
 // Start returns a tea.Msg used to launch the CTF game.
@@ -81,6 +81,34 @@ func (m *Model) loadCompleted() {
 			m.tasks[i].Completed = true
 		}
 	}
+}
+
+// wordWrap returns text wrapped to the given width. It tries to break on
+// whitespace characters when possible.
+func wordWrap(text string, width int) string {
+	if width <= 0 {
+		return text
+	}
+
+	var result strings.Builder
+	for len(text) > 0 {
+		if len(text) <= width {
+			result.WriteString(text)
+			break
+		}
+
+		cut := strings.LastIndexFunc(text[:width+1], unicode.IsSpace)
+		if cut <= 0 {
+			cut = width
+		}
+
+		line := strings.TrimRightFunc(text[:cut], unicode.IsSpace)
+		result.WriteString(line)
+		result.WriteByte('\n')
+		text = strings.TrimLeftFunc(text[cut:], unicode.IsSpace)
+	}
+
+	return result.String()
 }
 
 func InitialModel(tasks []Task) Model {
@@ -281,7 +309,7 @@ func (m Model) View() string {
 		return lipgloss.JoinVertical(lipgloss.Left,
 			titleStyle.Render("Honey Bear Honey Pot CTF"),
 			welcome,
-			m.renderTasks(true),
+			m.renderTasks(false),
 			m.errMsg,
 			"username: "+m.usernameInput.View(),
 			"password: "+m.passwordInput.View(),
@@ -294,7 +322,7 @@ func (m Model) View() string {
 			m.errMsg,
 		)
 	case stateAnswer:
-		desc := wordwrap.String(m.selectedTask.Description, m.width-4)
+		desc := wordWrap(m.selectedTask.Description, m.width-4)
 		descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
 		box := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Padding(1, 2)
 		content := lipgloss.JoinVertical(lipgloss.Left,
