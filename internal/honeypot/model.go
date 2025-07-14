@@ -10,7 +10,9 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 	"github.com/google/shlex"
+	"github.com/mikeflynn/honeybearhoneypot/internal/config"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/confetti"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/ctf"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/filesystem"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/matrix"
 	"github.com/muesli/reflow/wordwrap"
@@ -39,6 +41,7 @@ type model struct {
 	viewportReady bool
 	confetti      tea.Model
 	matrix        tea.Model
+	ctf           tea.Model
 	helpText      string
 	events        map[string]time.Time
 	// Data
@@ -105,6 +108,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		m.confetti.Update(msg)
 		m.matrix.Update(msg)
+		m.ctf.Update(msg)
 
 		//cmds = append(cmds, viewport.Sync(m.viewport))
 	case filesystem.FileContentsMsg:
@@ -145,56 +149,63 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		m.output += m.outputStyle.Render("\n")
+	case ctf.QuitMsg:
+		m.viewport.SetContent("")
+		m.runningCommand = ""
+		m.ctf = ctf.InitialModel(convertTasks(config.Active.Tasks))
+		return m, nil
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":
-			command := m.textInput.Value()
-			log.Debug(fmt.Sprintf("Command entered by %s:%s: %s", m.user, m.host, command))
-			m.historyIdx = 0
-			m.SetEventTime("enter")
-			m.output += m.historyStyle.Render(fmt.Sprintf("\n❯ %s\n", m.textInput.Value()))
+			if m.runningCommand == "" {
+				command := m.textInput.Value()
+				log.Debug(fmt.Sprintf("Command entered by %s:%s: %s", m.user, m.host, command))
+				m.historyIdx = 0
+				m.SetEventTime("enter")
+				m.output += m.historyStyle.Render(fmt.Sprintf("\n❯ %s\n", m.textInput.Value()))
 
-			parts, err := shlex.Split(command)
-			if err != nil {
-				m.output += m.outputStyle.Render(fmt.Sprintf("\nError parsing command: %s\n", err))
-				return m, tea.Batch(cmds...)
-			}
-
-			if len(parts) > 0 {
-				// Add to history
-				historyPush(&m, command)
-				// Save an event log
-				err := NewEvent(&m, true, "typed", command)
+				parts, err := shlex.Split(command)
 				if err != nil {
-					log.Printf("Error saving event: %s", err)
+					m.output += m.outputStyle.Render(fmt.Sprintf("\nError parsing command: %s\n", err))
+					return m, tea.Batch(cmds...)
 				}
 
-				switch parts[0] {
-				case "exit":
-					return m, tea.Quit
-				case "whoami":
-					m.output += m.outputStyle.Render(fmt.Sprintf("\n%s\n", m.user))
-				case "sudo":
-					if len(parts) > 1 {
-						newCmd, err := filesystem.RunNode(m.currentDir, parts[1], parts[2:], "root", "root")
+				if len(parts) > 0 {
+					// Add to history
+					historyPush(&m, command)
+					// Save an event log
+					err := NewEvent(&m, true, "typed", command)
+					if err != nil {
+						log.Printf("Error saving event: %s", err)
+					}
+
+					switch parts[0] {
+					case "exit":
+						return m, tea.Quit
+					case "whoami":
+						m.output += m.outputStyle.Render(fmt.Sprintf("\n%s\n", m.user))
+					case "sudo":
+						if len(parts) > 1 {
+							newCmd, err := filesystem.RunNode(m.currentDir, parts[1], parts[2:], "root", "root")
+							if err != nil {
+								m.output += m.outputStyle.Render(fmt.Sprintf("\n%s\n", err))
+							} else if newCmd != nil {
+								cmds = append(cmds, *newCmd)
+							}
+						}
+					default:
+						newCmd, err := filesystem.RunNode(m.currentDir, parts[0], parts[1:], m.user, m.group)
 						if err != nil {
 							m.output += m.outputStyle.Render(fmt.Sprintf("\n%s\n", err))
 						} else if newCmd != nil {
 							cmds = append(cmds, *newCmd)
 						}
 					}
-				default:
-					newCmd, err := filesystem.RunNode(m.currentDir, parts[0], parts[1:], m.user, m.group)
-					if err != nil {
-						m.output += m.outputStyle.Render(fmt.Sprintf("\n%s\n", err))
-					} else if newCmd != nil {
-						cmds = append(cmds, *newCmd)
-					}
 				}
-			}
 
-			m.textInput.Reset()
-			return m, tea.Batch(cmds...)
+				m.textInput.Reset()
+				return m, tea.Batch(cmds...)
+			}
 		case "up":
 			if m.runningCommand == "" {
 				m.textInput.SetValue(historyPeek(&m))
@@ -243,6 +254,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			//m.matrix.Init(),
 			cmd,
 		))
+	case "ctf":
+		np, cmd := m.ctf.Update(msg)
+		m.ctf = np
+		cmds = append(cmds, cmd)
 	default:
 		m.textInput, cmd = m.textInput.Update(msg)
 		cmds = append(cmds, cmd)
@@ -277,6 +292,9 @@ func (m model) View() string {
 		help = "Press 'q' to quit or any other key to make more confetti."
 	} else if m.runningCommand == "matrix" {
 		content = m.matrix.View()
+		help = "Press 'ctrl + c' to quit."
+	} else if m.runningCommand == "ctf" {
+		content = m.ctf.View()
 		help = "Press 'ctrl + c' to quit."
 	}
 

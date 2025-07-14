@@ -13,6 +13,7 @@ type Task struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Flag        string `json:"flag"`
+	Points      int    `json:"points"`
 }
 
 type Config struct {
@@ -41,6 +42,10 @@ var (
 	tunnelHost    = flag.String("tunnel", "", "The user and host to connect to via SSH. Ex: user@server.com:22")
 	tunnelKeyFlag = flag.String("tunnel-key", "", "The SSH key to use to connect to the specified remote host.")
 )
+
+// Active holds the configuration loaded via Parse so it can be referenced by
+// other packages at runtime.
+var Active *Config
 
 // Default contains the base configuration values used when no CLI flags or config file options are provided.
 var Default = Config{
@@ -102,7 +107,8 @@ func Parse() (*Config, string, error) {
 
 	cfg.PinReset = *pinResetFlag
 
-	return &cfg, cfg.PinReset, nil
+	Active = &cfg
+	return Active, cfg.PinReset, nil
 }
 
 func merge(dst *Config, src *Config) {

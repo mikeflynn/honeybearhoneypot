@@ -2,11 +2,15 @@ package filesystem
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/confetti"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/ctf"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/embedded"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/matrix"
 )
@@ -414,6 +418,78 @@ func Initialize() {
 
 									batch := tea.Batch(cmds...)
 									return &batch
+								},
+							},
+							{
+								Name:      "ctf",
+								Path:      "/usr/bin/ctf",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								HelpText:  "Start the Honey Bear Honey Pot CTF game",
+								Exec: func(dir *Node, params []string) *tea.Cmd {
+									cmds := []tea.Cmd{}
+									cmds = append(cmds, tea.Cmd(func() tea.Msg { return SetRunningCmd("ctf") }))
+									cmds = append(cmds, tea.Cmd(func() tea.Msg {
+										time.Sleep(time.Millisecond * 100)
+										return ctf.Start()
+									}))
+									batch := tea.Batch(cmds...)
+									return &batch
+								},
+							},
+							{
+								Name:      "leaderboard",
+								Path:      "/usr/bin/leaderboard",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								HelpText:  "Show CTF leaderboard",
+								Exec: func(dir *Node, params []string) *tea.Cmd {
+									var cmd tea.Cmd
+									cmd = func() tea.Msg {
+										limit := 10
+										if len(params) > 0 {
+											if v, err := strconv.Atoi(params[0]); err == nil {
+												limit = v
+											}
+										}
+										board, err := entity.Leaderboard(limit)
+										if err != nil {
+											return OutputMsg(err.Error())
+										}
+
+										title := lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Bold(true)
+										nameStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
+										ptsStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("11"))
+
+										lines := []string{title.Render("Honey Bear Honey Pot CTF Leaderboard")}
+										for i, u := range board {
+											col := "10"
+											switch i {
+											case 0:
+												col = "220"
+											case 1:
+												col = "250"
+											case 2:
+												col = "166"
+											}
+											rank := lipgloss.NewStyle().Foreground(lipgloss.Color(col)).Bold(true)
+											line := fmt.Sprintf("%s %s - %s",
+												rank.Render(fmt.Sprintf("%2d.", i+1)),
+												nameStyle.Render(u.Username),
+												ptsStyle.Render(fmt.Sprintf("%d pts", u.Points)))
+											lines = append(lines, line)
+										}
+
+										content := lipgloss.JoinVertical(lipgloss.Left, lines...)
+										box := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(1, 2)
+										return OutputMsg(box.Render(content))
+									}
+
+									return &cmd
 								},
 							},
 							{

@@ -22,8 +22,10 @@ import (
 	"github.com/charmbracelet/wish/bubbletea"
 	"github.com/charmbracelet/wish/elapsed"
 	"github.com/charmbracelet/wish/logging"
+	"github.com/mikeflynn/honeybearhoneypot/internal/config"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/confetti"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/ctf"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/embedded"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/filesystem"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/matrix"
@@ -286,6 +288,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		},
 		confetti:   confetti.InitialModel(),
 		matrix:     matrix.InitialModel(pty.Window.Width, pty.Window.Height),
+		ctf:        ctf.InitialModel(convertTasks(config.Active.Tasks)),
 		output:     "",
 		helpText:   "Type 'help' to see some commands; Use up/down for history.",
 		historyIdx: 0,
@@ -295,6 +298,19 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	return m, []tea.ProgramOption{
 		//tea.WithAltScreen(),
 	}
+}
+
+func convertTasks(t []config.Task) []ctf.Task {
+	out := make([]ctf.Task, len(t))
+	for i, task := range t {
+		out[i] = ctf.Task{
+			Name:        task.Name,
+			Description: task.Description,
+			Flag:        task.Flag,
+			Points:      task.Points,
+		}
+	}
+	return out
 }
 
 func doTick() tea.Cmd {
