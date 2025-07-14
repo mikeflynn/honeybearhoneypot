@@ -10,7 +10,9 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 	"github.com/google/shlex"
+	"github.com/mikeflynn/honeybearhoneypot/internal/config"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/confetti"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/ctf"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/filesystem"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/matrix"
 	"github.com/muesli/reflow/wordwrap"
@@ -147,6 +149,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		m.output += m.outputStyle.Render("\n")
+	case ctf.QuitMsg:
+		m.viewport.SetContent("")
+		m.runningCommand = ""
+		m.ctf = ctf.InitialModel(convertTasks(config.Active.Tasks))
+		return m, nil
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "enter":

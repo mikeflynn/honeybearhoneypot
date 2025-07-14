@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -16,6 +15,13 @@ func Start() tea.Msg { return startMsg{} }
 
 // startMsg is used to bootstrap the game from the filesystem command.
 type startMsg struct{}
+
+// QuitMsg is sent when the user wants to exit the CTF without quitting the host
+// program.
+type QuitMsg struct{}
+
+// Quit returns a message that signals the parent model to close the CTF view.
+func Quit() tea.Msg { return QuitMsg{} }
 
 // gameState indicates which screen we're showing.
 type gameState int
@@ -32,15 +38,8 @@ type Task struct {
 	Description string
 	Flag        string
 	Points      int
+	Completed   bool
 }
-
-type item struct {
-	task Task
-}
-
-func (i item) Title() string       { return i.task.Name }
-func (i item) Description() string { return i.task.Description }
-func (i item) FilterValue() string { return i.task.Name }
 
 type Model struct {
 	state    gameState
@@ -48,15 +47,39 @@ type Model struct {
 	password string
 	user     *entity.CTFUser
 
+	width  int
+	height int
+
 	usernameInput textinput.Model
 	passwordInput textinput.Model
 	answerInput   textinput.Model
 
-	list list.Model
+	tasks  []Task
+	cursor int
 
 	selectedTask *Task
 
 	errMsg string
+}
+
+func (m *Model) loadCompleted() {
+	if m.user == nil {
+		return
+	}
+	tasks, err := m.user.CompletedTasks()
+	if err != nil {
+		m.errMsg = err.Error()
+		return
+	}
+	done := map[string]struct{}{}
+	for _, t := range tasks {
+		done[t] = struct{}{}
+	}
+	for i := range m.tasks {
+		if _, ok := done[m.tasks[i].Name]; ok {
+			m.tasks[i].Completed = true
+		}
+	}
 }
 
 func InitialModel(tasks []Task) Model {
@@ -74,28 +97,32 @@ func InitialModel(tasks []Task) Model {
 	ai.Placeholder = "flag"
 	ai.CharLimit = 256
 
-	items := []list.Item{}
-	for _, t := range tasks {
-		items = append(items, item{task: t})
-	}
-	l := list.New(items, list.NewDefaultDelegate(), 0, 0)
-	l.Title = "Challenges"
-
 	return Model{
 		state:         stateLogin,
 		usernameInput: ti,
 		passwordInput: pi,
 		answerInput:   ai,
-		list:          l,
+		tasks:         tasks,
+		width:         0,
+		height:        0,
+		cursor:        0,
 	}
 }
 
 func (m Model) Init() tea.Cmd { return nil }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg.(type) {
+	switch msg := msg.(type) {
 	case startMsg:
+		m.state = stateLogin
+		m.errMsg = ""
+		m.cursor = 0
+		m.usernameInput.Focus()
+		m.passwordInput.Blur()
 		return m, nil
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
 	}
 
 	switch m.state {
@@ -106,32 +133,41 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case stateAnswer:
 		return m.updateAnswer(msg)
 	case stateDone:
-		return m, tea.Quit
+		return m, func() tea.Msg { return QuitMsg{} }
 	}
 	return m, nil
 }
 
 func (m *Model) authenticate() tea.Cmd {
-	u := &entity.CTFUser{Username: m.usernameInput.Value()}
+	pass := strings.TrimSpace(m.passwordInput.Value())
+	if pass == "" {
+		m.errMsg = "password required"
+		return nil
+	}
+
+	u := &entity.CTFUser{Username: strings.TrimSpace(m.usernameInput.Value())}
 	err := u.Load()
 	if err != nil {
-		// create
+		// create new account
 		u.Username = m.usernameInput.Value()
-		u.Password = m.passwordInput.Value()
+		u.Password = pass
 		if err := u.Save(); err != nil {
 			m.errMsg = err.Error()
 			return nil
 		}
 	}
-	if u.Password != m.passwordInput.Value() {
+
+	if u.Password != pass {
 		m.errMsg = "invalid password"
 		return nil
 	}
+
 	m.user = u
 	m.username = u.Username
 	m.password = u.Password
 	m.state = stateMenu
 	m.errMsg = ""
+	m.loadCompleted()
 	return nil
 }
 
@@ -142,6 +178,24 @@ func (m Model) updateLogin(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "enter":
 			return m, m.authenticate()
+		case "tab", "down":
+			if m.usernameInput.Focused() {
+				m.usernameInput.Blur()
+				m.passwordInput.Focus()
+			} else {
+				m.passwordInput.Blur()
+				m.usernameInput.Focus()
+			}
+			return m, nil
+		case "shift+tab", "up":
+			if m.passwordInput.Focused() {
+				m.passwordInput.Blur()
+				m.usernameInput.Focus()
+			} else {
+				m.usernameInput.Blur()
+				m.passwordInput.Focus()
+			}
+			return m, nil
 		}
 	}
 	m.usernameInput, cmd = m.usernameInput.Update(msg)
@@ -153,25 +207,33 @@ func (m Model) updateLogin(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) updateMenu(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
+		case "up", "k":
+			if m.cursor > 0 {
+				m.cursor--
+			}
+		case "down", "j":
+			if m.cursor < len(m.tasks)-1 {
+				m.cursor++
+			}
 		case "enter":
-			if it, ok := m.list.SelectedItem().(item); ok {
-				m.selectedTask = &it.task
+			if len(m.tasks) > 0 {
+				if m.tasks[m.cursor].Completed {
+					return m, nil
+				}
+				m.selectedTask = &m.tasks[m.cursor]
 				m.state = stateAnswer
 				m.answerInput.SetValue("")
 				m.answerInput.Focus()
 			}
-			return m, nil
 		case "q", "ctrl+c":
 			m.state = stateDone
-			return m, tea.Quit
+			return m, func() tea.Msg { return QuitMsg{} }
 		}
 	}
-	m.list, cmd = m.list.Update(msg)
-	return m, cmd
+	return m, nil
 }
 
 func (m Model) updateAnswer(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -186,14 +248,17 @@ func (m Model) updateAnswer(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.errMsg = err.Error()
 				} else {
 					m.errMsg = fmt.Sprintf("Correct! +%d points", m.selectedTask.Points)
+					m.selectedTask.Completed = true
 				}
-			} else {
-				m.errMsg = "Incorrect flag"
+				m.state = stateMenu
+				return m, nil
 			}
-			m.state = stateMenu
+
+			m.errMsg = "Incorrect flag"
 			return m, nil
 		case "esc":
 			m.state = stateMenu
+			m.errMsg = ""
 			return m, nil
 		}
 	}
@@ -203,18 +268,26 @@ func (m Model) updateAnswer(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) View() string {
 	titleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)
+	welcome := lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Render("Welcome to the Honey Bear Honey Pot CTF!\n" +
+		"Create an account by entering a new username and password or login with your existing credentials.")
+
 	switch m.state {
 	case stateLogin:
 		return lipgloss.JoinVertical(lipgloss.Left,
 			titleStyle.Render("Honey Bear Honey Pot CTF"),
+			welcome,
+			m.renderTasks(true),
 			m.errMsg,
 			"username: "+m.usernameInput.View(),
 			"password: "+m.passwordInput.View(),
 		)
 	case stateMenu:
 		header := fmt.Sprintf("Honey Bear Honey Pot CTF - %s (%d pts)", m.user.Username, m.user.Points)
-		m.list.Title = header
-		return m.list.View()
+		return lipgloss.JoinVertical(lipgloss.Left,
+			titleStyle.Render(header),
+			m.renderTasks(false),
+			m.errMsg,
+		)
 	case stateAnswer:
 		return lipgloss.JoinVertical(lipgloss.Left,
 			titleStyle.Render(m.selectedTask.Name),
@@ -226,4 +299,33 @@ func (m Model) View() string {
 		return "Goodbye"
 	}
 	return ""
+}
+
+func (m Model) renderTasks(showAllDesc bool) string {
+	var b strings.Builder
+	bullet := lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Render("•")
+	doneBullet := lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Render("✓")
+	selectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(lipgloss.Color("6")).Bold(true)
+	normalStyle := lipgloss.NewStyle()
+	descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
+
+	for i, t := range m.tasks {
+		blet := bullet
+		style := normalStyle
+		if t.Completed {
+			blet = doneBullet
+			style = normalStyle.Foreground(lipgloss.Color("8"))
+		}
+		line := fmt.Sprintf("%s %s (%d pts)", blet, t.Name, t.Points)
+		if m.state == stateMenu && i == m.cursor {
+			line = selectedStyle.Render(line)
+		} else {
+			line = style.Render(line)
+		}
+		b.WriteString(line + "\n")
+		if showAllDesc || (m.state == stateMenu && i == m.cursor) {
+			b.WriteString("  " + descStyle.Render(t.Description) + "\n")
+		}
+	}
+	return strings.TrimRight(b.String(), "\n")
 }
