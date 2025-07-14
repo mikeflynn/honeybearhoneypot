@@ -7,6 +7,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/confetti"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/ctf"
@@ -459,9 +460,17 @@ func Initialize() {
 										if err != nil {
 											return OutputMsg(err.Error())
 										}
-										lines := []string{"Leaderboard:"}
+										titleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Bold(true)
+										rankStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)
+										nameStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("12"))
+										ptsStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("11"))
+										lines := []string{titleStyle.Render("Honey Bear Honey Pot CTF Leaderboard")}
 										for i, u := range board {
-											lines = append(lines, fmt.Sprintf("%d. %s - %d pts", i+1, u.Username, u.Points))
+											line := fmt.Sprintf("%s %s - %s",
+												rankStyle.Render(fmt.Sprintf("%2d.", i+1)),
+												nameStyle.Render(u.Username),
+												ptsStyle.Render(fmt.Sprintf("%d pts", u.Points)))
+											lines = append(lines, line)
 										}
 										return OutputMsg(strings.Join(lines, "\n"))
 									}
