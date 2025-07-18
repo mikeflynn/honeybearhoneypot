@@ -427,7 +427,7 @@ func Initialize() {
 								Owner:     "root",
 								Group:     "root",
 								Mode:      0711,
-								HelpText:  "Start the Honey Bear Honey Pot CTF game",
+								HelpText:  "Play the Honey Bear Honey Pot Capture the Flag (CTF) game. flag{hbhphh_ctf} is a flag to get you started.",
 								Exec: func(dir *Node, params []string) *tea.Cmd {
 									cmds := []tea.Cmd{}
 									cmds = append(cmds, tea.Cmd(func() tea.Msg { return SetRunningCmd("ctf") }))
