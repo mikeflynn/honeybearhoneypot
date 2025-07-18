@@ -5,3 +5,4 @@ honeybear.db
 .ssh
 *.zip
 config.json
+config.hardhat.json
