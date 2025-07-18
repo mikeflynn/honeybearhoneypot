@@ -72,8 +72,8 @@ func Initialize() {
 		Directory: true,
 		Children: []*Node{
 			{
-				Name:      "test.txt",
-				Path:      "/home/you/test.txt",
+				Name:      "patch.md",
+				Path:      "/home/you/patch.md",
 				Directory: false,
 				Owner:     "you",
 				Group:     "default",
@@ -81,7 +81,7 @@ func Initialize() {
 				Content: func() []byte {
 					//return []byte("This is a note.")
 
-					fileData, err := embedded.Files.ReadFile("test.txt")
+					fileData, err := embedded.Files.ReadFile("patch.md")
 					if err != nil {
 						return FileContentsMsg(fmt.Sprintf("\n%s: Error reading file.\n", err))
 					}

@@ -27,7 +27,7 @@ type Config struct {
 	LogLevel   string            `json:"log_level,omitempty"`
 	Filesystem []filesystem.Node `json:"filesystem,omitempty"`
 	Tasks      []Task            `json:"tasks,omitempty"`
-	PinReset   string            `json:"-"`
+	PinReset   string            `json:"pin,omitempty"`
 }
 
 var (
@@ -105,7 +105,9 @@ func Parse() (*Config, string, error) {
 		cfg.LogLevel = *logLevelFlag
 	}
 
-	cfg.PinReset = *pinResetFlag
+	if *pinResetFlag != "" {
+		cfg.PinReset = *pinResetFlag
+	}
 
 	Active = &cfg
 	return Active, cfg.PinReset, nil
