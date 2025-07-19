@@ -17,7 +17,8 @@ const (
 )
 
 var (
-	colors     = []string{"#a864fd", "#29cdff", "#78ff44", "#ff718d", "#fdff6a"}
+	// Using 256-color palette equivalents for broader terminal support.
+	colors     = []string{"141", "81", "119", "211", "228"}
 	characters = []string{"█", "▓", "▒", "░", "▄", "▀"}
 )
 

@@ -10,19 +10,21 @@ import (
 )
 
 var (
-	matrixBg = lipgloss.Color("#111111")
+	// Approximated 256-color versions of the original palette for
+	// improved compatibility with terminals that don't support true color.
+	matrixBg = lipgloss.Color("233")
 
 	matrixPalettes = []lipgloss.Color{
-		lipgloss.Color("#000048"),
-		lipgloss.Color("#5e5e5e"),
-		lipgloss.Color("#5a5a5a"),
-		lipgloss.Color("#009a22"),
-		lipgloss.Color("#36ba01"),
-		lipgloss.Color("#002706"),
-		lipgloss.Color("#00ff00"),
-		lipgloss.Color("#009a22"),
-		lipgloss.Color("#00ff2b"),
-		lipgloss.Color("#36ba01"),
+		lipgloss.Color("17"),
+		lipgloss.Color("240"),
+		lipgloss.Color("240"),
+		lipgloss.Color("35"),
+		lipgloss.Color("76"),
+		lipgloss.Color("22"),
+		lipgloss.Color("46"),
+		lipgloss.Color("35"),
+		lipgloss.Color("47"),
+		lipgloss.Color("76"),
 	}
 
 	matrixGlyphs    = []rune("ABCDEFGHIJKLMNOPQRSTUVWXYZ12345678909qwertyuiopasdfghjklzxcvbnm")
