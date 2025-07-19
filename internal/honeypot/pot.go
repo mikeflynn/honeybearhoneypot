@@ -140,9 +140,6 @@ func SetTunnel(host *string, keyPath *string) error {
 
 func sessionMiddleware(next ssh.Handler) ssh.Handler {
 	return func(s ssh.Session) {
-		addActiveUser(s.User())
-		defer removeActiveUser(s.User())
-
 		// Record login event
 		e := &entity.Event{
 			User:      s.User(),
@@ -168,6 +165,9 @@ func sessionMiddleware(next ssh.Handler) ssh.Handler {
 			return
 		}
 
+		addActiveUser(s.User())
+		defer removeActiveUser(s.User())
+
 		next(s)
 	}
 }
@@ -181,6 +181,37 @@ func executeCommand(raw, user, host string) string {
 	parts, err := shlex.Split(raw)
 	if err != nil {
 		return fmt.Sprintf("Error parsing command: %v\n", err)
+	}
+
+	if len(parts) == 0 {
+		return ""
+	}
+
+	allowed := map[string]bool{
+		"ls":          true,
+		"clear":       true,
+		"bearsay":     true,
+		"cowsay":      true,
+		"echo":        true,
+		"ping":        true,
+		"man":         true,
+		"help":        true,
+		"pwd":         true,
+		"history":     true,
+		"cat":         true,
+		"less":        true,
+		"more":        true,
+		"cd":          true,
+		"uname":       true,
+		"lsb_release": true,
+	}
+
+	cmdName := parts[0]
+	if cmdName == "sudo" && len(parts) > 1 {
+		cmdName = parts[1]
+	}
+	if !allowed[cmdName] {
+		return fmt.Sprintf("%s: command requires an interactive session\n", cmdName)
 	}
 
 	evt := &entity.Event{
@@ -198,10 +229,6 @@ func executeCommand(raw, user, host string) string {
 	filesystem.Initialize()
 	currentDir := filesystem.HomeDir
 	group := "default"
-
-	if len(parts) == 0 {
-		return ""
-	}
 
 	var cmd *tea.Cmd
 	if parts[0] == "sudo" && len(parts) > 1 {
@@ -230,13 +257,6 @@ func runTeaCmd(currentDir **filesystem.Node, cmd *tea.Cmd) string {
 			out.WriteByte('\n')
 		case filesystem.FileContentsMsg:
 			out.Write(m)
-		case filesystem.ListActiveUsersMsg:
-			users := activeUsersSnapshot()
-			out.WriteString(fmt.Sprintf("04:25:58 up 10 days, 23:21,  %d users, load average: 0.10, 0.18, 0.10\n", len(users)))
-			out.WriteString(fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%s\n", "USER", "TTY", "FROM", "LOGIN@", "IDLE", "JCPU", "PCPU WHAT"))
-			for i, u := range users {
-				out.WriteString(fmt.Sprintf("%s\tpts/%d\t%s\t%s\t%s\t%s\t%s\n", u, i, "--", "--", "--", "--", "--"))
-			}
 		case filesystem.ChangeDirMsg:
 			*currentDir = m.Node
 		default:
