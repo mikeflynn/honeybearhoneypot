@@ -117,12 +117,14 @@ func InitialModel(tasks []Task) Model {
 	ti.Focus()
 	ti.CharLimit = 32
 	ti.Cursor.Style = lipgloss.NewStyle().Blink(true)
+	ti.SetWidth(16)
 
 	pi := textinput.New()
 	pi.Placeholder = "password"
 	pi.CharLimit = 32
 	pi.EchoMode = textinput.EchoPassword
 	pi.Cursor.Style = lipgloss.NewStyle().Blink(true)
+	pi.SetWidth(16)
 
 	ai := textinput.New()
 	ai.Placeholder = "flag"
