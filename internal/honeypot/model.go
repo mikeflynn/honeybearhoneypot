@@ -294,8 +294,10 @@ func (m model) View() string {
 		content = m.matrix.View()
 		help = "Press 'ctrl + c' to quit."
 	} else if m.runningCommand == "ctf" {
-		content = m.ctf.View()
-		help = "Press 'ctrl + c' to quit."
+		return "" +
+			m.ctf.View() +
+			"\n" +
+			m.quitStyle.Render("esc to go back or ctrl + c to exit the ctf.\n")
 	}
 
 	return fmt.Sprintf("%s\n%s\n%s\n", content, m.textInput.View(), m.quitStyle.Render(help))

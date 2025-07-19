@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"strings"
 
+	"unicode"
+
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
-	"unicode"
 )
 
 // Start returns a tea.Msg used to launch the CTF game.
@@ -132,6 +133,7 @@ func InitialModel(tasks []Task) Model {
 	ai.PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Bold(true)
 	ai.TextStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("11"))
 	ai.CharLimit = 256
+	ai.Width = 16
 
 	return Model{
 		state:         stateLogin,
@@ -314,8 +316,8 @@ func (m Model) View() string {
 			titleStyle.Render("Honey Bear Honey Pot CTF"),
 			welcome,
 			m.errMsg,
-			"username: "+m.usernameInput.View(),
-			"password: "+m.passwordInput.View(),
+			m.usernameInput.View(),
+			m.passwordInput.View(),
 		)
 	case stateMenu:
 		header := fmt.Sprintf("Honey Bear Honey Pot CTF - %s (%d pts)", m.user.Username, m.user.Points)
