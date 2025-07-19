@@ -116,11 +116,13 @@ func InitialModel(tasks []Task) Model {
 	ti.Placeholder = "username"
 	ti.Focus()
 	ti.CharLimit = 32
+	ti.Cursor.Style = lipgloss.NewStyle().Blink(true)
 
 	pi := textinput.New()
 	pi.Placeholder = "password"
 	pi.CharLimit = 32
 	pi.EchoMode = textinput.EchoPassword
+	pi.Cursor.Style = lipgloss.NewStyle().Blink(true)
 
 	ai := textinput.New()
 	ai.Placeholder = "flag"
@@ -309,7 +311,6 @@ func (m Model) View() string {
 		return lipgloss.JoinVertical(lipgloss.Left,
 			titleStyle.Render("Honey Bear Honey Pot CTF"),
 			welcome,
-			m.renderTasks(false),
 			m.errMsg,
 			"username: "+m.usernameInput.View(),
 			"password: "+m.passwordInput.View(),
@@ -340,7 +341,7 @@ func (m Model) View() string {
 
 func (m Model) renderTasks(showAllDesc bool) string {
 	var b strings.Builder
-	bullet := lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Render("•")
+	bullet := lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Render("🍯")
 	doneBullet := lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Render("✓")
 	selectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(lipgloss.Color("6")).Bold(true)
 	normalStyle := lipgloss.NewStyle()
@@ -353,7 +354,13 @@ func (m Model) renderTasks(showAllDesc bool) string {
 			blet = doneBullet
 			style = normalStyle.Foreground(lipgloss.Color("8"))
 		}
-		line := fmt.Sprintf("%s %s (%d pts)", blet, t.Name, t.Points)
+
+		marker := " "
+		if m.state == stateMenu && i == m.cursor {
+			marker = "👉"
+		}
+
+		line := fmt.Sprintf("%s %s %s (%d pts)", marker, blet, t.Name, t.Points)
 		if m.state == stateMenu && i == m.cursor {
 			line = selectedStyle.Render(line)
 		} else {
