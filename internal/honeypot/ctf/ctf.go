@@ -117,14 +117,14 @@ func InitialModel(tasks []Task) Model {
 	ti.Focus()
 	ti.CharLimit = 32
 	ti.Cursor.Style = lipgloss.NewStyle().Blink(true)
-	ti.SetWidth(16)
+	ti.Width = 16
 
 	pi := textinput.New()
 	pi.Placeholder = "password"
 	pi.CharLimit = 32
 	pi.EchoMode = textinput.EchoPassword
 	pi.Cursor.Style = lipgloss.NewStyle().Blink(true)
-	pi.SetWidth(16)
+	pi.Width = 16
 
 	ai := textinput.New()
 	ai.Placeholder = "flag"
@@ -359,7 +359,7 @@ func (m Model) renderTasks(showAllDesc bool) string {
 
 		marker := " "
 		if m.state == stateMenu && i == m.cursor {
-			marker = "👉"
+			marker = ">"
 		}
 
 		line := fmt.Sprintf("%s %s %s (%d pts)", marker, blet, t.Name, t.Points)
