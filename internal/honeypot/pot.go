@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"os/signal"
+	"reflect"
 	"strings"
 	"sync"
 	"syscall"
@@ -18,10 +20,10 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
-	"github.com/charmbracelet/wish/activeterm"
 	"github.com/charmbracelet/wish/bubbletea"
 	"github.com/charmbracelet/wish/elapsed"
 	"github.com/charmbracelet/wish/logging"
+	"github.com/google/shlex"
 	"github.com/mikeflynn/honeybearhoneypot/internal/config"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/confetti"
@@ -136,6 +138,124 @@ func SetTunnel(host *string, keyPath *string) error {
 	return nil
 }
 
+func sessionMiddleware(next ssh.Handler) ssh.Handler {
+	return func(s ssh.Session) {
+		addActiveUser(s.User())
+		defer removeActiveUser(s.User())
+
+		// Record login event
+		e := &entity.Event{
+			User:      s.User(),
+			Host:      s.RemoteAddr().String(),
+			App:       "ssh",
+			Source:    entity.EventSourceUser,
+			Type:      "login",
+			Action:    "Logged in!",
+			Timestamp: time.Now(),
+		}
+		e.Publish()
+		if err := e.Save(); err != nil {
+			log.Error("error saving event", "error", err)
+		}
+
+		if cmd := s.RawCommand(); cmd != "" {
+			execSession(s, cmd)
+			return
+		}
+
+		if _, _, ok := s.Pty(); !ok {
+			io.WriteString(s, "Requires an active PTY\n")
+			return
+		}
+
+		next(s)
+	}
+}
+
+func execSession(s ssh.Session, raw string) {
+	output := executeCommand(raw, s.User(), s.RemoteAddr().String())
+	io.WriteString(s, output)
+}
+
+func executeCommand(raw, user, host string) string {
+	parts, err := shlex.Split(raw)
+	if err != nil {
+		return fmt.Sprintf("Error parsing command: %v\n", err)
+	}
+
+	evt := &entity.Event{
+		User:      user,
+		Host:      host,
+		App:       "ssh",
+		Source:    entity.EventSourceUser,
+		Type:      "typed",
+		Action:    raw,
+		Timestamp: time.Now(),
+	}
+	evt.Publish()
+	_ = evt.Save()
+
+	filesystem.Initialize()
+	currentDir := filesystem.HomeDir
+	group := "default"
+
+	if len(parts) == 0 {
+		return ""
+	}
+
+	var cmd *tea.Cmd
+	if parts[0] == "sudo" && len(parts) > 1 {
+		cmd, err = filesystem.RunNode(currentDir, parts[1], parts[2:], "root", "root")
+	} else {
+		cmd, err = filesystem.RunNode(currentDir, parts[0], parts[1:], user, group)
+	}
+	if err != nil {
+		return fmt.Sprintf("%s\n", err)
+	}
+
+	return runTeaCmd(&currentDir, cmd)
+}
+
+func runTeaCmd(currentDir **filesystem.Node, cmd *tea.Cmd) string {
+	if cmd == nil {
+		return ""
+	}
+	var out strings.Builder
+	var process func(tea.Msg)
+
+	process = func(msg tea.Msg) {
+		switch m := msg.(type) {
+		case filesystem.OutputMsg:
+			out.WriteString(string(m))
+			out.WriteByte('\n')
+		case filesystem.FileContentsMsg:
+			out.Write(m)
+		case filesystem.ListActiveUsersMsg:
+			users := activeUsersSnapshot()
+			out.WriteString(fmt.Sprintf("04:25:58 up 10 days, 23:21,  %d users, load average: 0.10, 0.18, 0.10\n", len(users)))
+			out.WriteString(fmt.Sprintf("%s\t%s\t%s\t%s\t%s\t%s\t%s\n", "USER", "TTY", "FROM", "LOGIN@", "IDLE", "JCPU", "PCPU WHAT"))
+			for i, u := range users {
+				out.WriteString(fmt.Sprintf("%s\tpts/%d\t%s\t%s\t%s\t%s\t%s\n", u, i, "--", "--", "--", "--", "--"))
+			}
+		case filesystem.ChangeDirMsg:
+			*currentDir = m.Node
+		default:
+			v := reflect.ValueOf(msg)
+			if v.Kind() == reflect.Slice {
+				for i := 0; i < v.Len(); i++ {
+					if sub, ok := v.Index(i).Interface().(tea.Msg); ok {
+						process(sub)
+					}
+				}
+			}
+		}
+	}
+
+	first := (*cmd)()
+	process(first)
+	return out.String()
+}
+
 func StartHoneyPot(appConfigDir string) {
 	activeUsersMu.Lock()
 	activeUsers = []string{}
@@ -167,18 +287,8 @@ func StartHoneyPot(appConfigDir string) {
 			return ""
 		}),
 		wish.WithMiddleware(
+			sessionMiddleware,
 			bubbletea.Middleware(teaHandler),
-			func(next ssh.Handler) ssh.Handler {
-				return func(s ssh.Session) {
-					addActiveUser(s.User())
-
-					next(s)
-
-					removeActiveUser(s.User())
-				}
-			},
-			activeterm.Middleware(), // Bubble Tea apps usually require a PTY.
-			//accesscontrol.Middleware(),
 			logging.Middleware(),
 			elapsed.Middleware(),
 		),
@@ -234,7 +344,7 @@ func StartHoneyPot(appConfigDir string) {
 }
 
 func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
-	// This should never fail, as we are using the activeterm middleware.
+	// Expect a PTY when running interactively.
 	pty, _, _ := s.Pty()
 
 	renderer := bubbletea.MakeRenderer(s)
