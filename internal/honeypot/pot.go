@@ -139,6 +139,9 @@ func SetTunnel(host *string, keyPath *string) error {
 }
 
 func sessionMiddleware(next ssh.Handler) ssh.Handler {
+	// bubbletea middleware runs only for interactive sessions
+	teaMW := bubbletea.Middleware(teaHandler)
+
 	return func(s ssh.Session) {
 		// Record login event
 		e := &entity.Event{
@@ -168,7 +171,8 @@ func sessionMiddleware(next ssh.Handler) ssh.Handler {
 		addActiveUser(s.User())
 		defer removeActiveUser(s.User())
 
-		next(s)
+		// run interactive Bubble Tea session
+		teaMW(next)(s)
 	}
 }
 
@@ -307,10 +311,9 @@ func StartHoneyPot(appConfigDir string) {
 			return ""
 		}),
 		wish.WithMiddleware(
-			sessionMiddleware,
-			bubbletea.Middleware(teaHandler),
 			logging.Middleware(),
 			elapsed.Middleware(),
+			sessionMiddleware,
 		),
 	)
 	if err != nil {
