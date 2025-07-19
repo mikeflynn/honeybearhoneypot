@@ -111,7 +111,7 @@ func (u *CTFUser) CompletedTasks() ([]string, error) {
 
 // Leaderboard returns the top users ordered by points.
 func Leaderboard(limit int) ([]CTFUser, error) {
-	rows, err := db.MakeQuery("SELECT username, points FROM ctf_users ORDER BY points DESC LIMIT ?", limit)
+	rows, err := db.MakeQuery("SELECT username, points FROM ctf_users WHERE points > 0 ORDER BY points DESC LIMIT ?", limit)
 	if err != nil {
 		return nil, err
 	}

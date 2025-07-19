@@ -114,14 +114,16 @@ func wordWrap(text string, width int) string {
 
 func InitialModel(tasks []Task) Model {
 	ti := textinput.New()
-	ti.Placeholder = "username"
+	ti.Prompt = "Username: "
+	//ti.Placeholder = ""
 	ti.Focus()
 	ti.CharLimit = 32
 	ti.Cursor.Style = lipgloss.NewStyle().Blink(true)
 	ti.Width = 16
 
 	pi := textinput.New()
-	pi.Placeholder = "password"
+	pi.Prompt = "Password: "
+	//pi.Placeholder = ""
 	pi.CharLimit = 32
 	pi.EchoMode = textinput.EchoPassword
 	pi.Cursor.Style = lipgloss.NewStyle().Blink(true)
