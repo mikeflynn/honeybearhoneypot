@@ -220,6 +220,16 @@ func Initialize() {
 								Exec:      bearSayExec,
 							},
 							{
+								Name:      "neofetch",
+								Path:      "/usr/bin/neofetch",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								HelpText:  "Usage: neofetch\n Display system information.",
+								Exec:      neofetchExec,
+							},
+							{
 								Name:      "cowsay",
 								Path:      "/usr/bin/cowsay",
 								Directory: false,
