@@ -1,6 +1,6 @@
 version: 2
 
-project_name: honeybear
+project_name: honeybearhoneypot
 
 before:
   hooks:
@@ -39,7 +39,7 @@ archives:
       {{ .ProjectName }}_{{ .Os }}_{{ .Arch }}
 
 checksum:
-  name_template: 'checksums.txt'
+  name_template: "checksums.txt"
 
 snapshot:
   version_template: "{{ .Tag }}-next"
@@ -48,19 +48,19 @@ changelog:
   sort: asc
   filters:
     exclude:
-      - '^docs:'
-      - '^test:'
+      - "^docs:"
+      - "^test:"
 
 brews:
-  - name: honeybear
+  - name: honeybearhoneypot
     repository:
       owner: mikeflynn
       name: homebrew-honeybearhoneypot
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    
+
     description: "Whimsical SSH honeypot with a Fyne GUI"
     homepage: "https://github.com/mikeflynn/honeybearhoneypot"
     license: "GPL-2.0"
-    
+
     install: |
-      bin.install "honeybear"
+      bin.install "honeybearhoneypot"
