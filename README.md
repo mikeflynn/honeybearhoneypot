@@ -4,6 +4,33 @@ A SSH honeypot application that has a wimsical GUI application...and, if you pre
 
 See more information about this project: [honeybear.hydrox.fun](https://honeybear.hydrox.fun)
 
+## Installation
+
+### Homebrew (macOS & Linux)
+
+You can install Honey Bear Honey Pot using Homebrew by tapping the official repository:
+
+```bash
+$ brew tap mikeflynn/honeybearhoneypot
+$ brew install honeybearhoneypot
+```
+
+...or simply:
+
+```bash
+$ brew install mikeflynn/honeybearhoneypot/honeybearhoneypot
+```
+
+After installation, you can run the application using the command:
+
+```bash
+$ honeybearhoneypot -h
+```
+
+### Manual Download
+
+Download the latest binary for your architecture from the [Releases](https://github.com/mikeflynn/honeybearhoneypot/releases) page.
+
 ## Configuration
 
 The honeypot can be configured using command-line flags when starting the application:
@@ -89,6 +116,7 @@ On first run, it will be a bit slower, but you will see the GUI application pop 
 ## Deployment / Exporting
 
 To build a binary for your local environment, you can install the fyne app (`$ go install fyne.io/demo@latest`) and then run:
+
 ```bash
 $ fyne build
 ```
@@ -106,4 +134,4 @@ See more info on the [Fyne app site](https://fyne.io).
 
 ## Contributing
 
-Please feel free to submit issues, and especially pull requets! 
+Please feel free to submit issues, and especially pull requets!

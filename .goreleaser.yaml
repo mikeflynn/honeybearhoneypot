@@ -1,0 +1,66 @@
+version: 2
+
+project_name: honeybearhoneypot
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: darwin
+    env:
+      - CGO_ENABLED=1
+      - CC=o64-clang
+      - CXX=o64-clang++
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    main: ./main.go
+    ldflags:
+      - -s -w
+
+  - id: linux
+    env:
+      - CGO_ENABLED=1
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    main: ./main.go
+    ldflags:
+      - -s -w
+
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_{{ .Os }}_{{ .Arch }}
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ .Tag }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+brews:
+  - name: honeybearhoneypot
+    repository:
+      owner: mikeflynn
+      name: homebrew-honeybearhoneypot
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+
+    description: "Whimsical SSH honeypot with a Fyne GUI"
+    homepage: "https://github.com/mikeflynn/honeybearhoneypot"
+    license: "GPL-2.0"
+
+    install: |
+      bin.install "honeybearhoneypot"
