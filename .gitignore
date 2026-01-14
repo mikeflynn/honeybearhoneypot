@@ -6,3 +6,4 @@ honeybear.db
 *.zip
 config.json
 config.hardhat.json
+honeybear

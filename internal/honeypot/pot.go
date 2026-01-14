@@ -161,7 +161,7 @@ func StartHoneyPot(appConfigDir string) {
 		wish.WithBannerHandler(func(ctx ssh.Context) string {
 			banner, err := embedded.Files.ReadFile("banner.txt")
 			if err == nil || banner != nil {
-				return fmt.Sprintf(string(banner), ctx.User())
+				return string(banner)
 			}
 
 			return ""
@@ -178,7 +178,7 @@ func StartHoneyPot(appConfigDir string) {
 				}
 			},
 			activeterm.Middleware(), // Bubble Tea apps usually require a PTY.
-			//accesscontrol.Middleware(),
+			execMiddleware,
 			logging.Middleware(),
 			elapsed.Middleware(),
 		),
