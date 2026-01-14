@@ -21,13 +21,25 @@ builds:
     ldflags:
       - -s -w
 
-  - id: linux
+  - id: linux-amd64
     env:
       - CGO_ENABLED=1
+      - CC=gcc
     goos:
       - linux
     goarch:
       - amd64
+    main: ./main.go
+    ldflags:
+      - -s -w
+
+  - id: linux-arm64
+    env:
+      - CGO_ENABLED=1
+      - CC=aarch64-linux-gnu-gcc
+    goos:
+      - linux
+    goarch:
       - arm64
     main: ./main.go
     ldflags:
