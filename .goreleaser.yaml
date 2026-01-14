@@ -59,7 +59,7 @@ brews:
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
 
     description: "Whimsical SSH honeypot with a Fyne GUI"
-    homepage: "https://github.com/mikeflynn/honeybearhoneypot"
+    homepage: "https://honeybear.hydrox.fun"
     license: "GPL-2.0"
 
     install: |

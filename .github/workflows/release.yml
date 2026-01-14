@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 permissions:
   contents: write
@@ -12,8 +12,6 @@ jobs:
   release:
     runs-on: ubuntu-latest
     container:
-      # This image includes Go, Linux build tools, and OSXCROSS for macOS builds.
-      # Ensure this version matches or exceeds your project's Go version.
       image: ghcr.io/gythialy/golang-cross:v1.24.0
     steps:
       - name: Checkout
