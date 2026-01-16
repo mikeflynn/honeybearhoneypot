@@ -9,7 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-func bearSayExec(dir *Node, params []string) *tea.Cmd {
+func bearSayExec(dir *Node, params []string, user, group string) *tea.Cmd {
 	cmds := []tea.Cmd{}
 
 	cmds = append(cmds, tea.Cmd(func() tea.Msg {
@@ -51,7 +51,7 @@ func bearSayExec(dir *Node, params []string) *tea.Cmd {
 	return &batch
 }
 
-func neofetchExec(dir *Node, params []string) *tea.Cmd {
+func neofetchExec(dir *Node, params []string, user, group string) *tea.Cmd {
 	cmds := []tea.Cmd{}
 
 	cmds = append(cmds, tea.Cmd(func() tea.Msg {
@@ -154,7 +154,7 @@ func neofetchExec(dir *Node, params []string) *tea.Cmd {
 	return &batch
 }
 
-func catExec(dir *Node, params []string) *tea.Cmd {
+func catExec(dir *Node, params []string, user, group string) *tea.Cmd {
 	cmds := []tea.Cmd{}
 	cmds = append(cmds, tea.Cmd(func() tea.Msg {
 		return SetRunningCmd("cat")
@@ -182,14 +182,14 @@ func catExec(dir *Node, params []string) *tea.Cmd {
 	return &batch
 }
 
-func idExec(dir *Node, params []string) *tea.Cmd {
+func idExec(dir *Node, params []string, user, group string) *tea.Cmd {
 	cmd := tea.Cmd(func() tea.Msg {
 		return OutputMsg("uid=1000(you) gid=1000(you) groups=1000(you),27(sudo)")
 	})
 	return &cmd
 }
 
-func psExec(dir *Node, params []string) *tea.Cmd {
+func psExec(dir *Node, params []string, user, group string) *tea.Cmd {
 	cmd := tea.Cmd(func() tea.Msg {
 		output := fmt.Sprintf("%-8s %-5s %-5s %-5s %-8s %-8s %-5s %s\n", "USER", "PID", "%CPU", "%MEM", "VSZ", "RSS", "TTY", "COMMAND")
 		processes := []struct {
@@ -211,7 +211,7 @@ func psExec(dir *Node, params []string) *tea.Cmd {
 	return &cmd
 }
 
-func envExec(dir *Node, params []string) *tea.Cmd {
+func envExec(dir *Node, params []string, user, group string) *tea.Cmd {
 	cmd := tea.Cmd(func() tea.Msg {
 		envVars := []string{
 			"SHELL=/bin/bash",
@@ -230,7 +230,7 @@ func envExec(dir *Node, params []string) *tea.Cmd {
 	return &cmd
 }
 
-func netstatExec(dir *Node, params []string) *tea.Cmd {
+func netstatExec(dir *Node, params []string, user, group string) *tea.Cmd {
 	cmd := tea.Cmd(func() tea.Msg {
 		output := "Active Internet connections (only servers)\n"
 		output += fmt.Sprintf("%-5s %-6s %-6s %-20s %-20s %-10s\n", "Proto", "Recv-Q", "Send-Q", "Local Address", "Foreign Address", "State")
@@ -249,4 +249,28 @@ func netstatExec(dir *Node, params []string) *tea.Cmd {
 		return OutputMsg(output)
 	})
 	return &cmd
+}
+
+func whoamiExec(dir *Node, params []string, user, group string) *tea.Cmd {
+	cmd := tea.Cmd(func() tea.Msg {
+		return OutputMsg(user)
+	})
+	return &cmd
+}
+
+func sudoExec(dir *Node, params []string, user, group string) *tea.Cmd {
+	// If no arguments, or sudo -h etc not supported for now, return simple help or prompt
+	if len(params) == 0 {
+		cmd := tea.Cmd(func() tea.Msg { return OutputMsg("usage: sudo [command]") })
+		return &cmd
+	}
+
+	// params[0] is the command to run as root
+	// params[1:] are the args
+	newCmd, err := RunNode(dir, params[0], params[1:], "root", "root")
+	if err != nil {
+		cmd := tea.Cmd(func() tea.Msg { return OutputMsg(err.Error()) })
+		return &cmd
+	}
+	return newCmd
 }
