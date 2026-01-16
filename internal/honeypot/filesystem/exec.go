@@ -181,3 +181,72 @@ func catExec(dir *Node, params []string) *tea.Cmd {
 	batch := tea.Batch(cmds...)
 	return &batch
 }
+
+func idExec(dir *Node, params []string) *tea.Cmd {
+	cmd := tea.Cmd(func() tea.Msg {
+		return OutputMsg("uid=1000(you) gid=1000(you) groups=1000(you),27(sudo)")
+	})
+	return &cmd
+}
+
+func psExec(dir *Node, params []string) *tea.Cmd {
+	cmd := tea.Cmd(func() tea.Msg {
+		output := fmt.Sprintf("%-8s %-5s %-5s %-5s %-8s %-8s %-5s %s\n", "USER", "PID", "%CPU", "%MEM", "VSZ", "RSS", "TTY", "COMMAND")
+		processes := []struct {
+			user, pid, cpu, mem, vsz, rss, tty, cmd string
+		}{
+			{"root", "1", "0.0", "0.1", "168244", "12544", "?", "/sbin/init"},
+			{"root", "2", "0.0", "0.0", "0", "0", "?", "[kthreadd]"},
+			{"root", "3", "0.0", "0.0", "0", "0", "?", "[rcu_gp]"},
+			{"you", "452", "0.1", "0.5", "23452", "8432", "pts/0", "-bash"},
+			{"you", "1337", "4.2", "1.2", "104320", "24512", "pts/0", "./honeybear --no-gui"},
+			{"root", "2048", "0.0", "0.2", "72432", "4124", "?", "/usr/sbin/sshd -D"},
+		}
+
+		for _, p := range processes {
+			output += fmt.Sprintf("%-8s %-5s %-5s %-5s %-8s %-8s %-5s %s\n", p.user, p.pid, p.cpu, p.mem, p.vsz, p.rss, p.tty, p.cmd)
+		}
+		return OutputMsg(output)
+	})
+	return &cmd
+}
+
+func envExec(dir *Node, params []string) *tea.Cmd {
+	cmd := tea.Cmd(func() tea.Msg {
+		envVars := []string{
+			"SHELL=/bin/bash",
+			"PWD=/home/you",
+			"LOGNAME=you",
+			"HOME=/home/you",
+			"LANG=en_US.UTF-8",
+			"USER=you",
+			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+			"AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE",
+			"AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+			"_=/usr/bin/env",
+		}
+		return OutputMsg(strings.Join(envVars, "\n"))
+	})
+	return &cmd
+}
+
+func netstatExec(dir *Node, params []string) *tea.Cmd {
+	cmd := tea.Cmd(func() tea.Msg {
+		output := "Active Internet connections (only servers)\n"
+		output += fmt.Sprintf("%-5s %-6s %-6s %-20s %-20s %-10s\n", "Proto", "Recv-Q", "Send-Q", "Local Address", "Foreign Address", "State")
+		ports := []struct {
+			proto, recv, send, local, foreign, state string
+		}{
+			{"tcp", "0", "0", "0.0.0.0:22", "0.0.0.0:*", "LISTEN"},
+			{"tcp", "0", "0", "0.0.0.0:1337", "0.0.0.0:*", "LISTEN"},
+			{"tcp", "0", "0", "127.0.0.1:3306", "0.0.0.0:*", "LISTEN"},
+			{"tcp6", "0", "0", ":::80", ":::*", "LISTEN"},
+		}
+
+		for _, p := range ports {
+			output += fmt.Sprintf("%-5s %-6s %-6s %-20s %-20s %-10s\n", p.proto, p.recv, p.send, p.local, p.foreign, p.state)
+		}
+		return OutputMsg(output)
+	})
+	return &cmd
+}

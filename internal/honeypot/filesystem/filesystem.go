@@ -113,6 +113,16 @@ func Initialize() {
 					[]byte("PRETTY_NAME=\"Hardhat Linux\"\nNAME=\"Hardhat Linux\"\nID=hardhat\nID_LIKE=debian\nVERSION_ID=\"1.0\"\nVERSION=\"1.0\"\nVERSION_CODENAME=\"fozzie\"\n"),
 					0644,
 				),
+				newFile(
+					"/etc/passwd",
+					[]byte("root:x:0:0:root:/root:/bin/bash\ndaemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin\nbin:x:2:2:bin:/bin:/usr/sbin/nologin\nsys:x:3:3:sys:/dev:/usr/sbin/nologin\nsync:x:4:65534:sync:/bin:/bin/sync\ngames:x:5:60:games:/usr/games:/usr/sbin/nologin\nman:x:6:12:man:/var/cache/man:/usr/sbin/nologin\nlp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin\nmail:x:8:8:mail:/var/mail:/usr/sbin/nologin\nnews:x:9:9:news:/var/spool/news:/usr/sbin/nologin\nuucp:x:10:10:uucp:/var/spool/uucp:/usr/sbin/nologin\nproxy:x:13:13:proxy:/bin:/usr/sbin/nologin\nwww-data:x:33:33:www-data:/var/www:/usr/sbin/nologin\nbackup:x:34:34:backup:/var/backups:/usr/sbin/nologin\nlist:x:38:38:Mailing List Manager:/var/list:/usr/sbin/nologin\nirc:x:39:39:ircd:/var/run/ircd:/usr/sbin/nologin\ngnats:x:41:41:Gnats Bug-Reporting System (admin):/var/lib/gnats:/usr/sbin/nologin\nnobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin\nsystemd-network:x:100:102:systemd Network Management,,,:/run/systemd/netif:/usr/sbin/nologin\nsystemd-resolve:x:101:103:systemd Resolver,,,:/run/systemd/resolve:/usr/sbin/nologin\nsystemd-timesync:x:102:104:systemd Time Synchronization,,,:/run/systemd/timesync:/usr/sbin/nologin\nmessagebus:x:103:106::/nonexistent:/usr/sbin/nologin\nsyslog:x:104:110::/home/syslog:/usr/sbin/nologin\n_apt:x:105:65534::/nonexistent:/usr/sbin/nologin\ntss:x:106:111:TPM software stack,,,:/var/lib/tpm:/bin/false\nuuidd:x:107:112::/run/uuidd:/usr/sbin/nologin\ntcpdump:x:108:113::/nonexistent:/usr/sbin/nologin\nyou:x:1000:1000:you,,,:/home/you:/bin/bash\nsshd:x:109:65534::/run/sshd:/usr/sbin/nologin\n"),
+					0644,
+				),
+				newFile(
+					"/etc/shadow",
+					[]byte("root:$6$nS6O/V.g$vK7D8Z5p8E6n6Z2J7/4f7E6R7v6W7k7m7z7x7c7v7b7n7m7/.1:19000:0:99999:7:::\ndaemon:*:18774:0:99999:7:::\nbin:*:18774:0:99999:7:::\nsys:*:18774:0:99999:7:::\nsync:*:18774:0:99999:7:::\ngames:*:18774:0:99999:7:::\nman:*:18774:0:99999:7:::\nlp:*:18774:0:99999:7:::\nmail:*:18774:0:99999:7:::\nnews:*:18774:0:99999:7:::\nuucp:*:18774:0:99999:7:::\nproxy:*:18774:0:99999:7:::\nwww-data:*:18774:0:99999:7:::\nbackup:*:18774:0:99999:7:::\nlist:*:18774:0:99999:7:::\nirc:*:18774:0:99999:7:::\ngnats:*:18774:0:99999:7:::\nnobody:*:18774:0:99999:7:::\nsystemd-network:*:18774:0:99999:7:::\nsystemd-resolve:*:18774:0:99999:7:::\nsystemd-timesync:*:18774:0:99999:7:::\nmessagebus:*:18774:0:99999:7:::\nsyslog:*:18774:0:99999:7:::\n_apt:*:18774:0:99999:7:::\ntss:*:18774:0:99999:7:::\nuuidd:*:18774:0:99999:7:::\ntcpdump:*:18774:0:99999:7:::\nyou:$6$vK7D8Z5p$nS6O/V.g8E6n6Z2J7/4f7E6R7v6W7k7m7z7x7c7v7b7n7m7/.1:19000:0:99999:7:::\nsshd:*:18774:0:99999:7:::\n"),
+					0600,
+				),
 			),
 			{
 				Name:      "usr",
@@ -332,6 +342,46 @@ func Initialize() {
 
 									return &cmd
 								},
+							},
+							{
+								Name:      "id",
+								Path:      "/usr/bin/id",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								HelpText:  "Usage: id [OPTION]... [USER]...\n Print user and group information for each specified USER, or (when USER omitted) for the current user.",
+								Exec:      idExec,
+							},
+							{
+								Name:      "ps",
+								Path:      "/usr/bin/ps",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								HelpText:  "Usage: ps [options]\n Report a snapshot of the current processes.",
+								Exec:      psExec,
+							},
+							{
+								Name:      "env",
+								Path:      "/usr/bin/env",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								HelpText:  "Usage: env [OPTION]... [-] [NAME=VALUE]... [COMMAND [ARG]...]\n Set each NAME to VALUE in the environment and run COMMAND.",
+								Exec:      envExec,
+							},
+							{
+								Name:      "netstat",
+								Path:      "/usr/bin/netstat",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								HelpText:  "Usage: netstat [address_family_options] [--tcp|-t] [--udp|-u] [--udplite|-U] [--sctp|-S] [--raw|-w] [--l2cap|-2] [--rfcomm|-f] [--all|-a] [--numeric|-n] [--numeric-hosts] [--numeric-ports] [--numeric-users] [--symbolic|-N] [--extend|-e[--extend|-e]] [--timers|-o] [--program|-p] [--verbose|-v] [--continuous|-c] [--wide|-W]\n netstat - Print network connections, routing tables, interface statistics, masquerade connections, and multicast memberships",
+								Exec:      netstatExec,
 							},
 							{
 								Name:      "history",
