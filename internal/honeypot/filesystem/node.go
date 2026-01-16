@@ -98,25 +98,25 @@ func RunNode(currentNode *Node, path string, params []string, user string, group
 			return nil, errors.New("not executable")
 		}
 
-		return found.Run(currentNode, params)
+		return found.Run(currentNode, params, user, group)
 	}
 
 	return nil, errors.New(fmt.Sprintf("\n%s: command not found\n", path))
 }
 
 type Node struct {
-	Name        string                         `json:"name"`
-	Path        string                         `json:"path"`
-	Directory   bool                           `json:"directory"`
-	Children    []*Node                        `json:"-"`                      // Children nodes, if applicable
-	AssetName   string                         `json:"asset_name,omitempty"`   // Only set if Directory is false
-	Content     func() []byte                  `json:"-"`                      // Function to get the content of the file, if applicable
-	ContentText string                         `json:"content_text,omitempty"` // Text content of the file, if applicable
-	Exec        func(*Node, []string) *tea.Cmd `json:"-"`                      // Function to execute the node, if applicable
-	Owner       string                         `json:"owner"`
-	Group       string                         `json:"group"`
-	Mode        int                            `json:"mode"`                // File mode (permissions)
-	HelpText    string                         `json:"help_text,omitempty"` // Help text for the node, if applicable
+	Name        string                                         `json:"name"`
+	Path        string                                         `json:"path"`
+	Directory   bool                                           `json:"directory"`
+	Children    []*Node                                        `json:"-"`                      // Children nodes, if applicable
+	AssetName   string                                         `json:"asset_name,omitempty"`   // Only set if Directory is false
+	Content     func() []byte                                  `json:"-"`                      // Function to get the content of the file, if applicable
+	ContentText string                                         `json:"content_text,omitempty"` // Text content of the file, if applicable
+	Exec        func(*Node, []string, string, string) *tea.Cmd `json:"-"`                      // Function to execute the node, if applicable
+	Owner       string                                         `json:"owner"`
+	Group       string                                         `json:"group"`
+	Mode        int                                            `json:"mode"`                // File mode (permissions)
+	HelpText    string                                         `json:"help_text,omitempty"` // Help text for the node, if applicable
 }
 
 func (n *Node) IsDirectory() bool {
@@ -210,7 +210,7 @@ func (n *Node) Open() ([]byte, error) {
 	return nil, errors.New("not a file")
 }
 
-func (n *Node) Run(currentDir *Node, params []string) (*tea.Cmd, error) {
+func (n *Node) Run(currentDir *Node, params []string, user string, group string) (*tea.Cmd, error) {
 	if len(params) > 0 && (slices.Contains(params, "-h") || slices.Contains(params, "--help")) {
 		if n.HelpText == "" {
 			return nil, errors.New("no help text")
@@ -224,7 +224,7 @@ func (n *Node) Run(currentDir *Node, params []string) (*tea.Cmd, error) {
 	}
 
 	if n.Exec != nil {
-		return n.Exec(currentDir, params), nil
+		return n.Exec(currentDir, params, user, group), nil
 	}
 
 	return nil, errors.New("not executable")

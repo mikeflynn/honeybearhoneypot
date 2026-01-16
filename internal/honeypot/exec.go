@@ -57,12 +57,6 @@ func handleExec(s ssh.Session, cmd []string) {
 		case "exit":
 			s.Exit(0)
 			return
-		case "whoami":
-			fmt.Fprintf(s, "%s\n", user)
-		case "sudo":
-			if len(parts) > 1 {
-				runCommand(s, currentDir, parts[1], parts[2:], "root", "root")
-			}
 		default:
 			runCommand(s, currentDir, parts[0], parts[1:], user, "default")
 		}
