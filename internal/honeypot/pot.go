@@ -257,14 +257,19 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	})
 
 	textinput := textinput.New()
-	textinput.Placeholder = "Enter your command."
+	textinput.Placeholder = ""
 	textinput.Focus()
 	textinput.CharLimit = 200
 	textinput.Width = 50
-	textinput.Prompt = "$ "
+	textinput.Prompt = "you@hbhphh.hhb.com $ "
 	textinput.Cursor.Style = txtStyle.Background(lipgloss.Color("10"))
 	textinput.PromptStyle = txtStyle
 	textinput.TextStyle = txtStyle
+
+	initialOutput := ""
+	if out, err := embedded.Files.ReadFile("initial-output.txt"); err == nil {
+		initialOutput = string(out)
+	}
 
 	filesystem.Initialize()
 
@@ -289,7 +294,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		confetti:   confetti.InitialModel(),
 		matrix:     matrix.InitialModel(pty.Window.Width, pty.Window.Height),
 		ctf:        ctf.InitialModel(convertTasks(config.Active.Tasks)),
-		output:     "",
+		output:     initialOutput,
 		helpText:   "Type 'help' to see some commands; Use up/down for history.",
 		historyIdx: 0,
 		history:    []string{},

@@ -1,0 +1,20 @@
+Welcome to Hardhat Linux 18.2 LTS (GNU/Linux 6.22.0-81-generic x86_64)
+ * Documentation:  https://honeybear.hydrox.fun
+ * Management:     https://hardhat.rocks
+ * Support:        https://honeybear.hydrox.fun
+
+ System information as of Sun Jan 18 10:34:34 PM UTC 2026
+
+  System load:           0.3
+  Usage of /:            49.4% of 48.64GB
+  Memory usage:          39%
+  Swap usage:            83%
+  Processes:             144
+  Users logged in:       0
+
+██╗  ██╗██╗  ██╗██████╗
+██║  ██║██║  ██║██╔══██╗
+███████║███████║██████╔╝
+██╔══██║██╔══██║██╔══██╗
+██║  ██║██║  ██║██████╔╝
+╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝

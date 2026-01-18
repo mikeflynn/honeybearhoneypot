@@ -75,7 +75,7 @@ func neofetchExec(dir *Node, params []string, user, group string) *tea.Cmd {
 			val string
 		}{
 			{"OS", "Hardhat Linux"},
-			{"Host", "HoneyBear (1.0)"},
+			{"Host", "HoneyBear (18.2)"},
 			{"Kernel", "6.22.0-81-generic"},
 			{"Uptime", "10 days, 23 hours, 21 mins"},
 			{"Packages", "1337 (dpkg)"},
