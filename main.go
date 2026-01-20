@@ -54,7 +54,9 @@ func main() {
 	honeypot.SetPort(primaryPort)
 	host := cfg.Tunnel
 	key := cfg.TunnelKey
-	honeypot.SetTunnel(&host, &key)
+	bind := cfg.TunnelBind
+	remotePort := cfg.TunnelRemotePort
+	honeypot.SetTunnel(&host, &key, &bind, &remotePort)
 	honeypot.AddListeners(additionalListeners...)
 
 	if !cfg.NoGUI {

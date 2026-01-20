@@ -1,12 +1,15 @@
 package honeypot
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -108,7 +111,7 @@ func AddListeners(additionalListeners ...*net.Listener) error {
 	return nil
 }
 
-func SetTunnel(host *string, keyPath *string) error {
+func SetTunnel(host *string, keyPath *string, bindAddr *string, remotePort *string) error {
 	if host == nil || *host == "" || keyPath == nil || *keyPath == "" {
 		// Flags not set, tunnel not needed.
 		return nil
@@ -133,7 +136,104 @@ func SetTunnel(host *string, keyPath *string) error {
 
 	tunnelKey = *keyPath
 
+	if bindAddr != nil && *bindAddr != "" {
+		tunnelRemoteBind = *bindAddr
+	}
+
+	if remotePort != nil && *remotePort != "" {
+		tunnelRemoteForwardPort = *remotePort
+	}
+
 	return nil
+}
+
+func withProxyProtocol() ssh.Option {
+	return ssh.WrapConn(func(ctx ssh.Context, conn net.Conn) net.Conn {
+		// Set short deadline to peek for PROXY header
+		conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+
+		header := make([]byte, 6)
+		n, err := io.ReadFull(conn, header)
+
+		// Reset deadline
+		conn.SetReadDeadline(time.Time{})
+
+		if err != nil {
+			// If timeout, it means client sent nothing (waiting for banner).
+			// So it's not PROXY protocol (which sends immediately).
+			if n > 0 {
+				return &proxyConn{
+					Conn:   conn,
+					reader: io.MultiReader(bytes.NewReader(header[:n]), conn),
+				}
+			}
+			return conn
+		}
+
+		prefix := string(header)
+		if prefix == "PROXY " {
+			// Read the rest of the line
+			lineBuf := []byte(prefix)
+			byteBuf := make([]byte, 1)
+			for {
+				_, err := conn.Read(byteBuf)
+				if err != nil {
+					break
+				}
+				lineBuf = append(lineBuf, byteBuf[0])
+				if byteBuf[0] == '\n' {
+					break
+				}
+				if len(lineBuf) > 107 { // Max header length per spec
+					break
+				}
+			}
+
+			// Parse lineBuf
+			// "PROXY TCP4 1.2.3.4 5.6.7.8 1234 5678\r\n"
+			parts := strings.Split(strings.TrimSpace(string(lineBuf)), " ")
+			if len(parts) >= 6 {
+				srcIP := parts[2]
+				srcPort := parts[4]
+				if port, err := strconv.Atoi(srcPort); err == nil {
+					newAddr := &net.TCPAddr{
+						IP:   net.ParseIP(srcIP),
+						Port: port,
+					}
+					return &proxyConn{
+						Conn:   conn,
+						reader: conn, // The header is consumed.
+						remote: newAddr,
+					}
+				}
+			}
+			// If parse fails, return conn (header consumed, might fail SSH but we tried)
+			return conn
+		}
+
+		// Not PROXY header (e.g. "SSH-2.").
+		return &proxyConn{
+			Conn:   conn,
+			reader: io.MultiReader(bytes.NewReader(header), conn),
+		}
+	})
+}
+
+type proxyConn struct {
+	net.Conn
+	reader io.Reader
+	remote net.Addr
+}
+
+func (c *proxyConn) Read(p []byte) (n int, err error) {
+	return c.reader.Read(p)
+}
+
+func (c *proxyConn) RemoteAddr() net.Addr {
+	if c.remote != nil {
+		return c.remote
+	}
+	return c.Conn.RemoteAddr()
 }
 
 func StartHoneyPot(appConfigDir string) {
@@ -148,6 +248,7 @@ func StartHoneyPot(appConfigDir string) {
 
 	s, err := wish.NewServer(
 		wish.WithAddress(net.JoinHostPort(host, potPort)),
+		withProxyProtocol(),
 		wish.WithHostKeyPath(appConfigDir+"/.ssh/id_ed25519"),
 		wish.WithPasswordAuth(func(ctx ssh.Context, password string) bool {
 			if activeUsersLen()+1 > maxUsers {

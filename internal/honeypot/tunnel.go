@@ -1,10 +1,12 @@
 package honeypot
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/log"
@@ -128,7 +130,7 @@ func acceptLoop(listener net.Listener, localServiceAddr string) {
 			// Exit the loop so the outer function can attempt reconnection.
 			return
 		}
-		log.Debug("Accepted tunneled connection.", "from", remoteConn.RemoteAddr())
+		log.Debug("Accepted tunneled connection.", "raw_remote_addr", remoteConn.RemoteAddr().String())
 
 		// Handle the connection in a new goroutine
 		go func(tunneledConn net.Conn) {
@@ -143,10 +145,54 @@ func acceptLoop(listener net.Listener, localServiceAddr string) {
 			defer localConn.Close()
 			log.Debug("Successfully connected to local web service or tunneled connection", "addr", localServiceAddr)
 
+			// Peek to see if there is already a PROXY header (e.g. from Nginx)
+			// We need to read enough to detect "PROXY "
+			peekHeader := make([]byte, 6)
+			tunneledConn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+			n, peekErr := io.ReadFull(tunneledConn, peekHeader)
+			tunneledConn.SetReadDeadline(time.Time{}) // Reset deadline
+
+			var srcReader io.Reader
+
+			if peekErr == nil && string(peekHeader) == "PROXY " {
+				// Case 1: Upstream (Nginx) sent a PROXY header.
+				// We just pass it through.
+				log.Debug("Detected upstream PROXY header, passing through.")
+				srcReader = io.MultiReader(bytes.NewReader(peekHeader), tunneledConn)
+			} else {
+				// Case 2: No PROXY header detected (or read error/timeout).
+				// We must inject our own based on the tunnel connection's remote addr.
+
+				// Reconstruct the data we peeked (if any)
+				if n > 0 {
+					srcReader = io.MultiReader(bytes.NewReader(peekHeader[:n]), tunneledConn)
+				} else {
+					srcReader = tunneledConn
+				}
+
+				// Generate and write our own header
+				rAddr := tunneledConn.RemoteAddr()
+				lAddr := tunneledConn.LocalAddr()
+				rHost, rPort, _ := net.SplitHostPort(rAddr.String())
+				lHost, lPort, _ := net.SplitHostPort(lAddr.String())
+
+				family := "TCP4"
+				if strings.Contains(rHost, ":") {
+					family = "TCP6"
+				}
+
+				header := fmt.Sprintf("PROXY %s %s %s %s %s\r\n", family, rHost, lHost, rPort, lPort)
+				if _, err := localConn.Write([]byte(header)); err != nil {
+					log.Warn("Failed to write PROXY header", "error", err)
+					return
+				}
+				log.Debug("Injected PROXY header", "header", strings.TrimSpace(header))
+			}
+
 			// Proxy data
 			log.Debug("Proxying data between tunneled <--> local", "tunneled", tunneledConn.RemoteAddr(), "local", localConn.RemoteAddr())
 			errChan := make(chan error, 2)
-			go func() { _, err := io.Copy(localConn, tunneledConn); errChan <- err }()
+			go func() { _, err := io.Copy(localConn, srcReader); errChan <- err }()
 			go func() { _, err := io.Copy(tunneledConn, localConn); errChan <- err }()
 
 			// Wait for one side to finish/error
