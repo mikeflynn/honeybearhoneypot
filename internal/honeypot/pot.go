@@ -392,9 +392,13 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		events: map[string]time.Time{
 			"session_start": time.Now(),
 		},
-		confetti:   confetti.InitialModel(),
-		matrix:     matrix.InitialModel(pty.Window.Width, pty.Window.Height),
-		ctf:        ctf.InitialModel(convertTasks(config.Active.Tasks)),
+		confetti: confetti.InitialModel(),
+		matrix:   matrix.InitialModel(pty.Window.Width, pty.Window.Height),
+		ctf: ctf.InitialModel(
+			convertTasks(config.Active.Tasks),
+			s.Context().User(),
+			s.Context().RemoteAddr().String(),
+		),
 		output:     initialOutput,
 		helpText:   "Type 'help' to see some commands; Use up/down for history.",
 		historyIdx: 0,

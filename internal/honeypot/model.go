@@ -66,7 +66,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case filesystem.TickMsg:
 		cmds := []tea.Cmd{}
-		if time.Since(*m.EventTime("session_start")) > 45*time.Second && m.EventTime("knock") == nil {
+		if time.Since(*m.EventTime("session_start")) > 45*time.Second &&
+			m.EventTime("knock") == nil &&
+			m.runningCommand == "" &&
+			len(m.history) < 3 {
 			m.SetEventTime("knock")
 			cmds = append(
 				cmds,
@@ -122,12 +125,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.viewport.GotoTop()
 	case filesystem.SetRunningCmd:
 		m.runningCommand = string(msg)
-
-		// Clear the runningcommand after 10 seconds to avoid stuck states
-		cmds = append(cmds, tea.Cmd(func() tea.Msg {
-			time.Sleep(10 * time.Second)
-			return filesystem.SetRunningCmd("")
-		}))
 	case filesystem.OutputMsg:
 		m.output += m.outputStyle.Render("\n" + string(msg) + "\n")
 	case filesystem.ListActiveUsersMsg:
@@ -158,7 +155,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ctf.QuitMsg:
 		m.viewport.SetContent("")
 		m.runningCommand = ""
-		m.ctf = ctf.InitialModel(convertTasks(config.Active.Tasks))
+		m.ctf = ctf.InitialModel(convertTasks(config.Active.Tasks), m.user, m.host)
 		return m, nil
 	case tea.KeyMsg:
 		switch msg.String() {

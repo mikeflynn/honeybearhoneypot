@@ -387,6 +387,33 @@ func maxStringLen(s string, l int) string {
 	return s
 }
 
+func maxLineLen(s string, l int) []string {
+	if len(s) <= l {
+		return []string{s}
+	}
+
+	result := []string{}
+	currentLine := ""
+
+	for _, word := range bytes.Fields([]byte(s)) {
+		if len(currentLine)+len(word)+1 > l {
+			result = append(result, currentLine)
+			currentLine = string(word)
+		} else {
+			if currentLine != "" {
+				currentLine += " "
+			}
+			currentLine += string(word)
+		}
+	}
+
+	if currentLine != "" {
+		result = append(result, currentLine)
+	}
+
+	return result
+}
+
 type notificationQueue struct {
 	notifications []*entity.Event
 	maxLength     int
@@ -426,22 +453,37 @@ func (n *notificationQueue) Draw() []*fyne.Container {
 		bg := canvas.NewRectangle(color.RGBA{255, 255, 255, 64})
 		bg.Resize(fyne.NewSize(240, 40))
 
+		lines := []fyne.CanvasObject{}
+
 		from := canvas.NewText(maxStringLen(fmt.Sprintf("%s@%s", event.User, event.Host), 25), color.Black)
 		from.TextSize = fontSize
 		from.TextStyle = fyne.TextStyle{Bold: true}
+		lines = append(lines, from)
 
-		what := canvas.NewText(maxStringLen(fmt.Sprintf("> %s", event.Action), 25), color.Black)
-		what.TextSize = fontSize
-		what.TextStyle = fyne.TextStyle{Bold: true}
+		prompt := ">"
+		if event.Type == "taskCompleted" {
+			prompt = "🎉"
+		} else if event.Type == "login" {
+			prompt = "👤"
+		}
+
+		for _, line := range maxLineLen(fmt.Sprintf("%s %s", prompt, event.Action), 25) {
+			what := canvas.NewText(line, color.Black)
+			what.TextSize = fontSize
+			what.TextStyle = fyne.TextStyle{Bold: true}
+			lines = append(lines, what)
+		}
+
+		// Trim off lines if too many
+		if len(lines) > 4 {
+			lines = lines[:4]
+		}
 
 		containers = append(containers, container.NewStack(
 			//canvas.NewRectangle(theme.Color(theme.ColorNameOverlayBackground)),
 			bg,
 			container.NewPadded(
-				container.NewVBox(
-					from,
-					what,
-				),
+				container.NewVBox(lines...),
 			),
 		))
 	}

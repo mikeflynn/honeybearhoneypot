@@ -3,6 +3,7 @@ package ctf
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"unicode"
 
@@ -48,6 +49,9 @@ type Model struct {
 	username string
 	password string
 	user     *entity.CTFUser
+
+	sshuser string
+	sshhost string
 
 	width  int
 	height int
@@ -112,7 +116,7 @@ func wordWrap(text string, width int) string {
 	return result.String()
 }
 
-func InitialModel(tasks []Task) Model {
+func InitialModel(tasks []Task, sshuser string, sshhost string) Model {
 	ti := textinput.New()
 	ti.Prompt = "Username: "
 	//ti.Placeholder = ""
@@ -146,6 +150,8 @@ func InitialModel(tasks []Task) Model {
 		width:         0,
 		height:        0,
 		cursor:        0,
+		sshuser:       sshuser,
+		sshhost:       sshhost,
 	}
 }
 
@@ -288,8 +294,24 @@ func (m Model) updateAnswer(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.errMsg = err.Error()
 				} else {
 					m.errMsg = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true).Render(
-						fmt.Sprintf("🎉 Correct! +%d points! 🎉", m.selectedTask.Points))
+						fmt.Sprintf("🎉 Correct! +%d points! 🎉", m.selectedTask.Points),
+					)
 					m.selectedTask.Completed = true
+
+					// Create a GUI notification for task completion
+					go func(taskName string, points int) {
+						event := &entity.Event{
+							User:      m.sshuser,
+							Host:      m.sshhost,
+							App:       "ctf",
+							Source:    entity.EventSourceUser,
+							Type:      "taskCompleted",
+							Action:    fmt.Sprintf("Completed CTF task: %s (+%d pts)", taskName, points),
+							Timestamp: time.Now(),
+						}
+						event.Publish()
+						event.Save()
+					}(m.selectedTask.Name, m.selectedTask.Points)
 				}
 				m.state = stateMenu
 				return m, nil
