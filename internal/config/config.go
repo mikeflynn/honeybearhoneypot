@@ -20,6 +20,8 @@ type Config struct {
 	SSHPorts   []string          `json:"ssh_ports,omitempty"`
 	Tunnel     string            `json:"tunnel,omitempty"`
 	TunnelKey  string            `json:"tunnel_key,omitempty"`
+	TunnelBind string            `json:"tunnel_bind,omitempty"`
+	TunnelRemotePort string      `json:"tunnel_remote_port,omitempty"`
 	NoGUI      bool              `json:"no_gui,omitempty"`
 	FullScreen bool              `json:"full_screen,omitempty"`
 	Width      int               `json:"width,omitempty"`
@@ -41,6 +43,8 @@ var (
 	pinResetFlag  = flag.String("pin-reset", "", "Reset the admin PIN to a specific value")
 	tunnelHost    = flag.String("tunnel", "", "The user and host to connect to via SSH. Ex: user@server.com:22")
 	tunnelKeyFlag = flag.String("tunnel-key", "", "The SSH key to use to connect to the specified remote host.")
+	tunnelBindFlag = flag.String("tunnel-bind", "127.0.0.1", "The address to bind to on the remote server.")
+	tunnelRemotePortFlag = flag.String("tunnel-remote-port", "8022", "The port to forward on the remote server.")
 )
 
 // Active holds the configuration loaded via Parse so it can be referenced by
@@ -49,8 +53,10 @@ var Active *Config
 
 // Default contains the base configuration values used when no CLI flags or config file options are provided.
 var Default = Config{
-	SSHPorts: []string{"1337"},
-	LogLevel: "info",
+	SSHPorts:         []string{"1337"},
+	LogLevel:         "info",
+	TunnelBind:       "127.0.0.1",
+	TunnelRemotePort: "8022",
 }
 
 func Load(path string) (*Config, error) {
@@ -89,6 +95,12 @@ func Parse() (*Config, string, error) {
 	if *tunnelKeyFlag != "" {
 		cfg.TunnelKey = *tunnelKeyFlag
 	}
+	if *tunnelBindFlag != "" && *tunnelBindFlag != "127.0.0.1" {
+		cfg.TunnelBind = *tunnelBindFlag
+	}
+	if *tunnelRemotePortFlag != "" && *tunnelRemotePortFlag != "8022" {
+		cfg.TunnelRemotePort = *tunnelRemotePortFlag
+	}
 	if *noGuiFlag {
 		cfg.NoGUI = true
 	}
@@ -122,6 +134,12 @@ func merge(dst *Config, src *Config) {
 	}
 	if src.TunnelKey != "" {
 		dst.TunnelKey = src.TunnelKey
+	}
+	if src.TunnelBind != "" {
+		dst.TunnelBind = src.TunnelBind
+	}
+	if src.TunnelRemotePort != "" {
+		dst.TunnelRemotePort = src.TunnelRemotePort
 	}
 	if src.NoGUI {
 		dst.NoGUI = true
