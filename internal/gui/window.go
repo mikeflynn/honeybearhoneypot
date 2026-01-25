@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	version       = "v1.0.1"
+	version       = "v1.3.2"
 	defaultWidth  = 800
 	defaultHeight = 480
 )
@@ -126,7 +126,7 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 		dataOverlays,
 		container.NewPadded(
 			container.NewHBox(
-				notifications,
+				container.NewVScroll(notifications),
 				layout.NewSpacer(),
 			),
 		),
@@ -450,12 +450,13 @@ func (n *notificationQueue) Draw() []*fyne.Container {
 
 		fontSize := float32(18)
 
-		bg := canvas.NewRectangle(color.RGBA{255, 255, 255, 64})
+		bg := canvas.NewRectangle(color.RGBA{0, 0, 0, 95})
 		bg.Resize(fyne.NewSize(240, 40))
+		bg.CornerRadius = 10
 
 		lines := []fyne.CanvasObject{}
 
-		from := canvas.NewText(maxStringLen(fmt.Sprintf("%s@%s", event.User, event.Host), 25), color.Black)
+		from := canvas.NewText(maxStringLen(fmt.Sprintf("%s@%s", event.User, event.Host), 25), color.White)
 		from.TextSize = fontSize
 		from.TextStyle = fyne.TextStyle{Bold: true}
 		lines = append(lines, from)
@@ -468,7 +469,7 @@ func (n *notificationQueue) Draw() []*fyne.Container {
 		}
 
 		for _, line := range maxLineLen(fmt.Sprintf("%s %s", prompt, event.Action), 25) {
-			what := canvas.NewText(line, color.Black)
+			what := canvas.NewText(line, color.White)
 			what.TextSize = fontSize
 			what.TextStyle = fyne.TextStyle{Bold: true}
 			lines = append(lines, what)
