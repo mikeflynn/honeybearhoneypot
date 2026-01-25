@@ -121,7 +121,7 @@ func handleTeaMsg(s ssh.Session, msg tea.Msg) {
 
 func logEvent(user, host, eventType, action string) {
 	source := entity.EventSourceSystem
-	if eventType == "typed" { // Assume 'typed' is user event
+	if eventType == "typed" || eventType == "login" { // Assume 'typed' and 'login' are user events
 		source = entity.EventSourceUser
 	}
 

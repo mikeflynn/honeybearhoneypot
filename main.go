@@ -100,6 +100,7 @@ func setup() string {
 		entity.OptionInitialization(),
 		entity.CTFUserInit,
 		entity.CTFUserTaskInit,
+		entity.MigrationFixExecLoginSource,
 	)
 
 	return appConfigDir
