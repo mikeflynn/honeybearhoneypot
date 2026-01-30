@@ -219,8 +219,8 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 
 			fyne.Do(func() {
 				// Update the current user count
-				statCurrentUsers.Text = fmt.Sprintf("%04d", honeypot.StatActiveUsers())
-				statTotalUsers.Text = fmt.Sprintf("%04d", honeypot.StatUsersAllTime())
+				statCurrentUsers.Text = fmt.Sprintf("%05d", honeypot.StatActiveUsers())
+				statTotalUsers.Text = fmt.Sprintf("%05d", honeypot.StatUsersAllTime())
 
 				status.Objects = []fyne.CanvasObject{
 					textLabel("NOW", 12),
