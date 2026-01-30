@@ -383,6 +383,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		profile:       renderer.ColorProfile().Name(),
 		width:         pty.Window.Width,
 		height:        pty.Window.Height,
+		renderer:      renderer,
 		txtStyle:      txtStyle,
 		quitStyle:     quitStyle,
 		outputStyle:   outputStyle,
@@ -392,9 +393,10 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		events: map[string]time.Time{
 			"session_start": time.Now(),
 		},
-		confetti: confetti.InitialModel(),
-		matrix:   matrix.InitialModel(pty.Window.Width, pty.Window.Height),
+		confetti: confetti.InitialModel(renderer),
+		matrix:   matrix.InitialModel(renderer, pty.Window.Width, pty.Window.Height),
 		ctf: ctf.InitialModel(
+			renderer,
 			convertTasks(config.Active.Tasks),
 			s.Context().User(),
 			s.Context().RemoteAddr().String(),

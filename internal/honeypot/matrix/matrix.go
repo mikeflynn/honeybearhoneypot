@@ -36,11 +36,12 @@ func Start() tea.Msg {
 	return MatrixTick{}
 }
 
-func InitialModel(width int, height int) Matrix {
+func InitialModel(renderer *lipgloss.Renderer, width int, height int) Matrix {
 	m := Matrix{
-		Speed:  time.Millisecond * 100,
-		Width:  width,
-		Height: height,
+		Speed:    time.Millisecond * 100,
+		Width:    width,
+		Height:   height,
+		renderer: renderer,
 	}
 
 	return m.initSymbols()
@@ -60,8 +61,9 @@ type Matrix struct {
 	Width  int
 	Height int
 
-	symbols [][]string
-	colors  [][]int
+	renderer *lipgloss.Renderer
+	symbols  [][]string
+	colors   [][]int
 }
 
 func (m Matrix) Init() tea.Cmd {
@@ -91,7 +93,7 @@ func (m Matrix) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Matrix) View() string {
 	nRow := m.Height
 	nColumn := m.Width / 2
-	style := lipgloss.NewStyle().Background(matrixBg)
+	style := m.renderer.NewStyle().Background(matrixBg)
 
 	var sb strings.Builder
 	for row := 0; row < nRow; row++ {
