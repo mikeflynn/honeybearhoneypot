@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	version       = "v1.3.2"
+	version       = "v1.3.3"
 	defaultWidth  = 800
 	defaultHeight = 480
 )
