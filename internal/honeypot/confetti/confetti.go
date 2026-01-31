@@ -39,10 +39,11 @@ func animate() tea.Cmd {
 
 // Confetti model
 type Model struct {
-	system *simulation.System
+	system   *simulation.System
+	renderer *lipgloss.Renderer
 }
 
-func Spawn(width, height int) []*simulation.Particle {
+func Spawn(renderer *lipgloss.Renderer, width, height int) []*simulation.Particle {
 	particles := []*simulation.Particle{}
 	for i := 0; i < numParticles; i++ {
 		x := float64(width / 2)
@@ -55,7 +56,7 @@ func Spawn(width, height int) []*simulation.Particle {
 				harmonica.Vector{X: (rand.Float64() - 0.5) * 100, Y: rand.Float64() * 50, Z: 0},
 				harmonica.TerminalGravity,
 			),
-			Char: lipgloss.NewStyle().
+			Char: renderer.NewStyle().
 				Foreground(lipgloss.Color(arraySample(colors))).
 				Render(arraySample(characters)),
 		}
@@ -65,11 +66,14 @@ func Spawn(width, height int) []*simulation.Particle {
 	return particles
 }
 
-func InitialModel() Model {
-	return Model{system: &simulation.System{
-		Particles: []*simulation.Particle{},
-		Frame:     simulation.Frame{},
-	}}
+func InitialModel(renderer *lipgloss.Renderer) Model {
+	return Model{
+		system: &simulation.System{
+			Particles: []*simulation.Particle{},
+			Frame:     simulation.Frame{},
+		},
+		renderer: renderer,
+	}
 }
 
 // Init initializes the confetti after a small delay
@@ -82,7 +86,7 @@ func (m Model) Init() tea.Cmd {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		m.system.Particles = append(m.system.Particles, Spawn(m.system.Frame.Width, m.system.Frame.Height)...)
+		m.system.Particles = append(m.system.Particles, Spawn(m.renderer, m.system.Frame.Width, m.system.Frame.Height)...)
 
 		return m, nil
 	case frameMsg:
@@ -90,16 +94,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, animate()
 	case burstMsg:
 		if len(m.system.Particles) == 0 {
-			m.system.Particles = Spawn(m.system.Frame.Width, m.system.Frame.Height)
+			m.system.Particles = Spawn(m.renderer, m.system.Frame.Width, m.system.Frame.Height)
 		} else {
-			m.system.Particles = append(m.system.Particles, Spawn(m.system.Frame.Width, m.system.Frame.Height)...)
+			m.system.Particles = append(m.system.Particles, Spawn(m.renderer, m.system.Frame.Width, m.system.Frame.Height)...)
 		}
 
 		return m, animate()
 	case tea.WindowSizeMsg:
 		if m.system.Frame.Width == 0 && m.system.Frame.Height == 0 {
 			// For the first frameMsg spawn a system of particles
-			m.system.Particles = Spawn(msg.Width, msg.Height)
+			m.system.Particles = Spawn(m.renderer, msg.Width, msg.Height)
 		}
 		m.system.Frame.Width = msg.Width
 		m.system.Frame.Height = msg.Height

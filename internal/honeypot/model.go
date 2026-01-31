@@ -31,6 +31,7 @@ type model struct {
 	runningCommand string
 	currentDir     *filesystem.Node
 	// Styles
+	renderer     *lipgloss.Renderer
 	txtStyle     lipgloss.Style
 	quitStyle    lipgloss.Style
 	historyStyle lipgloss.Style
@@ -155,7 +156,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ctf.QuitMsg:
 		m.viewport.SetContent("")
 		m.runningCommand = ""
-		m.ctf = ctf.InitialModel(convertTasks(config.Active.Tasks), m.user, m.host)
+		m.ctf = ctf.InitialModel(m.renderer, convertTasks(config.Active.Tasks), m.user, m.host)
 		return m, nil
 	case tea.KeyMsg:
 		switch msg.String() {
