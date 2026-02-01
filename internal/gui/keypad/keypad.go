@@ -18,8 +18,15 @@ var (
 	typed         string
 )
 
-func Keypad(successFunc func(val string), cancelFunc func(), hideTyped bool) *fyne.Container {
-	defaultLabel := ""
+func Keypad(successFunc func(val string), cancelFunc func(), hideTyped bool, initialValue string) *fyne.Container {
+	typed = initialValue
+	defaultLabel := initialValue
+	if hideTyped {
+		defaultLabel = ""
+		for range initialValue {
+			defaultLabel += "*"
+		}
+	}
 
 	selectedLabel = canvas.NewText(defaultLabel, theme.Color(theme.ColorNameForeground))
 	selectedLabel.Alignment = fyne.TextAlignCenter
