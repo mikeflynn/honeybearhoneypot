@@ -143,7 +143,7 @@ $ fyne build
 If you would like to cross-compile a binary, you will need the [fyne-cross](https://github.com/fyne-io/fyne-cross) application and Docker to cross compile the application for different platforms.
 
 ```bash
-$ go install github.com/fyne-io/fyne-cross/cmd/fyne-cross@latest
+$ go install github.com/fyne-io/fyne-cross@latest
 $ fyne-cross linux
 ```
 
