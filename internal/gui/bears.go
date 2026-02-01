@@ -1,10 +1,12 @@
 package gui
 
 import (
+	"bytes"
 	"math/rand"
 	"slices"
 	"time"
 
+	"fyne.io/fyne/v2/canvas"
 	"github.com/charmbracelet/log"
 	"github.com/mikeflynn/honeybearhoneypot/internal/gui/assets"
 )
@@ -47,10 +49,28 @@ type Bear struct {
 	Category    string
 	SubCategory string
 	SkipFrames  int
+	cache       *canvas.Image
 }
 
-func (b Bear) FileData() ([]byte, error) {
+func (b *Bear) FileData() ([]byte, error) {
 	return assets.Images.ReadFile(b.File)
+}
+
+func (b *Bear) GetImage() *canvas.Image {
+	if b.cache != nil {
+		return b.cache
+	}
+
+	data, err := b.FileData()
+	if err != nil {
+		return nil
+	}
+
+	image := canvas.NewImageFromReader(bytes.NewReader(data), b.Name)
+	image.FillMode = canvas.ImageFillStretch
+	b.cache = image
+
+	return image
 }
 
 type Bears []Bear

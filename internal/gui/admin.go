@@ -244,8 +244,13 @@ func adminSystemTab() *fyne.Container {
 }
 
 func adminStatsTab() *fyne.Container {
-	userCounts, err := entity.EventCountQuery(
-		`SELECT
+	content := container.NewVBox(
+		widget.NewLabel("Loading stats..."),
+	)
+
+	go func() {
+		userCounts, err := entity.EventCountQuery(
+			`SELECT
 			"1D" AS duration,
 			COUNT(*) AS total
 		FROM events
@@ -260,30 +265,37 @@ func adminStatsTab() *fyne.Container {
 		WHERE
 			events.type = "login"
 			AND events.timestamp >= datetime('now','-7 days')`,
-	)
-	if err != nil {
-		log.Error("Error querying user counts", err)
-	}
+		)
+		if err != nil {
+			log.Error("Error querying user counts", err)
+			fyne.Do(func() {
+				content.Objects = []fyne.CanvasObject{widget.NewLabel("Error loading stats")}
+				content.Refresh()
+			})
+			return
+		}
 
-	userCountsLabels := []fyne.CanvasObject{
-		widget.NewLabelWithStyle("Users:", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
-	}
+		userCountsLabels := []fyne.CanvasObject{
+			widget.NewLabelWithStyle("Users:", fyne.TextAlignLeading, fyne.TextStyle{Bold: true}),
+		}
 
-	for _, e := range userCounts {
-		userCountsLabels = append(userCountsLabels, widget.NewLabelWithStyle(fmt.Sprintf("%d (%s)", e.Count, e.Value), fyne.TextAlignCenter, fyne.TextStyle{Monospace: true}))
-	}
+		for _, e := range userCounts {
+			userCountsLabels = append(userCountsLabels, widget.NewLabelWithStyle(fmt.Sprintf("%d (%s)", e.Count, e.Value), fyne.TextAlignCenter, fyne.TextStyle{Monospace: true}))
+		}
 
-	return container.NewVBox(
-		container.NewGridWithRows(3,
-			container.NewGridWithColumns(3,
-				userCountsLabels...,
-			),
-			container.NewGridWithColumns(2,
-				widget.NewButtonWithIcon("Rare Commands", theme.ContentPasteIcon(), func() {
-					var sp *widget.PopUp
+		fyne.Do(func() {
+			content.Objects = []fyne.CanvasObject{
+				container.NewGridWithRows(3,
+					container.NewGridWithColumns(3,
+						userCountsLabels...,
+					),
+					container.NewGridWithColumns(2,
+						widget.NewButtonWithIcon("Rare Commands", theme.ContentPasteIcon(), func() {
+							go func() {
+								var sp *widget.PopUp
 
-					topCommands, err := entity.EventCountQuery(
-						`SELECT
+								topCommands, err := entity.EventCountQuery(
+									`SELECT
 							action,
 							count(*) AS total
 						FROM events
@@ -292,60 +304,68 @@ func adminStatsTab() *fyne.Container {
 						GROUP BY events.action
 						ORDER by count(*) ASC, length(action) DESC
 						LIMIT 25`,
-						"typed",
-					)
-					if err != nil {
-						log.Error("Error querying rare commands", err)
-						return
-					}
+									"typed",
+								)
+								if err != nil {
+									log.Error("Error querying rare commands", err)
+									return
+								}
 
-					data := []string{}
-					for _, e := range topCommands {
-						data = append(data, e.Value)
-					}
+								data := []string{}
+								for _, e := range topCommands {
+									data = append(data, e.Value)
+								}
 
-					sp = adminListModal("Rare Commands", data, func() {
-						sp.Hide()
-					})
-					sp.Resize(fyne.NewSize(700, 400))
-					sp.Show()
-				}),
-				widget.NewButtonWithIcon("Recent", theme.HistoryIcon(), func() {
-					var sp *widget.PopUp
+								fyne.Do(func() {
+									sp = adminListModal("Rare Commands", data, func() {
+										sp.Hide()
+									})
+									sp.Resize(fyne.NewSize(700, 400))
+									sp.Show()
+								})
+							}()
+						}),
+						widget.NewButtonWithIcon("Recent", theme.HistoryIcon(), func() {
+							go func() {
+								var sp *widget.PopUp
 
-					topCommands, err := entity.EventQuery(
-						`SELECT *
+								topCommands, err := entity.EventQuery(
+									`SELECT *
 						 FROM events
 						 WHERE app = "ssh"
 						 ORDER by timestamp DESC
 						 LIMIT 100`,
-						"typed",
-					)
-					if err != nil {
-						log.Error("Error querying top commands", err)
-						return
-					}
+									"typed",
+								)
+								if err != nil {
+									log.Error("Error querying top commands", err)
+									return
+								}
 
-					data := []string{}
-					tz, _ := time.LoadLocation("America/Los_Angeles")
+								data := []string{}
+								tz, _ := time.LoadLocation("America/Los_Angeles")
 
-					for _, e := range topCommands {
-						data = append(data, fmt.Sprintf("%s (%s) > %s", e.User, e.Timestamp.In(tz).Format(time.Kitchen), e.Action))
-					}
+								for _, e := range topCommands {
+									data = append(data, fmt.Sprintf("%s (%s) > %s", e.User, e.Timestamp.In(tz).Format(time.Kitchen), e.Action))
+								}
 
-					sp = adminListModal("Recent Events", data, func() {
-						sp.Hide()
-					})
-					sp.Resize(fyne.NewSize(700, 400))
-					sp.Show()
-				}),
-			),
-			container.NewGridWithColumns(2,
-				widget.NewButtonWithIcon("Top Commands", theme.ListIcon(), func() {
-					var sp *widget.PopUp
+								fyne.Do(func() {
+									sp = adminListModal("Recent Events", data, func() {
+										sp.Hide()
+									})
+									sp.Resize(fyne.NewSize(700, 400))
+									sp.Show()
+								})
+							}()
+						}),
+					),
+					container.NewGridWithColumns(2,
+						widget.NewButtonWithIcon("Top Commands", theme.ListIcon(), func() {
+							go func() {
+								var sp *widget.PopUp
 
-					topCommands, err := entity.EventCountQuery(
-						`SELECT
+								topCommands, err := entity.EventCountQuery(
+									`SELECT
 							action,
 							count(*) AS total
 						FROM events
@@ -354,29 +374,33 @@ func adminStatsTab() *fyne.Container {
 						GROUP BY events.action
 						ORDER by count(*) DESC
 						LIMIT 25`,
-						"typed",
-					)
-					if err != nil {
-						log.Error("Error querying top commands", err)
-						return
-					}
+									"typed",
+								)
+								if err != nil {
+									log.Error("Error querying top commands", err)
+									return
+								}
 
-					data := []string{}
-					for _, e := range topCommands {
-						data = append(data, e.Value)
-					}
+								data := []string{}
+								for _, e := range topCommands {
+									data = append(data, e.Value)
+								}
 
-					sp = adminListModal("Top Commands", data, func() {
-						sp.Hide()
-					})
-					sp.Resize(fyne.NewSize(700, 400))
-					sp.Show()
-				}),
-				widget.NewButtonWithIcon("Top Users", theme.ListIcon(), func() {
-					var sp *widget.PopUp
+								fyne.Do(func() {
+									sp = adminListModal("Top Commands", data, func() {
+										sp.Hide()
+									})
+									sp.Resize(fyne.NewSize(700, 400))
+									sp.Show()
+								})
+							}()
+						}),
+						widget.NewButtonWithIcon("Top Users", theme.ListIcon(), func() {
+							go func() {
+								var sp *widget.PopUp
 
-					topCommands, err := entity.EventCountQuery(
-						`SELECT
+								topCommands, err := entity.EventCountQuery(
+									`SELECT
 							events.user,
 							count(*) AS total
 						FROM events
@@ -385,27 +409,35 @@ func adminStatsTab() *fyne.Container {
 						GROUP BY events.user
 						ORDER by count(*) DESC
 						LIMIT 25`,
-						"typed",
-					)
-					if err != nil {
-						log.Error("Error querying top users", err)
-						return
-					}
+									"typed",
+								)
+								if err != nil {
+									log.Error("Error querying top users", err)
+									return
+								}
 
-					data := []string{}
-					for _, e := range topCommands {
-						data = append(data, fmt.Sprintf("%s (%d)", e.Value, e.Count))
-					}
+								data := []string{}
+								for _, e := range topCommands {
+									data = append(data, fmt.Sprintf("%s (%d)", e.Value, e.Count))
+								}
 
-					sp = adminListModal("Top Users", data, func() {
-						sp.Hide()
-					})
-					sp.Resize(fyne.NewSize(700, 400))
-					sp.Show()
-				}),
-			),
-		),
-	)
+								fyne.Do(func() {
+									sp = adminListModal("Top Users", data, func() {
+										sp.Hide()
+									})
+									sp.Resize(fyne.NewSize(700, 400))
+									sp.Show()
+								})
+							}()
+						}),
+					),
+				),
+			}
+			content.Refresh()
+		})
+	}()
+
+	return content
 }
 
 func adminListModal(title string, rows []string, closeFn func()) *widget.PopUp {

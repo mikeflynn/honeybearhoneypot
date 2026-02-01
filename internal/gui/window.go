@@ -67,7 +67,7 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 	buttonNose.Importance = widget.LowImportance
 
 	background := container.NewStack(
-		showBear(*currentBear),
+		showBear(currentBear),
 		container.New(
 			layout.NewGridLayoutWithColumns(3),
 			layout.NewSpacer(),
@@ -246,7 +246,7 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 				notifications.Refresh()
 
 				// Update the bear
-				background.Objects[0] = showBear(*newBear)
+				background.Objects[0] = showBear(newBear)
 				background.Refresh()
 			})
 
@@ -280,14 +280,16 @@ func separator() *canvas.Rectangle {
 	return sep
 }
 
-func showBear(bear Bear) *canvas.Image {
-	fileData, err := bear.FileData()
-	if err != nil {
+func showBear(bear *Bear) *canvas.Image {
+	if bear == nil {
 		return nil
 	}
 
-	image := canvas.NewImageFromReader(bytes.NewReader(fileData), bear.Name)
-	image.FillMode = canvas.ImageFillStretch
+	image := bear.GetImage()
+	if image == nil {
+		return nil
+	}
+
 	image.SetMinSize(fyne.NewSize(width, height))
 	image.Move(fyne.NewPos(0, 0))
 
