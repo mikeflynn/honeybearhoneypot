@@ -14,7 +14,7 @@ var (
 )
 
 func Keypad(successFunc func(val string), cancelFunc func(), hideTyped bool, initialValue string) *fyne.Container {
-	typed = initialValue
+	typed := initialValue
 	defaultLabel := initialValue
 	if hideTyped {
 		defaultLabel = ""
