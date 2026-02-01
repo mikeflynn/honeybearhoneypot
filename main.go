@@ -39,11 +39,11 @@ func main() {
 	if cfg.RateLimitMax != 0 {
 		entity.OptionSet(entity.KeyRateLimitMax, strconv.Itoa(cfg.RateLimitMax))
 	}
-	if cfg.RateLimitWindow != "" {
-		entity.OptionSet(entity.KeyRateLimitWindow, cfg.RateLimitWindow)
+	if cfg.RateLimitWindow != 0 {
+		entity.OptionSet(entity.KeyRateLimitWindow, strconv.Itoa(cfg.RateLimitWindow))
 	}
-	if cfg.RateLimitBan != "" {
-		entity.OptionSet(entity.KeyRateLimitBan, cfg.RateLimitBan)
+	if cfg.RateLimitBan != 0 {
+		entity.OptionSet(entity.KeyRateLimitBan, strconv.Itoa(cfg.RateLimitBan))
 	}
 
 	var primaryPort string

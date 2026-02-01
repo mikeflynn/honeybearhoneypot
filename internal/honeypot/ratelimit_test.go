@@ -10,9 +10,9 @@ import (
 func TestRateLimiter(t *testing.T) {
 	// Mock config
 	config.Active = &config.Config{
-		RateLimitWindow: "1s",
+		RateLimitWindow: 1,
 		RateLimitMax:    2,
-		RateLimitBan:    "2s",
+		RateLimitBan:    2,
 	}
 
 	// Just directly create a limiter for testing to avoid global state mess if possible,

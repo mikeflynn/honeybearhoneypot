@@ -42,32 +42,20 @@ func (r *RateLimiter) Reload() {
 
 	// Window
 	windowStr := entity.OptionGet(entity.KeyRateLimitWindow)
-	if windowStr == "" {
-		windowStr = "60s"
-	}
-	window, err := time.ParseDuration(windowStr)
-	if err != nil {
-		// Try as integer seconds
-		if val, err := strconv.Atoi(windowStr); err == nil {
-			window = time.Duration(val) * time.Second
-		} else {
-			window = 60 * time.Second
-		}
+	var window time.Duration
+	if val, err := strconv.Atoi(windowStr); err == nil && val > 0 {
+		window = time.Duration(val) * time.Second
+	} else {
+		window = 1 * time.Second
 	}
 
 	// Ban Duration
 	banStr := entity.OptionGet(entity.KeyRateLimitBan)
-	if banStr == "" {
-		banStr = "300s"
-	}
-	banDuration, err := time.ParseDuration(banStr)
-	if err != nil {
-		// Try as integer seconds
-		if val, err := strconv.Atoi(banStr); err == nil {
-			banDuration = time.Duration(val) * time.Second
-		} else {
-			banDuration = 5 * time.Minute
-		}
+	var banDuration time.Duration
+	if val, err := strconv.Atoi(banStr); err == nil && val > 0 {
+		banDuration = time.Duration(val) * time.Second
+	} else {
+		banDuration = 1 * time.Second
 	}
 
 	// Max Requests
@@ -77,7 +65,7 @@ func (r *RateLimiter) Reload() {
 		maxRequests, _ = strconv.Atoi(maxStr)
 	}
 	if maxRequests == 0 {
-		maxRequests = 5
+		maxRequests = 999999
 	}
 
 	r.window = window
