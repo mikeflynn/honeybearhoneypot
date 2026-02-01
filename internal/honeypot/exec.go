@@ -25,6 +25,7 @@ func execMiddleware(next ssh.Handler) ssh.Handler {
 			}
 
 			if !GetRateLimiter().Check(ip) {
+				log.Warn("Rate limit exceeded for IP", "ip", ip, "until", GetRateLimiter().limits[ip].bannedUntil)
 				fmt.Fprintf(s, "Connection refused: rate limit exceeded\n")
 				s.Exit(1)
 				return
