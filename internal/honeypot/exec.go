@@ -2,6 +2,7 @@ package honeypot
 
 import (
 	"fmt"
+	"net"
 	"strings"
 	"time"
 
@@ -17,6 +18,18 @@ func execMiddleware(next ssh.Handler) ssh.Handler {
 	return func(s ssh.Session) {
 		cmd := s.Command()
 		if len(cmd) > 0 {
+			host := s.Context().RemoteAddr().String()
+			ip, _, err := net.SplitHostPort(host)
+			if err != nil {
+				ip = host
+			}
+
+			if !GetRateLimiter().Check(ip) {
+				fmt.Fprintf(s, "Connection refused: rate limit exceeded\n")
+				s.Exit(1)
+				return
+			}
+
 			handleExec(s, cmd)
 			return
 		}

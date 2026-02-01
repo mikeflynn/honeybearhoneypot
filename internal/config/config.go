@@ -30,6 +30,10 @@ type Config struct {
 	Filesystem []filesystem.Node `json:"filesystem,omitempty"`
 	Tasks      []Task            `json:"tasks,omitempty"`
 	PinReset   string            `json:"pin,omitempty"`
+
+	RateLimitWindow string `json:"rate_limit_window,omitempty"`
+	RateLimitMax    int    `json:"rate_limit_max,omitempty"`
+	RateLimitBan    string `json:"rate_limit_ban,omitempty"`
 }
 
 var (
@@ -45,6 +49,10 @@ var (
 	tunnelKeyFlag = flag.String("tunnel-key", "", "The SSH key to use to connect to the specified remote host.")
 	tunnelBindFlag = flag.String("tunnel-bind", "127.0.0.1", "The address to bind to on the remote server.")
 	tunnelRemotePortFlag = flag.String("tunnel-remote-port", "8022", "The port to forward on the remote server.")
+
+	rateLimitWindowFlag = flag.String("rate-limit-window", "", "The window of time to count requests for rate limiting (e.g. 60s)")
+	rateLimitMaxFlag    = flag.Int("rate-limit-max", 0, "The maximum number of requests allowed in the window")
+	rateLimitBanFlag    = flag.String("rate-limit-ban", "", "The duration to ban an IP for if they exceed the rate limit (e.g. 300s)")
 )
 
 // Active holds the configuration loaded via Parse so it can be referenced by
@@ -57,6 +65,9 @@ var Default = Config{
 	LogLevel:         "info",
 	TunnelBind:       "127.0.0.1",
 	TunnelRemotePort: "8022",
+	RateLimitWindow:  "60s",
+	RateLimitMax:     5,
+	RateLimitBan:     "300s",
 }
 
 func Load(path string) (*Config, error) {
@@ -121,6 +132,16 @@ func Parse() (*Config, string, error) {
 		cfg.PinReset = *pinResetFlag
 	}
 
+	if *rateLimitWindowFlag != "" {
+		cfg.RateLimitWindow = *rateLimitWindowFlag
+	}
+	if *rateLimitMaxFlag != 0 {
+		cfg.RateLimitMax = *rateLimitMaxFlag
+	}
+	if *rateLimitBanFlag != "" {
+		cfg.RateLimitBan = *rateLimitBanFlag
+	}
+
 	Active = &cfg
 	return Active, cfg.PinReset, nil
 }
@@ -161,5 +182,14 @@ func merge(dst *Config, src *Config) {
 	}
 	if src.Tasks != nil {
 		dst.Tasks = src.Tasks
+	}
+	if src.RateLimitWindow != "" {
+		dst.RateLimitWindow = src.RateLimitWindow
+	}
+	if src.RateLimitMax != 0 {
+		dst.RateLimitMax = src.RateLimitMax
+	}
+	if src.RateLimitBan != "" {
+		dst.RateLimitBan = src.RateLimitBan
 	}
 }
