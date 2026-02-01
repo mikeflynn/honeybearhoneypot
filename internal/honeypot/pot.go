@@ -241,17 +241,18 @@ func StartHoneyPot(appConfigDir string) {
 	activeUsers = []string{}
 	usersThisSession = 0
 	activeUsersMu.Unlock()
-	maxUsers := entity.OptionGetInt(entity.KeyPotMaxUsers)
-	if maxUsers == 0 {
-		maxUsers = defaultMaxUsers
-	}
 
 	s, err := wish.NewServer(
 		wish.WithAddress(net.JoinHostPort(host, potPort)),
 		withProxyProtocol(),
 		wish.WithHostKeyPath(appConfigDir+"/.ssh/id_ed25519"),
 		wish.WithPasswordAuth(func(ctx ssh.Context, password string) bool {
-			if activeUsersLen()+1 > maxUsers {
+			currentMax := entity.OptionGetInt(entity.KeyPotMaxUsers)
+			if currentMax == 0 {
+				currentMax = defaultMaxUsers
+			}
+
+			if activeUsersLen()+1 > currentMax {
 				return false
 			}
 

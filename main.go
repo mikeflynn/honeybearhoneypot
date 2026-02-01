@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/charmbracelet/log"
 	"github.com/mikeflynn/honeybearhoneypot/internal/config"
@@ -33,6 +34,17 @@ func main() {
 
 	appConfigDir := setup()
 	defer cleanup()
+
+	// Sync config to DB
+	if cfg.RateLimitMax != 0 {
+		entity.OptionSet(entity.KeyRateLimitMax, strconv.Itoa(cfg.RateLimitMax))
+	}
+	if cfg.RateLimitWindow != 0 {
+		entity.OptionSet(entity.KeyRateLimitWindow, strconv.Itoa(cfg.RateLimitWindow))
+	}
+	if cfg.RateLimitBan != 0 {
+		entity.OptionSet(entity.KeyRateLimitBan, strconv.Itoa(cfg.RateLimitBan))
+	}
 
 	var primaryPort string
 	var additionalListeners []*net.Listener

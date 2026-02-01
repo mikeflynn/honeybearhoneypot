@@ -13,9 +13,15 @@ var (
 	maxDigits = 9
 )
 
-func Keypad(successFunc func(val string), cancelFunc func(), hideTyped bool) *fyne.Container {
-	defaultLabel := ""
-	typed := ""
+func Keypad(successFunc func(val string), cancelFunc func(), hideTyped bool, initialValue string) *fyne.Container {
+	typed := initialValue
+	defaultLabel := initialValue
+	if hideTyped {
+		defaultLabel = ""
+		for range initialValue {
+			defaultLabel += "*"
+		}
+	}
 
 	selectedLabel := canvas.NewText(defaultLabel, theme.Color(theme.ColorNameForeground))
 	selectedLabel.Alignment = fyne.TextAlignCenter
@@ -47,6 +53,13 @@ func Keypad(successFunc func(val string), cancelFunc func(), hideTyped bool) *fy
 	clearTyped := func() {
 		typed = ""
 		refreshLabel()
+	}
+
+	backspace := func() {
+		if len(typed) > 0 {
+			typed = typed[:len(typed)-1]
+			refreshLabel()
+		}
 	}
 
 	cancelBtn := widget.NewButtonWithIcon("", theme.WindowCloseIcon(), cancelFunc)
@@ -98,7 +111,9 @@ func Keypad(successFunc func(val string), cancelFunc func(), hideTyped bool) *fy
 				widget.NewButton("0", func() {
 					addDigit("0")
 				}),
-				layout.NewSpacer(),
+				widget.NewButtonWithIcon("", theme.ContentUndoIcon(), func() {
+					backspace()
+				}),
 			),
 		),
 		container.NewHBox(

@@ -15,6 +15,7 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
 	"github.com/mikeflynn/honeybearhoneypot/internal/gui/keypad"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot"
 )
 
 const (
@@ -48,7 +49,7 @@ func getAdminButton() *widget.Button {
 			approvalBinding.Set(authCancel)
 		}
 
-		keypad := keypad.Keypad(passSuccessFunc, passCancelFunc, true)
+		keypad := keypad.Keypad(passSuccessFunc, passCancelFunc, true, "")
 		authPopup = widget.NewModalPopUp(keypad, w.Canvas())
 		go func() {
 			i := 0
@@ -119,7 +120,7 @@ func getAdminMenu() *fyne.Container {
 
 func adminPotTab() *fyne.Container {
 	return container.NewVBox(
-		container.NewGridWithRows(2,
+		container.NewGridWithRows(3,
 			container.NewGridWithColumns(2,
 				widget.NewButtonWithIcon("Set Max Users", theme.AccountIcon(), func() {
 					var sp *widget.PopUp
@@ -134,6 +135,69 @@ func adminPotTab() *fyne.Container {
 							sp.Hide()
 						},
 						false,
+						entity.OptionGet(entity.KeyPotMaxUsers),
+					)
+
+					sp = widget.NewModalPopUp(keypad, w.Canvas())
+					sp.Show()
+				}),
+				widget.NewButtonWithIcon("Rate - Max Conn", theme.WarningIcon(), func() {
+					var sp *widget.PopUp
+
+					keypad := keypad.Keypad(
+						func(val string) {
+							log.Debug(entity.KeyRateLimitMax, "val", val)
+							entity.OptionSet(entity.KeyRateLimitMax, val)
+							honeypot.GetRateLimiter().Reload()
+							sp.Hide()
+						},
+						func() {
+							sp.Hide()
+						},
+						false,
+						entity.OptionGet(entity.KeyRateLimitMax),
+					)
+
+					sp = widget.NewModalPopUp(keypad, w.Canvas())
+					sp.Show()
+				}),
+			),
+			container.NewGridWithColumns(2,
+				widget.NewButtonWithIcon("Rate - Window (s)", theme.HistoryIcon(), func() {
+					var sp *widget.PopUp
+
+					keypad := keypad.Keypad(
+						func(val string) {
+							log.Debug(entity.KeyRateLimitWindow, "val", val)
+							entity.OptionSet(entity.KeyRateLimitWindow, val)
+							honeypot.GetRateLimiter().Reload()
+							sp.Hide()
+						},
+						func() {
+							sp.Hide()
+						},
+						false,
+						entity.OptionGet(entity.KeyRateLimitWindow),
+					)
+
+					sp = widget.NewModalPopUp(keypad, w.Canvas())
+					sp.Show()
+				}),
+				widget.NewButtonWithIcon("Rate - Ban Time (s)", theme.ErrorIcon(), func() {
+					var sp *widget.PopUp
+
+					keypad := keypad.Keypad(
+						func(val string) {
+							log.Debug(entity.KeyRateLimitBan, "val", val)
+							entity.OptionSet(entity.KeyRateLimitBan, val)
+							honeypot.GetRateLimiter().Reload()
+							sp.Hide()
+						},
+						func() {
+							sp.Hide()
+						},
+						false,
+						entity.OptionGet(entity.KeyRateLimitBan),
 					)
 
 					sp = widget.NewModalPopUp(keypad, w.Canvas())
@@ -165,6 +229,7 @@ func adminSystemTab() *fyne.Container {
 							sp.Hide()
 						},
 						false,
+						"",
 					)
 
 					sp = widget.NewModalPopUp(keypad, w.Canvas())
