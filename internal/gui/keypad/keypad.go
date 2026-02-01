@@ -55,6 +55,13 @@ func Keypad(successFunc func(val string), cancelFunc func(), hideTyped bool, ini
 		refreshLabel()
 	}
 
+	backspace := func() {
+		if len(typed) > 0 {
+			typed = typed[:len(typed)-1]
+			refreshLabel()
+		}
+	}
+
 	cancelBtn := widget.NewButtonWithIcon("", theme.WindowCloseIcon(), cancelFunc)
 	submitBtn := widget.NewButtonWithIcon("Submit", theme.ConfirmIcon(), func() {
 		successFunc(typed)
@@ -104,7 +111,9 @@ func Keypad(successFunc func(val string), cancelFunc func(), hideTyped bool, ini
 				widget.NewButton("0", func() {
 					addDigit("0")
 				}),
-				layout.NewSpacer(),
+				widget.NewButtonWithIcon("", theme.ContentUndoIcon(), func() {
+					backspace()
+				}),
 			),
 		),
 		container.NewHBox(
