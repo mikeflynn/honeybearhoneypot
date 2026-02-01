@@ -1,6 +1,6 @@
 # Honey Bear Honey Pot
 
-A SSH honeypot application that has a wimsical GUI application...and, if you prefer, can run on a hart hat!
+A SSH honeypot application that has a whimsical GUI application...and, if you prefer, can run on a hard hat!
 
 See more information about this project: [honeybear.hydrox.fun](https://honeybear.hydrox.fun)
 
@@ -44,6 +44,11 @@ The honeypot can be configured using command-line flags when starting the applic
 - `-ssh-port`: The port(s) to listen on for honey pot SSH connections (comma separated for multiple ports, default "1337")
 - `-tunnel`: Set up SSH reverse tunnel (format: user@server.com:22)
 - `-tunnel-key`: Path to SSH key for reverse tunnel authentication
+- `-tunnel-bind`: The address to bind to on the remote server (default "127.0.0.1")
+- `-tunnel-remote-port`: The port to forward on the remote server (default "8022")
+- `-rate-limit-window`: The window of time to count requests for rate limiting in seconds (e.g. 60)
+- `-rate-limit-max`: The maximum number of requests allowed in the window
+- `-rate-limit-ban`: The duration to ban an IP for if they exceed the rate limit in seconds (e.g. 300)
 - `-config`: Path to a JSON configuration file with the same options
 
 The configuration file can also define additional settings like extra filesystem nodes or CTF tasks. See `misc/config.sample.json` for an example.
@@ -54,26 +59,30 @@ The configuration file can also define additional settings like extra filesystem
 
 The GUI provides a visual interface for monitoring and managing the honeypot:
 
-- **Main Display**: Features an animated bear that reacts to user activity
-- **Current Users**: Shows active SSH connections and maximum allowed users
+- **Main Display**: Features an animated bear that reacts to user activity (sleeping, working, angry, etc.) and specific events (glitches, hacks).
+- **Current Users**: Shows active SSH connections and maximum allowed users.
 - **Admin Menu**: Access administrative functions through a PIN-protected interface:
   - Stats: View login statistics, top commands, and recent activity
   - SSH: Configure maximum concurrent users
   - App: System controls including PIN changes and fullscreen toggle
-- **Tunnel Status**: Indicates reverse tunnel connection status when configured
-- **Notifications**: Displays real-time SSH connection and command activity
+- **Tunnel Status**: Indicates reverse tunnel connection status when configured.
+- **Notifications**: Displays real-time SSH connection and command activity.
 
 ### The SSH Honey Pot
 
-The SSH honeypot component provides a simulated Linux environment:
+The SSH honeypot component provides a simulated Linux environment ("Hardhat Linux"):
 
 - Accepts any username/password combination for authentication
 - Configurable maximum concurrent user limit
 - Includes common Linux commands and utilities:
-  - File system navigation (ls, cd, pwd)
-  - File viewing (cat, less, more)
-  - System information (uname, w, history)
-  - Fun extras (bearsay, celebrate, matrix)
+  - File system navigation (`ls`, `cd`, `pwd`)
+  - File viewing (`cat`, `less`, `more`)
+  - System information (`uname`, `w`, `history`, `id`, `ps`, `env`, `netstat`, `whoami`, `neofetch`)
+  - Fun extras (`bearsay`, `cowsay`, `celebrate`, `matrix`)
+- **CTF System**: Built-in Capture The Flag game
+  - Run `ctf` to register/login and view tasks
+  - Run `leaderboard` to see top players
+  - Configure tasks via `config.json`
 - Records all user activity including:
   - Login attempts
   - Commands executed
@@ -88,9 +97,9 @@ To run the application locally, you will need to have Go installed on your machi
 ```bash
 $ go run main.go -h
 
-Usage of /***/main
+Usage of honeybearhoneypot:
   -config string
-        Path to optional JSON configuration file
+        Path to optional JSON config file
   -fs
         Start the gui in full screen mode
   -height int
@@ -101,12 +110,22 @@ Usage of /***/main
         Run the honey pot without the GUI
   -pin-reset string
         Reset the admin PIN to a specific value
+  -rate-limit-ban int
+        The duration to ban an IP for if they exceed the rate limit in seconds (e.g. 300)
+  -rate-limit-max int
+        The maximum number of requests allowed in the window
+  -rate-limit-window int
+        The window of time to count requests for rate limiting in seconds (e.g. 60)
   -ssh-port string
         The port to listen on for honey pot SSH connections. Comma separated list for multiple ports. (default "1337")
   -tunnel string
         The user and host to connect to via SSH. Ex: user@server.com:22
+  -tunnel-bind string
+        The address to bind to on the remote server. (default "127.0.0.1")
   -tunnel-key string
         The SSH key to use to connect to the specified remote host.
+  -tunnel-remote-port string
+        The port to forward on the remote server. (default "8022")
   -width int
         The width of the GUI window
 ```
@@ -124,7 +143,7 @@ $ fyne build
 If you would like to cross-compile a binary, you will need the [fyne-cross](https://github.com/fyne-io/fyne-cross) application and Docker to cross compile the application for different platforms.
 
 ```bash
-$ go install github.com/fyne-io/fyne-cross@latest
+$ go install github.com/fyne-io/fyne-cross/cmd/fyne-cross@latest
 $ fyne-cross linux
 ```
 
