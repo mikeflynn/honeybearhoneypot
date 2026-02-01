@@ -65,9 +65,6 @@ var Default = Config{
 	LogLevel:         "info",
 	TunnelBind:       "127.0.0.1",
 	TunnelRemotePort: "8022",
-	RateLimitWindow:  "60s",
-	RateLimitMax:     5,
-	RateLimitBan:     "300s",
 }
 
 func Load(path string) (*Config, error) {

@@ -1,11 +1,12 @@
 package honeypot
 
 import (
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/charmbracelet/log"
-	"github.com/mikeflynn/honeybearhoneypot/internal/config"
+	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
 )
 
 type clientState struct {
@@ -27,31 +28,63 @@ var once sync.Once
 
 func GetRateLimiter() *RateLimiter {
 	once.Do(func() {
-		window, _ := time.ParseDuration(config.Active.RateLimitWindow)
-		if window == 0 {
-			window = 60 * time.Second
-		}
-		
-		banDuration, _ := time.ParseDuration(config.Active.RateLimitBan)
-		if banDuration == 0 {
-			banDuration = 5 * time.Minute
-		}
-
-		maxRequests := config.Active.RateLimitMax
-		if maxRequests == 0 {
-			maxRequests = 5
-		}
-
 		limiter = &RateLimiter{
-			limits:      make(map[string]*clientState),
-			window:      window,
-			maxRequests: maxRequests,
-			banDuration: banDuration,
+			limits: make(map[string]*clientState),
 		}
-		
-		log.Info("Rate limiter initialized", "window", window, "max", maxRequests, "ban", banDuration)
+		limiter.Reload()
 	})
 	return limiter
+}
+
+func (r *RateLimiter) Reload() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	// Window
+	windowStr := entity.OptionGet(entity.KeyRateLimitWindow)
+	if windowStr == "" {
+		windowStr = "60s"
+	}
+	window, err := time.ParseDuration(windowStr)
+	if err != nil {
+		// Try as integer seconds
+		if val, err := strconv.Atoi(windowStr); err == nil {
+			window = time.Duration(val) * time.Second
+		} else {
+			window = 60 * time.Second
+		}
+	}
+
+	// Ban Duration
+	banStr := entity.OptionGet(entity.KeyRateLimitBan)
+	if banStr == "" {
+		banStr = "300s"
+	}
+	banDuration, err := time.ParseDuration(banStr)
+	if err != nil {
+		// Try as integer seconds
+		if val, err := strconv.Atoi(banStr); err == nil {
+			banDuration = time.Duration(val) * time.Second
+		} else {
+			banDuration = 5 * time.Minute
+		}
+	}
+
+	// Max Requests
+	maxStr := entity.OptionGet(entity.KeyRateLimitMax)
+	var maxRequests int
+	if maxStr != "" {
+		maxRequests, _ = strconv.Atoi(maxStr)
+	}
+	if maxRequests == 0 {
+		maxRequests = 5
+	}
+
+	r.window = window
+	r.maxRequests = maxRequests
+	r.banDuration = banDuration
+
+	log.Info("Rate limiter configuration reloaded", "window", window, "max", maxRequests, "ban", banDuration)
 }
 
 // Check returns true if the request is allowed, false if blocked/banned

@@ -10,9 +10,12 @@ import (
 )
 
 const (
-	KeyAdminPIN    = "gui_pin"
-	KeyPotSSHPort  = "pot_ssh_port"
-	KeyPotMaxUsers = "pot_max_users"
+	KeyAdminPIN        = "gui_pin"
+	KeyPotSSHPort      = "pot_ssh_port"
+	KeyPotMaxUsers     = "pot_max_users"
+	KeyRateLimitWindow = "pot_rate_limit_window"
+	KeyRateLimitMax    = "pot_rate_limit_max"
+	KeyRateLimitBan    = "pot_rate_limit_ban"
 )
 
 func OptionInitialization() string {
