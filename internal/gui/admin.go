@@ -35,7 +35,10 @@ func getAdminButton() *widget.Button {
 
 		adminPIN := entity.OptionGet(entity.KeyAdminPIN)
 		if adminPIN == "" {
-			adminPIN = "1234"
+			// If no PIN, just open the admin menu directly
+			adminPopup = widget.NewModalPopUp(getAdminMenu(), w.Canvas())
+			adminPopup.Show()
+			return
 		}
 
 		passSuccessFunc := func(val string) {
@@ -229,7 +232,7 @@ func adminSystemTab() *fyne.Container {
 							sp.Hide()
 						},
 						false,
-						"",
+						entity.OptionGet(entity.KeyAdminPIN),
 					)
 
 					sp = widget.NewModalPopUp(keypad, w.Canvas())
