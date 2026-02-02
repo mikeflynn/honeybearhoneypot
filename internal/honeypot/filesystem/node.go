@@ -68,7 +68,7 @@ func GetNodeByPath(currentNode *Node, path string, flags ...int) (*Node, error) 
 			return GetNodeByPath(found, strings.Join(parts[1:], "/"), depth+1)
 		}
 
-		if found != nil {
+		if found != nil && !found.IsCloaked() {
 			return found, nil
 		}
 
@@ -116,6 +116,7 @@ type Node struct {
 	Owner       string                                         `json:"owner"`
 	Group       string                                         `json:"group"`
 	Mode        int                                            `json:"mode"`                // File mode (permissions)
+	Fun         bool                                           `json:"fun,omitempty"`       // Whether the node is part of the "fun" features
 	HelpText    string                                         `json:"help_text,omitempty"` // Help text for the node, if applicable
 }
 
@@ -125,6 +126,16 @@ func (n *Node) IsDirectory() bool {
 
 func (n *Node) IsFile() bool {
 	return n.Directory == false
+}
+
+// IsCloaked returns true if the node should not be available due to user actions or config
+func (n *Node) IsCloaked() bool {
+	// If the user has disabled fun features check the node's Fun flag
+	if noFun {
+		return n.Fun
+	}
+
+	return false
 }
 
 func (n *Node) IsExecutable(user string, group string) bool {

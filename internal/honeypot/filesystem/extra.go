@@ -4,14 +4,22 @@ import (
 	"errors"
 	"path"
 	"strings"
+
+	"github.com/charmbracelet/log"
 )
 
 var additionalNodes []Node
+var noFun bool = false
 
 // SetAdditionalNodes stores nodes that will be merged into the filesystem
 // during initialization.
 func SetAdditionalNodes(nodes []Node) {
 	additionalNodes = nodes
+}
+
+func SetNoFun(enabled bool) {
+	log.Infof("Setting noFun to %v", enabled)
+	noFun = enabled
 }
 
 // addNode inserts a node into the filesystem tree under its parent path.

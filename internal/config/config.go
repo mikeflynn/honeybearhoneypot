@@ -23,6 +23,7 @@ type Config struct {
 	TunnelBind string            `json:"tunnel_bind,omitempty"`
 	TunnelRemotePort string      `json:"tunnel_remote_port,omitempty"`
 	NoGUI      bool              `json:"no_gui,omitempty"`
+	NoFun      bool              `json:"no_fun,omitempty"`
 	FullScreen bool              `json:"full_screen,omitempty"`
 	Width      int               `json:"width,omitempty"`
 	Height     int               `json:"height,omitempty"`
@@ -39,6 +40,7 @@ type Config struct {
 var (
 	configPath    = flag.String("config", "", "Path to optional JSON config file")
 	noGuiFlag     = flag.Bool("no-gui", false, "Run the honey pot without the GUI")
+	noFunFlag     = flag.Bool("no-fun", false, "Disable non-standard commands (celebrate, ctf, matrix)")
 	fullScreen    = flag.Bool("fs", false, "Start the gui in full screen mode")
 	sshPort       = flag.String("ssh-port", "", "The port to listen on for honey pot SSH connections. Comma separated list for multiple ports.")
 	widthFlag     = flag.Int("width", 0, "The width of the GUI window")
@@ -112,6 +114,9 @@ func Parse() (*Config, string, error) {
 	if *noGuiFlag {
 		cfg.NoGUI = true
 	}
+	if *noFunFlag {
+		cfg.NoFun = true
+	}
 	if *fullScreen {
 		cfg.FullScreen = true
 	}
@@ -161,6 +166,9 @@ func merge(dst *Config, src *Config) {
 	}
 	if src.NoGUI {
 		dst.NoGUI = true
+	}
+	if src.NoFun {
+		dst.NoFun = true
 	}
 	if src.FullScreen {
 		dst.FullScreen = true

@@ -35,6 +35,8 @@ func main() {
 	appConfigDir := setup()
 	defer cleanup()
 
+	filesystem.SetNoFun(config.Active.NoFun)
+
 	// Sync config to DB
 	if cfg.RateLimitMax != 0 {
 		entity.OptionSet(entity.KeyRateLimitMax, strconv.Itoa(cfg.RateLimitMax))

@@ -172,6 +172,10 @@ func Initialize() {
 
 										if targetNode.IsDirectory() && len(targetNode.Children) > 0 {
 											for _, child := range targetNode.Children {
+												if child.IsCloaked() {
+													continue
+												}
+
 												if !showHidden && strings.HasPrefix(child.Name, ".") {
 													continue
 												}
@@ -456,6 +460,7 @@ func Initialize() {
 								Owner:     "root",
 								Group:     "root",
 								Mode:      0711,
+								Fun:       true,
 								Exec: func(dir *Node, params []string, user, group string) *tea.Cmd {
 									cmds := []tea.Cmd{}
 									cmds = append(cmds, tea.Cmd(func() tea.Msg {
@@ -484,6 +489,7 @@ func Initialize() {
 								Directory: false,
 								Owner:     "root",
 								Group:     "root",
+								Fun:       true,
 								Mode:      0711,
 								Exec: func(dir *Node, params []string, user, group string) *tea.Cmd {
 									cmds := []tea.Cmd{}
@@ -506,6 +512,7 @@ func Initialize() {
 								Directory: false,
 								Owner:     "root",
 								Group:     "root",
+								Fun:       true,
 								Mode:      0711,
 								HelpText:  "Play the Honey Bear Honey Pot Capture the Flag (CTF) game. flag{hbhphh_ctf} is a flag to get you started.",
 								Exec: func(dir *Node, params []string, user, group string) *tea.Cmd {
@@ -525,6 +532,7 @@ func Initialize() {
 								Directory: false,
 								Owner:     "root",
 								Group:     "root",
+								Fun:       true,
 								Mode:      0711,
 								HelpText:  "Show CTF leaderboard",
 								Exec: func(dir *Node, params []string, user, group string) *tea.Cmd {
