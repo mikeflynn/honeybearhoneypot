@@ -2,6 +2,7 @@ package honeypot
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -70,6 +71,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if time.Since(*m.EventTime("session_start")) > 45*time.Second &&
 			m.EventTime("knock") == nil &&
 			m.runningCommand == "" &&
+			config.Active.NoFun == false &&
 			len(m.history) < 3 {
 			m.SetEventTime("knock")
 			cmds = append(
@@ -208,6 +210,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.runningCommand == "" {
 				m.textInput.SetValue(historyPeek(&m))
 				historyIdxDec(&m)
+			}
+		case "tab":
+			if m.runningCommand == "" {
+				val := m.textInput.Value()
+				if strings.TrimSpace(val) == "" {
+					break
+				}
+
+				newVal, matches := filesystem.AutoComplete(m.currentDir, val)
+				if len(matches) == 1 || (len(matches) > 1 && len(newVal) > len(val)) {
+					m.textInput.SetValue(newVal)
+					m.textInput.SetCursor(len(newVal))
+				} else if len(matches) > 1 && len(matches) < 25 {
+					m.output += m.outputStyle.Render(fmt.Sprintf("\n%s\n", strings.Join(matches, "  ")))
+				}
 			}
 		case "ctrl+c":
 			if m.runningCommand != "" {
