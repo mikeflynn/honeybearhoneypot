@@ -2,6 +2,7 @@ package gui
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	fyne "fyne.io/fyne/v2"
@@ -178,7 +179,7 @@ func statsRecentCommandsTab() *fyne.Container {
 
 		for _, e := range events {
 			timestamp := e.Timestamp.In(tz).Format("01/02 15:04")
-			data = append(data, fmt.Sprintf("[%s] %s (%s) > %s", timestamp, e.User, e.Host, e.Action))
+			data = append(data, fmt.Sprintf("[%s] %s (%s)\n%s", timestamp, e.User, e.Host, e.Action))
 		}
 		return data, nil
 	})
@@ -193,11 +194,35 @@ func createListTab(dataLoader func() ([]string, error)) *fyne.Container {
 	list := widget.NewListWithData(
 		listBinding,
 		func() fyne.CanvasObject {
-			return widget.NewLabel("template")
+			t1 := canvas.NewText("template", theme.Color(theme.ColorNameForeground))
+			t1.TextSize = 16
+			t1.TextStyle = fyne.TextStyle{Monospace: true}
+			t2 := canvas.NewText("template", theme.Color(theme.ColorNameForeground))
+			t2.TextSize = 16
+			t2.TextStyle = fyne.TextStyle{Monospace: true}
+
+			return container.NewVBox(t1, t2)
 		},
 		func(i binding.DataItem, o fyne.CanvasObject) {
-			o.(*widget.Label).Bind(i.(binding.String))
-			o.(*widget.Label).TextStyle = fyne.TextStyle{Monospace: true}
+			s, _ := i.(binding.String).Get()
+			box := o.(*fyne.Container)
+			t1 := box.Objects[0].(*canvas.Text)
+			t2 := box.Objects[1].(*canvas.Text)
+
+			lines := strings.Split(s, "\n")
+			t1.Text = lines[0]
+			t1.Color = theme.Color(theme.ColorNameForeground)
+			if len(lines) > 1 {
+				t2.Text = lines[1]
+				t2.Color = theme.Color(theme.ColorNamePrimary)
+				t2.Show()
+			} else {
+				t2.Text = ""
+				t2.Hide()
+			}
+			t1.Refresh()
+			t2.Refresh()
+			box.Refresh()
 		},
 	)
 
