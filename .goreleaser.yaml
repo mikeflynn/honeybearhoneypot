@@ -74,7 +74,7 @@ nfpms:
       - apk
     bindir: /usr/bin
     contents:
-      - src: misc/config.sample.json
+      - src: config.sample.json
         dst: /etc/honeybearhoneypot/config.json.sample
         type: config
 
