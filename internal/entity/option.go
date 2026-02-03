@@ -98,3 +98,23 @@ func (o *Option) Load() error {
 
 	return nil
 }
+
+func OptionsAll() ([]*Option, error) {
+	query := `SELECT name, value, timestamp FROM options;`
+	rows, err := db.MakeQuery(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var options []*Option
+	for rows.Next() {
+		o := &Option{}
+		err = rows.Scan(&o.Name, &o.Value, &o.Timestamp)
+		if err != nil {
+			return nil, err
+		}
+		options = append(options, o)
+	}
+	return options, nil
+}

@@ -29,19 +29,19 @@ CREATE TABLE IF NOT EXISTS ctf_user_tasks (
 `
 
 type CTFUser struct {
-	ID        int
-	Username  string
-	Password  string
-	Points    int
-	CreatedAt time.Time
+	ID        int       `json:"id"`
+	Username  string    `json:"username"`
+	Password  string    `json:"-"`
+	Points    int       `json:"points"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type CTFUserTask struct {
-	ID        int
-	Username  string
-	Task      string
-	Points    int
-	CreatedAt time.Time
+	ID        int       `json:"id"`
+	Username  string    `json:"username"`
+	Task      string    `json:"task"`
+	Points    int       `json:"points"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func (u *CTFUser) Load() error {
@@ -121,6 +121,24 @@ func Leaderboard(limit int) ([]CTFUser, error) {
 	for rows.Next() {
 		var u CTFUser
 		if err := rows.Scan(&u.Username, &u.Points); err != nil {
+			return nil, err
+		}
+		out = append(out, u)
+	}
+	return out, nil
+}
+
+func CTFUsersAll() ([]*CTFUser, error) {
+	rows, err := db.MakeQuery("SELECT id, username, password, points, created_at FROM ctf_users")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []*CTFUser
+	for rows.Next() {
+		u := &CTFUser{}
+		if err := rows.Scan(&u.ID, &u.Username, &u.Password, &u.Points, &u.CreatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, u)

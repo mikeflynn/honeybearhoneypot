@@ -17,44 +17,52 @@ type Task struct {
 }
 
 type Config struct {
-	SSHPorts   []string          `json:"ssh_ports,omitempty"`
-	Tunnel     string            `json:"tunnel,omitempty"`
-	TunnelKey  string            `json:"tunnel_key,omitempty"`
-	TunnelBind string            `json:"tunnel_bind,omitempty"`
-	TunnelRemotePort string      `json:"tunnel_remote_port,omitempty"`
-	NoGUI      bool              `json:"no_gui,omitempty"`
-	NoFun      bool              `json:"no_fun,omitempty"`
-	FullScreen bool              `json:"full_screen,omitempty"`
-	Width      int               `json:"width,omitempty"`
-	Height     int               `json:"height,omitempty"`
-	LogLevel   string            `json:"log_level,omitempty"`
-	Filesystem []filesystem.Node `json:"filesystem,omitempty"`
-	Tasks      []Task            `json:"tasks,omitempty"`
-	PinReset   string            `json:"pin,omitempty"`
+	SSHPorts         []string          `json:"ssh_ports,omitempty"`
+	Tunnel           string            `json:"tunnel,omitempty"`
+	TunnelKey        string            `json:"tunnel_key,omitempty"`
+	TunnelBind       string            `json:"tunnel_bind,omitempty"`
+	TunnelRemotePort string            `json:"tunnel_remote_port,omitempty"`
+	NoGUI            bool              `json:"no_gui,omitempty"`
+	NoFun            bool              `json:"no_fun,omitempty"`
+	FullScreen       bool              `json:"full_screen,omitempty"`
+	Width            int               `json:"width,omitempty"`
+	Height           int               `json:"height,omitempty"`
+	LogLevel         string            `json:"log_level,omitempty"`
+	Filesystem       []filesystem.Node `json:"filesystem,omitempty"`
+	Tasks            []Task            `json:"tasks,omitempty"`
+	PinReset         string            `json:"pin,omitempty"`
 
 	RateLimitWindow int `json:"rate_limit_window,omitempty"`
 	RateLimitMax    int `json:"rate_limit_max,omitempty"`
 	RateLimitBan    int `json:"rate_limit_ban,omitempty"`
+
+	ExportFormat string   `json:"export_format,omitempty"`
+	ExportPath   string   `json:"export_path,omitempty"`
+	ExportTypes  []string `json:"export_types,omitempty"`
 }
 
 var (
-	configPath    = flag.String("config", "", "Path to optional JSON config file")
-	noGuiFlag     = flag.Bool("no-gui", false, "Run the honey pot without the GUI")
-	noFunFlag     = flag.Bool("no-fun", false, "Disable non-standard commands (celebrate, ctf, matrix)")
-	fullScreen    = flag.Bool("fs", false, "Start the gui in full screen mode")
-	sshPort       = flag.String("ssh-port", "", "The port to listen on for honey pot SSH connections. Comma separated list for multiple ports.")
-	widthFlag     = flag.Int("width", 0, "The width of the GUI window")
-	heightFlag    = flag.Int("height", 0, "The height of the GUI window")
-	logLevelFlag  = flag.String("log-level", "", "Log level (debug, info, warn, error, fatal)")
-	pinResetFlag  = flag.String("pin-reset", "", "Reset the admin PIN to a specific value")
-	tunnelHost    = flag.String("tunnel", "", "The user and host to connect to via SSH. Ex: user@server.com:22")
-	tunnelKeyFlag = flag.String("tunnel-key", "", "The SSH key to use to connect to the specified remote host.")
-	tunnelBindFlag = flag.String("tunnel-bind", "127.0.0.1", "The address to bind to on the remote server.")
+	configPath           = flag.String("config", "", "Path to optional JSON config file")
+	noGuiFlag            = flag.Bool("no-gui", false, "Run the honey pot without the GUI")
+	noFunFlag            = flag.Bool("no-fun", false, "Disable non-standard commands (celebrate, ctf, matrix)")
+	fullScreen           = flag.Bool("fs", false, "Start the gui in full screen mode")
+	sshPort              = flag.String("ssh-port", "", "The port to listen on for honey pot SSH connections. Comma separated list for multiple ports.")
+	widthFlag            = flag.Int("width", 0, "The width of the GUI window")
+	heightFlag           = flag.Int("height", 0, "The height of the GUI window")
+	logLevelFlag         = flag.String("log-level", "", "Log level (debug, info, warn, error, fatal)")
+	pinResetFlag         = flag.String("pin-reset", "", "Reset the admin PIN to a specific value")
+	tunnelHost           = flag.String("tunnel", "", "The user and host to connect to via SSH. Ex: user@server.com:22")
+	tunnelKeyFlag        = flag.String("tunnel-key", "", "The SSH key to use to connect to the specified remote host.")
+	tunnelBindFlag       = flag.String("tunnel-bind", "127.0.0.1", "The address to bind to on the remote server.")
 	tunnelRemotePortFlag = flag.String("tunnel-remote-port", "8022", "The port to forward on the remote server.")
 
 	rateLimitWindowFlag = flag.Int("rate-limit-window", 0, "The window of time to count requests for rate limiting in seconds (e.g. 60)")
 	rateLimitMaxFlag    = flag.Int("rate-limit-max", 0, "The maximum number of requests allowed in the window")
 	rateLimitBanFlag    = flag.Int("rate-limit-ban", 0, "The duration to ban an IP for if they exceed the rate limit in seconds (e.g. 300)")
+
+	exportFormatFlag = flag.String("export-format", "", "The format to export data to (json, csv, raw)")
+	exportPathFlag   = flag.String("export-path", "", "The directory to export data to")
+	exportTypesFlag  = flag.String("export-types", "", "The types of data to export (events, options, ctf). Comma separated.")
 )
 
 // Active holds the configuration loaded via Parse so it can be referenced by
@@ -144,6 +152,16 @@ func Parse() (*Config, string, error) {
 		cfg.RateLimitBan = *rateLimitBanFlag
 	}
 
+	if *exportFormatFlag != "" {
+		cfg.ExportFormat = *exportFormatFlag
+	}
+	if *exportPathFlag != "" {
+		cfg.ExportPath = *exportPathFlag
+	}
+	if *exportTypesFlag != "" {
+		cfg.ExportTypes = strings.Split(*exportTypesFlag, ",")
+	}
+
 	Active = &cfg
 	return Active, cfg.PinReset, nil
 }
@@ -196,5 +214,14 @@ func merge(dst *Config, src *Config) {
 	}
 	if src.RateLimitBan != 0 {
 		dst.RateLimitBan = src.RateLimitBan
+	}
+	if src.ExportFormat != "" {
+		dst.ExportFormat = src.ExportFormat
+	}
+	if src.ExportPath != "" {
+		dst.ExportPath = src.ExportPath
+	}
+	if len(src.ExportTypes) > 0 {
+		dst.ExportTypes = src.ExportTypes
 	}
 }
