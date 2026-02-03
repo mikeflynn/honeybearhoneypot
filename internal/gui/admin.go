@@ -113,6 +113,7 @@ func getAdminMenu() *fyne.Container {
 				container.NewTabItem("Stats", adminStatsTab()),
 				container.NewTabItem("SSH", adminPotTab()),
 				container.NewTabItem("App", adminSystemTab()),
+				container.NewTabItem("Data", adminDataTab()),
 			),
 		),
 	)

@@ -50,10 +50,6 @@ func ExportDatabase(dataTypes []DataType, outputFormat ExportFormat, outputPath 
 		}
 		return csvExport(dataTypes, outputPath)
 	case RAW:
-		if len(dataTypes) != 0 {
-			return fmt.Errorf("raw export does not support specific data types")
-		}
-
 		return rawExport(outputPath)
 	default:
 		return fmt.Errorf("unsupported export format: %s", outputFormat)
