@@ -31,5 +31,10 @@ func (m touchTheme) Font(style fyne.TextStyle) fyne.Resource {
 }
 
 func (m touchTheme) Size(name fyne.ThemeSizeName) float32 {
-	return theme.DefaultTheme().Size(name) * 2
+	switch name {
+	case theme.SizeNameCaptionText:
+		return theme.DefaultTheme().Size(name) * 1.5
+	default:
+		return theme.DefaultTheme().Size(name) * 2
+	}
 }

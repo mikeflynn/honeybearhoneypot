@@ -177,7 +177,7 @@ func statsRecentCommandsTab() *fyne.Container {
 		}
 
 		for _, e := range events {
-			timestamp := e.Timestamp.In(tz).Format("2006-01-02 15:04:05")
+			timestamp := e.Timestamp.In(tz).Format("01/02 15:04")
 			data = append(data, fmt.Sprintf("[%s] %s (%s) > %s", timestamp, e.User, e.Host, e.Action))
 		}
 		return data, nil
@@ -250,18 +250,26 @@ func makeLineChart(data []*entity.EventCount) fyne.CanvasObject {
 
 	// 2. Create Custom Widget for Drawing
 
+	chart := newSimpleChart(points, labels, float32(maxVal))
+
 	return container.NewPadded(
 		container.NewVBox(
-			//widget.NewLabel(fmt.Sprintf("Peak: %d", maxVal)),
-			container.NewPadded(&simpleChart{points: points, maxVal: float32(maxVal)}),
-			widget.NewLabel("....."),
+			widget.NewLabel(fmt.Sprintf("Peak: %d", maxVal)),
+			container.NewPadded(chart),
 		),
 	)
+}
+
+func newSimpleChart(points []float32, labels []string, maxVal float32) *simpleChart {
+	chart := &simpleChart{points: points, labels: labels, maxVal: maxVal}
+	chart.ExtendBaseWidget(chart)
+	return chart
 }
 
 type simpleChart struct {
 	widget.BaseWidget
 	points []float32
+	labels []string
 	maxVal float32
 }
 
@@ -281,9 +289,10 @@ func (r *simpleChartRenderer) Layout(size fyne.Size) {
 	}
 
 	padding := float32(10)
+	bottomPadding := float32(30)
 	width := size.Width
 	height := size.Height
-	availableHeight := height - 2*padding
+	availableHeight := height - padding - bottomPadding
 	stepX := width / float32(len(r.chart.points)-1)
 
 	// Draw Axes
@@ -294,7 +303,7 @@ func (r *simpleChartRenderer) Layout(size fyne.Size) {
 	for i, val := range r.chart.points {
 		x := float32(i) * stepX
 		// Invert Y because 0 is at top
-		y := height - padding - (val / r.chart.maxVal * availableHeight)
+		y := availableHeight + padding - (val / r.chart.maxVal * availableHeight)
 
 		if i > 0 {
 			line := canvas.NewLine(theme.Color(theme.ColorNameForeground))
@@ -310,13 +319,23 @@ func (r *simpleChartRenderer) Layout(size fyne.Size) {
 		dot.Move(fyne.NewPos(x-2, y-2))
 		r.objects = append(r.objects, dot)
 
+		// Draw Label
+		if i < len(r.chart.labels) && r.chart.labels[i] != "" {
+			label := canvas.NewText(r.chart.labels[i], theme.Color(theme.ColorNameForeground))
+			label.TextSize = 10
+			label.Alignment = fyne.TextAlignCenter
+			// Center the text on the X coordinate
+			label.Move(fyne.NewPos(x-15, height-bottomPadding+5))
+			r.objects = append(r.objects, label)
+		}
+
 		lastX = x
 		lastY = y
 	}
 }
 
 func (r *simpleChartRenderer) MinSize() fyne.Size {
-	return fyne.NewSize(200, 150)
+	return fyne.NewSize(300, 200)
 }
 
 func (r *simpleChartRenderer) Refresh() {

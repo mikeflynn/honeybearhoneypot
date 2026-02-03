@@ -35,6 +35,7 @@ func getAdminButton() *widget.Button {
 		if adminPIN == "" {
 			// If no PIN, just open the admin menu directly
 			adminPopup = widget.NewModalPopUp(getAdminMenu(), w.Canvas())
+			adminPopup.Resize(fyne.NewSize(900, 700))
 			adminPopup.Show()
 			return
 		}
@@ -75,6 +76,7 @@ func getAdminButton() *widget.Button {
 						authPopup.Hide()
 
 						adminPopup = widget.NewModalPopUp(getAdminMenu(), w.Canvas())
+						adminPopup.Resize(fyne.NewSize(900, 700))
 						adminPopup.Show()
 					})
 					return
