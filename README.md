@@ -1,4 +1,4 @@
-![Honey Bear GUI Window](design/gui_window.jpg)
+![Honey Bear GUI Window](misc/design/gui_window.jpg)
 
 # Honey Bear Honey Pot
 
