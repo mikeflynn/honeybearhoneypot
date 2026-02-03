@@ -12,12 +12,16 @@ const (
 	dbFilename = "database.db"
 )
 
-var client *sql.DB
+var (
+	client *sql.DB
+	dbPath string
+)
 
 func Initialize(appConfigDir string, initQueries ...string) {
 	// Initialize the database
 	var err error
-	client, err = sql.Open("sqlite3", filepath.Join(appConfigDir, dbFilename))
+	dbPath = filepath.Join(appConfigDir, dbFilename)
+	client, err = sql.Open("sqlite3", dbPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -26,6 +30,10 @@ func Initialize(appConfigDir string, initQueries ...string) {
 	for _, query := range initQueries {
 		MakeWrite(query)
 	}
+}
+
+func GetDBPath() string {
+	return dbPath
 }
 
 func MakeQuery(query string, values ...any) (*sql.Rows, error) {
