@@ -92,30 +92,32 @@ func getAdminButton() *widget.Button {
 }
 
 func getAdminMenu() *fyne.Container {
-	adminSettingsHeader := widget.NewLabel("Admin Menu")
-
 	adminCloseButton := widget.NewButtonWithIcon("", theme.WindowCloseIcon(), func() {
 		adminPopup.Hide() // Function to hide the pop-up
 	})
-	adminCloseButton.Alignment = widget.ButtonAlignTrailing
+	adminCloseButton.Importance = widget.LowImportance
 
-	adminPopupContent := container.New(
-		layout.NewCenterLayout(),
-		container.NewVBox(
-			container.NewGridWithColumns(3,
-				adminSettingsHeader,
-				layout.NewSpacer(),
-				adminCloseButton,
-			),
-			container.NewAppTabs(
-				container.NewTabItem("Stats", adminStatsTab()),
-				container.NewTabItem("SSH", adminPotTab()),
-				container.NewTabItem("App", adminSystemTab()),
-				container.NewTabItem("Data", adminDataTab()),
-			),
-		),
+	tabs := container.NewAppTabs(
+		container.NewTabItem("Stats", adminStatsTab()),
+		container.NewTabItem("SSH", adminPotTab()),
+		container.NewTabItem("App", adminSystemTab()),
+		container.NewTabItem("Data", adminDataTab()),
 	)
-	adminPopupContent.Resize(fyne.NewSize(900, 400))
+
+	// Overlay the close button at the top right
+	closeOverlay := container.NewVBox(
+		container.NewHBox(
+			layout.NewSpacer(),
+			adminCloseButton,
+		),
+		layout.NewSpacer(),
+	)
+
+	adminPopupContent := container.NewStack(
+		tabs,
+		closeOverlay,
+	)
+	adminPopupContent.Resize(fyne.NewSize(900, 700))
 
 	return adminPopupContent
 }

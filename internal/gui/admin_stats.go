@@ -244,8 +244,8 @@ func makeLineChart(data []*entity.EventCount) fyne.CanvasObject {
 		}
 	}
 
-	if maxVal == 0 {
-		maxVal = 1 // Avoid division by zero
+	if maxVal < 5 {
+		maxVal = 5
 	}
 
 	// 2. Create Custom Widget for Drawing
@@ -254,6 +254,7 @@ func makeLineChart(data []*entity.EventCount) fyne.CanvasObject {
 		container.NewVBox(
 			//widget.NewLabel(fmt.Sprintf("Peak: %d", maxVal)),
 			container.NewPadded(&simpleChart{points: points, maxVal: float32(maxVal)}),
+			widget.NewLabel("....."),
 		),
 	)
 }
@@ -279,8 +280,10 @@ func (r *simpleChartRenderer) Layout(size fyne.Size) {
 		return
 	}
 
+	padding := float32(10)
 	width := size.Width
 	height := size.Height
+	availableHeight := height - 2*padding
 	stepX := width / float32(len(r.chart.points)-1)
 
 	// Draw Axes
@@ -291,7 +294,7 @@ func (r *simpleChartRenderer) Layout(size fyne.Size) {
 	for i, val := range r.chart.points {
 		x := float32(i) * stepX
 		// Invert Y because 0 is at top
-		y := height - (val / r.chart.maxVal * height)
+		y := height - padding - (val / r.chart.maxVal * availableHeight)
 
 		if i > 0 {
 			line := canvas.NewLine(theme.Color(theme.ColorNameForeground))
