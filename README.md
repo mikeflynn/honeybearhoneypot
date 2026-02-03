@@ -1,3 +1,5 @@
+![Honey Bear GUI Window](design/gui_window.jpg)
+
 # Honey Bear Honey Pot
 
 A SSH honeypot application that has a whimsical GUI application...and, if you prefer, can run on a hard hat!
@@ -27,9 +29,31 @@ After installation, you can run the application using the command:
 $ honeybearhoneypot -h
 ```
 
+### Linux Packages
+
+You can download `.deb`, `.rpm`, and `.apk` packages from the [Releases](https://github.com/mikeflynn/honeybearhoneypot/releases) page.
+
+**Debian/Ubuntu:**
+
+```bash
+sudo dpkg -i honeybearhoneypot_*.deb
+```
+
+**RHEL/CentOS/Fedora:**
+
+```bash
+sudo rpm -i honeybearhoneypot_*.rpm
+```
+
+**Alpine:**
+
+```bash
+apk add --allow-untrusted honeybearhoneypot_*.apk
+```
+
 ### Manual Download
 
-Download the latest binary for your architecture from the [Releases](https://github.com/mikeflynn/honeybearhoneypot/releases) page.
+Download the latest binary or package for your architecture from the [Releases](https://github.com/mikeflynn/honeybearhoneypot/releases) page.
 
 ## Configuration
 
@@ -40,8 +64,12 @@ The honeypot can be configured using command-line flags when starting the applic
 - `-width`: Set the width of the GUI window
 - `-log-level`: Set logging level (debug, info, warn, error, fatal) (default "info")
 - `-no-gui`: Run the honey pot without the GUI
+- `-no-fun`: Disable non-standard commands (celebrate, ctf, matrix)
 - `-pin-reset`: Reset the admin PIN to a specific value
 - `-ssh-port`: The port(s) to listen on for honey pot SSH connections (comma separated for multiple ports, default "1337")
+- `-export-format`: The format to export data to (json, csv, raw)
+- `-export-path`: The directory to export data to
+- `-export-types`: The types of data to export (events, options, ctf). Comma separated.
 - `-tunnel`: Set up SSH reverse tunnel (format: user@server.com:22)
 - `-tunnel-key`: Path to SSH key for reverse tunnel authentication
 - `-tunnel-bind`: The address to bind to on the remote server (default "127.0.0.1")
@@ -65,6 +93,7 @@ The GUI provides a visual interface for monitoring and managing the honeypot:
   - Stats: View login statistics, top commands, and recent activity
   - SSH: Configure maximum concurrent users
   - App: System controls including PIN changes and fullscreen toggle
+  - Data: Export options or event logs.
 - **Tunnel Status**: Indicates reverse tunnel connection status when configured.
 - **Notifications**: Displays real-time SSH connection and command activity.
 
@@ -100,12 +129,20 @@ $ go run main.go -h
 Usage of honeybearhoneypot:
   -config string
         Path to optional JSON config file
+  -export-format string
+        The format to export data to (json, csv, raw)
+  -export-path string
+        The directory to export data to
+  -export-types string
+        The types of data to export (events, options, ctf). Comma separated.
   -fs
         Start the gui in full screen mode
   -height int
         The height of the GUI window
   -log-level string
         Log level (debug, info, warn, error, fatal) (default "info")
+  -no-fun
+        Disable non-standard commands (celebrate, ctf, matrix)
   -no-gui
         Run the honey pot without the GUI
   -pin-reset string
