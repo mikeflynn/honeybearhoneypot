@@ -59,6 +59,25 @@ builds:
     ldflags:
       - -s -w
 
+nfpms:
+  - id: packages
+    package_name: honeybearhoneypot
+    file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    vendor: "Honey Bear"
+    homepage: "https://honeybear.hydrox.fun"
+    maintainer: "Mike Flynn <mikeflynn@users.noreply.github.com>"
+    description: "Whimsical SSH honeypot with a Fyne GUI"
+    license: "GPL-2.0"
+    formats:
+      - deb
+      - rpm
+      - apk
+    bindir: /usr/bin
+    contents:
+      - src: misc/config.sample.json
+        dst: /etc/honeybearhoneypot/config.json.sample
+        type: config
+
 archives:
   - format: tar.gz
     name_template: >-
