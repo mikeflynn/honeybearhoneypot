@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/mikeflynn/honeybearhoneypot/internal/config"
 	"github.com/mikeflynn/honeybearhoneypot/internal/db"
+	"github.com/mikeflynn/honeybearhoneypot/internal/db/export"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
 	"github.com/mikeflynn/honeybearhoneypot/internal/gui"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot"
@@ -30,10 +31,33 @@ func main() {
 	filesystem.SetAdditionalNodes(cfg.Filesystem)
 
 	log.SetLevel(translateLogLevel(cfg.LogLevel))
-	log.Info("Starting Honey Bear Honey Pot...")
 
 	appConfigDir := setup()
 	defer cleanup()
+
+	// Handle Export
+	if cfg.ExportFormat != "" {
+		if cfg.ExportPath == "" {
+			log.Fatal("Export path is required when export format is specified")
+		}
+
+		log.Info("Starting Export...", "format", cfg.ExportFormat, "path", cfg.ExportPath)
+
+		var types []export.DataType
+		for _, t := range cfg.ExportTypes {
+			types = append(types, export.DataType(t))
+		}
+
+		err := export.ExportDatabase(types, export.ExportFormat(cfg.ExportFormat), cfg.ExportPath)
+		if err != nil {
+			log.Fatal("Export failed", "error", err)
+		}
+
+		log.Info("Export completed successfully")
+		return
+	}
+
+	log.Info("Starting Honey Bear Honey Pot...")
 
 	filesystem.SetNoFun(config.Active.NoFun)
 
