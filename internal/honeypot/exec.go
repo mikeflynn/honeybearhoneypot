@@ -44,20 +44,7 @@ func handleExec(s ssh.Session, rawCmd string) {
 	user := s.Context().User()
 	host := s.Context().RemoteAddr().String()
 
-	home := "/home/" + user
-	if user == "root" {
-		home = "/root"
-	}
-
-	env := map[string]string{
-		"USER":    user,
-		"LOGNAME": user,
-		"HOME":    home,
-		"SHELL":   "/bin/bash",
-		"PATH":    "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-		"PWD":     home,
-		"LANG":    "en_US.UTF-8",
-	}
+	env := DefaultEnviron(user, "")
 
 	// Log login event
 	logEvent(user, host, "login", "Logged in via exec")
