@@ -2,6 +2,7 @@ package honeypot
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -170,7 +171,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.SetEventTime("enter")
 				m.output += m.historyStyle.Render(fmt.Sprintf("\n❯ %s\n", m.textInput.Value()))
 
-				parts, err := shlex.Split(command)
+				// Preserving backslashes that shlex would otherwise strip in double quotes
+				// by escaping them for shlex.
+				re := regexp.MustCompile(`\\([^$"\\` + "`" + `\n])`)
+				escapedCommand := re.ReplaceAllString(command, `\\$0`)
+
+				parts, err := shlex.Split(escapedCommand)
 				if err != nil {
 					m.output += m.outputStyle.Render(fmt.Sprintf("\nError parsing command: %s\n", err))
 					return m, tea.Batch(cmds...)

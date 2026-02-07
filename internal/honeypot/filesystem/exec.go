@@ -3,11 +3,138 @@ package filesystem
 import (
 	"fmt"
 	"math/rand/v2"
+	"strconv"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
+
+func echoExec(dir *Node, params []string, user, group string) *tea.Cmd {
+	cmd := tea.Cmd(func() tea.Msg {
+		interpret := false
+		noNewline := false
+		args := []string{}
+
+		for _, p := range params {
+			if strings.HasPrefix(p, "-") && len(p) > 1 {
+				for i := 1; i < len(p); i++ {
+					switch p[i] {
+					case 'e':
+						interpret = true
+					case 'E':
+						interpret = false
+					case 'n':
+						noNewline = true
+					}
+				}
+			} else {
+				args = append(args, p)
+			}
+		}
+
+		output := strings.Join(args, " ")
+		if interpret {
+			output = interpretEscapes(output)
+		}
+
+		if noNewline {
+			// Currently OutputMsg in model.go adds newlines,
+			// so -n might not be fully effective without model.go changes.
+			// But we'll implement the logic here.
+			return OutputMsg(output)
+		}
+
+		return OutputMsg(output)
+	})
+	return &cmd
+}
+
+func interpretEscapes(s string) string {
+	var res strings.Builder
+	for i := 0; i < len(s); i++ {
+		if s[i] == '\\' && i+1 < len(s) {
+			i++
+			switch s[i] {
+			case 'a':
+				res.WriteByte('\a')
+			case 'b':
+				res.WriteByte('\b')
+			case 'c':
+				return res.String()
+			case 'e', 'E':
+				res.WriteByte('\x1b')
+			case 'f':
+				res.WriteByte('\f')
+			case 'n':
+				res.WriteByte('\n')
+			case 'r':
+				res.WriteByte('\r')
+			case 't':
+				res.WriteByte('\t')
+			case 'v':
+				res.WriteByte('\v')
+			case '\\':
+				res.WriteByte('\\')
+			case 'x':
+				if i+2 < len(s) {
+					hex := s[i+1 : i+3]
+					if val, err := strconv.ParseUint(hex, 16, 8); err == nil {
+						res.WriteByte(byte(val))
+						i += 2
+					} else {
+						res.WriteString("\\x")
+					}
+				} else {
+					res.WriteString("\\x")
+				}
+			case '0':
+				// Octal: \0NNN (up to 3 digits)
+				if i+1 < len(s) {
+					end := i + 4
+					if end > len(s) {
+						end = len(s)
+					}
+					octalStr := ""
+					for j := i + 1; j < end; j++ {
+						if s[j] >= '0' && s[j] <= '7' {
+							octalStr += string(s[j])
+						} else {
+							break
+						}
+					}
+					if len(octalStr) > 0 {
+						if val, err := strconv.ParseUint(octalStr, 8, 8); err == nil {
+							res.WriteByte(byte(val))
+							i += len(octalStr)
+						} else {
+							res.WriteByte('0')
+						}
+					} else {
+						res.WriteByte('0')
+					}
+				} else {
+					res.WriteByte('0')
+				}
+			default:
+				res.WriteByte('\\')
+				res.WriteByte(s[i])
+			}
+		} else if s[i] == 'x' && i+2 < len(s) {
+			// Lenient hex handling for cases where the backslash was stripped by a local shell
+			hex := s[i+1 : i+3]
+			if val, err := strconv.ParseUint(hex, 16, 8); err == nil {
+				res.WriteByte(byte(val))
+				i += 2
+			} else {
+				res.WriteByte('x')
+			}
+		} else {
+			res.WriteByte(s[i])
+		}
+	}
+	return res.String()
+}
 
 func bearSayExec(dir *Node, params []string, user, group string) *tea.Cmd {
 	cmds := []tea.Cmd{}

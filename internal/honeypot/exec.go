@@ -3,7 +3,7 @@ package honeypot
 import (
 	"fmt"
 	"net"
-	"strings"
+	"regexp"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -16,8 +16,8 @@ import (
 
 func execMiddleware(next ssh.Handler) ssh.Handler {
 	return func(s ssh.Session) {
-		cmd := s.Command()
-		if len(cmd) > 0 {
+		rawCmd := s.RawCommand()
+		if len(rawCmd) > 0 {
 			host := s.Context().RemoteAddr().String()
 			ip, _, err := net.SplitHostPort(host)
 			if err != nil {
@@ -31,17 +31,14 @@ func execMiddleware(next ssh.Handler) ssh.Handler {
 				return
 			}
 
-			handleExec(s, cmd)
+			handleExec(s, rawCmd)
 			return
 		}
 		next(s)
 	}
 }
 
-func handleExec(s ssh.Session, cmd []string) {
-	// Reconstruct the full command string
-	fullCmd := strings.Join(cmd, " ")
-
+func handleExec(s ssh.Session, rawCmd string) {
 	// Basic context
 	user := s.Context().User()
 	host := s.Context().RemoteAddr().String()
@@ -50,8 +47,8 @@ func handleExec(s ssh.Session, cmd []string) {
 	logEvent(user, host, "login", "Logged in via exec")
 
 	// Log command event
-	logEvent(user, host, "typed", fullCmd)
-	log.Info(fmt.Sprintf("Exec command entered by %s:%s: %s", user, host, fullCmd))
+	logEvent(user, host, "typed", rawCmd)
+	log.Info(fmt.Sprintf("Exec command entered by %s:%s: %s", user, host, rawCmd))
 
 	// Ensure filesystem is initialized (following pattern in pot.go)
 	// Note: This might be race-prone as discussed, but consistency with existing code is key.
@@ -60,19 +57,24 @@ func handleExec(s ssh.Session, cmd []string) {
 	// Initialize "current directory" to home (mimic login)
 	currentDir := filesystem.HomeDir
 
-	parts, err := shlex.Split(fullCmd)
+	// Preserving backslashes that shlex would otherwise strip in double quotes
+	// by escaping them for shlex.
+	re := regexp.MustCompile(`\\([^$"\\` + "`" + `\n])`)
+	escapedCommand := re.ReplaceAllString(rawCmd, `\\$0`)
+
+	cmd, err := shlex.Split(escapedCommand)
 	if err != nil {
 		fmt.Fprintf(s, "Error parsing command: %s\n", err)
 		return
 	}
 
-	if len(parts) > 0 {
-		switch parts[0] {
+	if len(cmd) > 0 {
+		switch cmd[0] {
 		case "exit":
 			s.Exit(0)
 			return
 		default:
-			runCommand(s, currentDir, parts[0], parts[1:], user, "default")
+			runCommand(s, currentDir, cmd[0], cmd[1:], user, "default")
 		}
 	}
 }

@@ -230,7 +230,7 @@ func Initialize() {
 								Owner:     "root",
 								Group:     "root",
 								Mode:      0711,
-								HelpText:  "Usage: clear\n Clear the terminal screen.",
+								HelpText:  "Usage: bearsay [STRING]...\nDisplay a bear saying the STRING(s).",
 								Exec:      bearSayExec,
 							},
 							{
@@ -250,7 +250,7 @@ func Initialize() {
 								Owner:     "root",
 								Group:     "root",
 								Mode:      0711,
-								HelpText:  "configurable speaking/thinking bear (and a bit more)",
+								HelpText:  "Usage: cowsay [STRING]...\nDisplay a bear (yes, a bear) saying the STRING(s).",
 								Exec:      bearSayExec,
 							},
 							{
@@ -260,15 +260,8 @@ func Initialize() {
 								Owner:     "root",
 								Group:     "root",
 								Mode:      0711,
-								HelpText:  "configurable speaking/thinking bear (and a bit more)",
-								Exec: func(dir *Node, params []string, user, group string) *tea.Cmd {
-									var cmd tea.Cmd
-									cmd = func() tea.Msg {
-										return OutputMsg(strings.Join(params, " "))
-									}
-
-									return &cmd
-								},
+								HelpText:  "Usage: echo [SHORT-OPTION]... [STRING]...\nEcho the STRING(s) to standard output.\n\n  -n     do not output the trailing newline\n  -e     enable interpretation of backslash escapes\n  -E     disable interpretation of backslash escapes (default)",
+								Exec:      echoExec,
 							},
 							{
 								Name:      "ping",
