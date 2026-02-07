@@ -375,8 +375,14 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 
 	filesystem.Initialize()
 
+	user := s.Context().User()
+	home := "/home/" + user
+	if user == "root" {
+		home = "/root"
+	}
+
 	m := model{
-		user:          s.Context().User(),
+		user:          user,
 		host:          s.Context().RemoteAddr().String(),
 		group:         "default",
 		term:          pty.Term,
@@ -393,6 +399,16 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		textInput:     textinput,
 		events: map[string]time.Time{
 			"session_start": time.Now(),
+		},
+		environ: map[string]string{
+			"USER":    user,
+			"LOGNAME": user,
+			"HOME":    home,
+			"SHELL":   "/bin/bash",
+			"PATH":    "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+			"PWD":     home,
+			"LANG":    "en_US.UTF-8",
+			"TERM":    pty.Term,
 		},
 		confetti: confetti.InitialModel(renderer),
 		matrix:   matrix.InitialModel(renderer, pty.Window.Width, pty.Window.Height),

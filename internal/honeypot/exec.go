@@ -3,6 +3,7 @@ package honeypot
 import (
 	"fmt"
 	"net"
+	"os"
 	"regexp"
 	"time"
 
@@ -43,6 +44,21 @@ func handleExec(s ssh.Session, rawCmd string) {
 	user := s.Context().User()
 	host := s.Context().RemoteAddr().String()
 
+	home := "/home/" + user
+	if user == "root" {
+		home = "/root"
+	}
+
+	env := map[string]string{
+		"USER":    user,
+		"LOGNAME": user,
+		"HOME":    home,
+		"SHELL":   "/bin/bash",
+		"PATH":    "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+		"PWD":     home,
+		"LANG":    "en_US.UTF-8",
+	}
+
 	// Log login event
 	logEvent(user, host, "login", "Logged in via exec")
 
@@ -69,18 +85,25 @@ func handleExec(s ssh.Session, rawCmd string) {
 	}
 
 	if len(cmd) > 0 {
+		// Expand environment variables
+		for i := range cmd {
+			cmd[i] = os.Expand(cmd[i], func(k string) string {
+				return env[k]
+			})
+		}
+
 		switch cmd[0] {
 		case "exit":
 			s.Exit(0)
 			return
 		default:
-			runCommand(s, currentDir, cmd[0], cmd[1:], user, "default")
+			runCommand(s, currentDir, cmd[0], cmd[1:], user, "default", env)
 		}
 	}
 }
 
-func runCommand(s ssh.Session, dir *filesystem.Node, bin string, args []string, user, group string) {
-	teaCmd, err := filesystem.RunNode(dir, bin, args, user, group)
+func runCommand(s ssh.Session, dir *filesystem.Node, bin string, args []string, user, group string, env map[string]string) {
+	teaCmd, err := filesystem.RunNode(dir, bin, args, user, group, env)
 	if err != nil {
 		fmt.Fprintf(s, "%s\n", err)
 		return

@@ -2,6 +2,7 @@ package honeypot
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -52,6 +53,8 @@ type model struct {
 	// History
 	historyIdx int
 	history    []string
+	// Environment
+	environ map[string]string
 }
 
 func (m model) Init() tea.Cmd {
@@ -140,8 +143,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case filesystem.ClearOutputMsg:
 		m.output = ""
+	case filesystem.SetEnvMsg:
+		if m.environ == nil {
+			m.environ = make(map[string]string)
+		}
+		m.environ[msg.Key] = msg.Value
+	case filesystem.UnsetEnvMsg:
+		if m.environ != nil {
+			delete(m.environ, string(msg))
+		}
 	case filesystem.ChangeDirMsg:
 		m.currentDir = msg.Node
+		if m.environ == nil {
+			m.environ = make(map[string]string)
+		}
+		m.environ["PWD"] = msg.Path
 		m.output += m.outputStyle.Render(fmt.Sprintf("\ncd %s\n", msg.Path))
 	case filesystem.HistoryListMsg:
 		max := 10
@@ -183,6 +199,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 				if len(parts) > 0 {
+					// Expand environment variables
+					for i := range parts {
+						parts[i] = os.Expand(parts[i], func(k string) string {
+							return m.environ[k]
+						})
+					}
+
 					// Add to history
 					historyPush(&m, command)
 					// Save an event log
@@ -195,7 +218,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					case "exit":
 						return m, tea.Quit
 					default:
-						newCmd, err := filesystem.RunNode(m.currentDir, parts[0], parts[1:], m.user, m.group)
+						newCmd, err := filesystem.RunNode(m.currentDir, parts[0], parts[1:], m.user, m.group, m.environ)
 						if err != nil {
 							m.output += m.outputStyle.Render(fmt.Sprintf("\n%s\n", err))
 						} else if newCmd != nil {
