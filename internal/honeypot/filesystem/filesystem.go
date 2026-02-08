@@ -32,7 +32,12 @@ type (
 		Path string
 		Node *Node
 	}
-	TickMsg time.Time
+	SetEnvMsg struct {
+		Key   string
+		Value string
+	}
+	UnsetEnvMsg string
+	TickMsg     time.Time
 )
 
 func newDirectory(path string, children ...*Node) *Node {
@@ -142,7 +147,7 @@ func Initialize() {
 								Group:     "root",
 								Mode:      0711,
 								HelpText:  "Usage: ls [OPTION]... [FILE]...\n List information about the FILEs (the current directory by default).",
-								Exec: func(dir *Node, params []string, user, group string) *tea.Cmd {
+								Exec: func(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
 									cmd := tea.Cmd(func() tea.Msg {
 										output := ""
 										separater := "\t"
@@ -198,7 +203,7 @@ func Initialize() {
 								Group:     "root",
 								Mode:      0711,
 								HelpText:  "w - Show who is logged on and what they are doing.",
-								Exec: func(dir *Node, params []string, user, group string) *tea.Cmd {
+								Exec: func(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
 									cmd := tea.Cmd(func() tea.Msg {
 										return ListActiveUsersMsg("")
 									})
@@ -214,7 +219,7 @@ func Initialize() {
 								Group:     "root",
 								Mode:      0711,
 								HelpText:  "Usage: clear\n Clear the terminal screen.",
-								Exec: func(dir *Node, params []string, user, group string) *tea.Cmd {
+								Exec: func(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
 									var cmd tea.Cmd
 									cmd = func() tea.Msg {
 										return ClearOutputMsg("")
@@ -271,7 +276,7 @@ func Initialize() {
 								Group:     "root",
 								Mode:      0711,
 								HelpText:  "Usage: ping\n Send a ping, get a pong.",
-								Exec: func(dir *Node, params []string, user, group string) *tea.Cmd {
+								Exec: func(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
 									var cmd tea.Cmd
 									cmd = func() tea.Msg {
 										return OutputMsg("Pong!")
@@ -288,7 +293,7 @@ func Initialize() {
 								Group:     "root",
 								Mode:      0711,
 								HelpText:  "Usage: man [COMMAND]\n Display the manual page for a command.",
-								Exec: func(dir *Node, params []string, user, group string) *tea.Cmd {
+								Exec: func(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
 									var cmd tea.Cmd
 									cmd = func() tea.Msg {
 										return OutputMsg("No man. Just use -h or --help on the command you want to learn about.")
@@ -305,7 +310,7 @@ func Initialize() {
 								Group:     "root",
 								Mode:      0711,
 								HelpText:  "Usage: help\n Display this help text.",
-								Exec: func(dir *Node, params []string, user, group string) *tea.Cmd {
+								Exec: func(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
 									cmds := []tea.Cmd{}
 									cmds = append(cmds, tea.Cmd(func() tea.Msg {
 										return SetRunningCmd("cat")
@@ -332,7 +337,7 @@ func Initialize() {
 								Group:     "root",
 								Mode:      0711,
 								HelpText:  "Usage: pwd\n Print the name of the current working directory.",
-								Exec: func(dir *Node, params []string, user, group string) *tea.Cmd {
+								Exec: func(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
 									cmd := tea.Cmd(func() tea.Msg {
 										return OutputMsg(dir.Path)
 									})
@@ -369,6 +374,26 @@ func Initialize() {
 								Mode:      0711,
 								HelpText:  "Usage: env [OPTION]... [-] [NAME=VALUE]... [COMMAND [ARG]...]\n Set each NAME to VALUE in the environment and run COMMAND.",
 								Exec:      envExec,
+							},
+							{
+								Name:      "export",
+								Path:      "/usr/bin/export",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								HelpText:  "Usage: export [NAME[=VALUE]]...\n Set export attribute for shell variables.",
+								Exec:      exportExec,
+							},
+							{
+								Name:      "unset",
+								Path:      "/usr/bin/unset",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								HelpText:  "Usage: unset [NAME]...\n Unset values and attributes of shell variables.",
+								Exec:      unsetExec,
 							},
 							{
 								Name:      "netstat",
@@ -408,7 +433,7 @@ func Initialize() {
 								Group:     "root",
 								Mode:      0711,
 								HelpText:  "Usage: history\n Display the command history.",
-								Exec: func(dir *Node, params []string, user, group string) *tea.Cmd {
+								Exec: func(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
 									cmd := tea.Cmd(func() tea.Msg {
 										return HistoryListMsg("")
 									})
@@ -454,7 +479,7 @@ func Initialize() {
 								Group:     "root",
 								Mode:      0711,
 								Fun:       true,
-								Exec: func(dir *Node, params []string, user, group string) *tea.Cmd {
+								Exec: func(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
 									cmds := []tea.Cmd{}
 									cmds = append(cmds, tea.Cmd(func() tea.Msg {
 										return SetRunningCmd("confetti")
@@ -484,7 +509,7 @@ func Initialize() {
 								Group:     "root",
 								Fun:       true,
 								Mode:      0711,
-								Exec: func(dir *Node, params []string, user, group string) *tea.Cmd {
+								Exec: func(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
 									cmds := []tea.Cmd{}
 									cmds = append(cmds, tea.Cmd(func() tea.Msg {
 										return SetRunningCmd("matrix")
@@ -508,7 +533,7 @@ func Initialize() {
 								Fun:       true,
 								Mode:      0711,
 								HelpText:  "Play the Honey Bear Honey Pot Capture the Flag (CTF) game. flag{hbhphh_ctf} is a flag to get you started.",
-								Exec: func(dir *Node, params []string, user, group string) *tea.Cmd {
+								Exec: func(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
 									cmds := []tea.Cmd{}
 									cmds = append(cmds, tea.Cmd(func() tea.Msg { return SetRunningCmd("ctf") }))
 									cmds = append(cmds, tea.Cmd(func() tea.Msg {
@@ -528,7 +553,7 @@ func Initialize() {
 								Fun:       true,
 								Mode:      0711,
 								HelpText:  "Show CTF leaderboard",
-								Exec: func(dir *Node, params []string, user, group string) *tea.Cmd {
+								Exec: func(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
 									var cmd tea.Cmd
 									cmd = func() tea.Msg {
 										limit := 10
@@ -581,7 +606,7 @@ func Initialize() {
 								Group:     "root",
 								Mode:      0711,
 								HelpText:  "Usage: cd [DIRECTORY]\n Change the shell working directory.",
-								Exec: func(dir *Node, params []string, user, group string) *tea.Cmd {
+								Exec: func(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
 									var cmd tea.Cmd
 									cmd = func() tea.Msg {
 										if len(params) == 0 {
@@ -611,7 +636,7 @@ func Initialize() {
 								Group:     "root",
 								Mode:      0711,
 								HelpText:  "Usage: uname [OPTION]...\n Print system information.",
-								Exec: func(dir *Node, params []string, user, group string) *tea.Cmd {
+								Exec: func(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
 									s := "Linux"
 									n := "Hardhat"
 									r := "6.22.0-81-generic"
@@ -660,7 +685,7 @@ func Initialize() {
 								Group:     "root",
 								Mode:      0711,
 								HelpText:  "w - Show who is logged on and what they are doing.",
-								Exec: func(dir *Node, params []string, user, group string) *tea.Cmd {
+								Exec: func(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
 									cmd := tea.Cmd(func() tea.Msg {
 										if len(params) == 0 {
 											return OutputMsg("No LSB modules are available.")

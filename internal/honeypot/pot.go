@@ -375,8 +375,10 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 
 	filesystem.Initialize()
 
+	user := s.Context().User()
+
 	m := model{
-		user:          s.Context().User(),
+		user:          user,
 		host:          s.Context().RemoteAddr().String(),
 		group:         "default",
 		term:          pty.Term,
@@ -394,6 +396,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		events: map[string]time.Time{
 			"session_start": time.Now(),
 		},
+		environ: DefaultEnviron(user, pty.Term),
 		confetti: confetti.InitialModel(renderer),
 		matrix:   matrix.InitialModel(renderer, pty.Window.Width, pty.Window.Height),
 		ctf: ctf.InitialModel(
