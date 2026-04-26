@@ -1,12 +1,13 @@
 package matrix
 
 import (
+	"image/color"
 	"math/rand"
 	"strings"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 var (
@@ -14,7 +15,7 @@ var (
 	// improved compatibility with terminals that don't support true color.
 	matrixBg = lipgloss.Color("233")
 
-	matrixPalettes = []lipgloss.Color{
+	matrixPalettes = []color.Color{
 		lipgloss.Color("17"),
 		lipgloss.Color("240"),
 		lipgloss.Color("240"),
@@ -36,12 +37,11 @@ func Start() tea.Msg {
 	return MatrixTick{}
 }
 
-func InitialModel(renderer *lipgloss.Renderer, width int, height int) Matrix {
+func InitialModel(width int, height int) Matrix {
 	m := Matrix{
-		Speed:    time.Millisecond * 100,
-		Width:    width,
-		Height:   height,
-		renderer: renderer,
+		Speed:  time.Millisecond * 100,
+		Width:  width,
+		Height: height,
 	}
 
 	return m.initSymbols()
@@ -61,16 +61,15 @@ type Matrix struct {
 	Width  int
 	Height int
 
-	renderer *lipgloss.Renderer
-	symbols  [][]string
-	colors   [][]int
+	symbols [][]string
+	colors  [][]int
 }
 
 func (m Matrix) Init() tea.Cmd {
 	return m.doTick()
 }
 
-func (m Matrix) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m Matrix) Update(msg tea.Msg) (Matrix, tea.Cmd) {
 	var newCmd tea.Cmd
 
 	switch msg := msg.(type) {
@@ -93,7 +92,7 @@ func (m Matrix) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Matrix) View() string {
 	nRow := m.Height
 	nColumn := m.Width / 2
-	style := m.renderer.NewStyle().Background(matrixBg)
+	style := lipgloss.NewStyle().Background(matrixBg)
 
 	var sb strings.Builder
 	for row := 0; row < nRow; row++ {

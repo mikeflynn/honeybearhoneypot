@@ -11,7 +11,7 @@ import (
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
-	"github.com/charmbracelet/log"
+	"charm.land/log/v2"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
 )
 

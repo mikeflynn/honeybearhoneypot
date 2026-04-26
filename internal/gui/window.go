@@ -11,7 +11,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/charmbracelet/log"
+	"charm.land/log/v2"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
 	"github.com/mikeflynn/honeybearhoneypot/internal/gui/assets"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot"

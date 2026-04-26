@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbles/viewport"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/log"
+	"charm.land/bubbles/v2/textinput"
+	"charm.land/bubbles/v2/viewport"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
+	"charm.land/log/v2"
 	"github.com/google/shlex"
 	"github.com/mikeflynn/honeybearhoneypot/internal/config"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/confetti"
@@ -28,13 +28,11 @@ type model struct {
 	host           string
 	group          string
 	term           string
-	profile        string
 	width          int
 	height         int
 	runningCommand string
 	currentDir     *filesystem.Node
 	// Styles
-	renderer     *lipgloss.Renderer
 	txtStyle     lipgloss.Style
 	quitStyle    lipgloss.Style
 	historyStyle lipgloss.Style
@@ -43,9 +41,9 @@ type model struct {
 	textInput     textinput.Model
 	viewport      viewport.Model
 	viewportReady bool
-	confetti      tea.Model
-	matrix        tea.Model
-	ctf           tea.Model
+	confetti      confetti.Model
+	matrix        matrix.Matrix
+	ctf           ctf.Model
 	helpText      string
 	events        map[string]time.Time
 	// Data
@@ -105,20 +103,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		verticalMargin := footerHeight + inputHeight
 
 		if !m.viewportReady {
-			m.viewport = viewport.New(msg.Width, msg.Height-verticalMargin)
-			m.viewport.YPosition = 0
+			m.viewport = viewport.New(viewport.WithWidth(msg.Width), viewport.WithHeight(msg.Height-verticalMargin))
+			m.viewport.SetYOffset(0)
 			//m.viewport.HighPerformanceRendering = false
 			m.viewport.Style = m.outputStyle.Border(lipgloss.NormalBorder(), false, false, true, false)
 			m.viewport.SetContent("")
 			m.viewportReady = true
 		} else {
-			m.viewport.Width = msg.Width
-			m.viewport.Height = msg.Height - verticalMargin
+			m.viewport.SetWidth(msg.Width)
+			m.viewport.SetHeight(msg.Height - verticalMargin)
 		}
 
-		m.confetti.Update(msg)
-		m.matrix.Update(msg)
-		m.ctf.Update(msg)
+		m.confetti, _ = m.confetti.Update(msg)
+		m.matrix, _ = m.matrix.Update(msg)
+		m.ctf, _ = m.ctf.Update(msg)
 
 		//cmds = append(cmds, viewport.Sync(m.viewport))
 	case filesystem.FileContentsMsg:
@@ -175,9 +173,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ctf.QuitMsg:
 		m.viewport.SetContent("")
 		m.runningCommand = ""
-		m.ctf = ctf.InitialModel(m.renderer, convertTasks(config.Active.Tasks), m.user, m.host)
+		m.ctf = ctf.InitialModel(convertTasks(config.Active.Tasks), m.user, m.host)
 		return m, nil
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "enter":
 			if m.runningCommand == "" {
@@ -258,7 +256,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c":
 			if m.runningCommand != "" {
 				if m.runningCommand == "matrix" {
-					m.matrix.Update(matrix.MatrixStop{})
+					m.matrix, _ = m.matrix.Update(matrix.MatrixStop{})
 				}
 
 				m.viewport.SetContent("")
@@ -274,28 +272,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.viewport, vpCmd = m.viewport.Update(msg)
 		cmds = append(cmds, vpCmd)
 	case "confetti":
-		np, cmd := m.confetti.Update(msg)
-		cp, ok := np.(confetti.Model)
-		if !ok {
-			return m, tea.Quit
-		}
-		m.confetti = cp
+		m.confetti, cmd = m.confetti.Update(msg)
 		cmds = append(cmds, cmd)
 	case "matrix":
-		matrixModel, cmd := m.matrix.Update(msg)
-		mm, ok := matrixModel.(matrix.Matrix)
-		if !ok {
-			return m, tea.Quit
-		}
-		m.matrix = mm
-
-		cmds = append(cmds, tea.Batch(
-			//m.matrix.Init(),
-			cmd,
-		))
+		m.matrix, cmd = m.matrix.Update(msg)
+		cmds = append(cmds, cmd)
 	case "ctf":
-		np, cmd := m.ctf.Update(msg)
-		m.ctf = np
+		m.ctf, cmd = m.ctf.Update(msg)
 		cmds = append(cmds, cmd)
 	default:
 		m.textInput, cmd = m.textInput.Update(msg)
@@ -305,9 +288,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
-func (m model) View() string {
+func (m model) View() tea.View {
 	if !m.viewportReady {
-		return "\nInitializing...\n"
+		return tea.NewView("\nInitializing...\n")
 	}
 
 	footerHeight := lipgloss.Height(m.quitStyle.Render("\n"))
@@ -320,12 +303,12 @@ func (m model) View() string {
 	help := m.helpText
 
 	if m.runningCommand == "cat" && m.viewportReady {
-		m.viewport.Height = m.height - footerHeight
+		m.viewport.SetHeight(m.height - footerHeight)
 
-		return "" +
+		return tea.NewView("" +
 			m.viewport.View() +
 			"\n" +
-			m.quitStyle.Render("ctrl + c to exit this file.\n")
+			m.quitStyle.Render("ctrl + c to exit this file.\n"))
 	} else if m.runningCommand == "confetti" {
 		content = m.confetti.View()
 		help = "Press 'q' to quit or any other key to make more confetti."
@@ -333,13 +316,13 @@ func (m model) View() string {
 		content = m.matrix.View()
 		help = "Press 'ctrl + c' to quit."
 	} else if m.runningCommand == "ctf" {
-		return "" +
+		return tea.NewView("" +
 			m.ctf.View() +
 			"\n" +
-			m.quitStyle.Render("esc to go back or ctrl + c to exit the ctf.\n")
+			m.quitStyle.Render("esc to go back or ctrl + c to exit the ctf.\n"))
 	}
 
-	return fmt.Sprintf("%s\n%s\n%s\n", content, m.textInput.View(), m.quitStyle.Render(help))
+	return tea.NewView(fmt.Sprintf("%s\n%s\n%s\n", content, m.textInput.View(), m.quitStyle.Render(help)))
 }
 
 func (m model) EventTime(event string) *time.Time {

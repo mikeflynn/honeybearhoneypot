@@ -7,9 +7,9 @@ import (
 
 	"unicode"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
 )
 
@@ -55,8 +55,6 @@ type Model struct {
 
 	width  int
 	height int
-
-	renderer *lipgloss.Renderer
 
 	usernameInput textinput.Model
 	passwordInput textinput.Model
@@ -118,30 +116,36 @@ func wordWrap(text string, width int) string {
 	return result.String()
 }
 
-func InitialModel(renderer *lipgloss.Renderer, tasks []Task, sshuser string, sshhost string) Model {
+func InitialModel(tasks []Task, sshuser string, sshhost string) Model {
 	ti := textinput.New()
 	ti.Prompt = "Username: "
-	//ti.Placeholder = ""
-	ti.Focus()
 	ti.CharLimit = 32
-	ti.Cursor.Style = renderer.NewStyle().Blink(true)
-	ti.Width = 16
+	ti.SetWidth(16)
+	styles := ti.Styles()
+	styles.Cursor.Blink = true
+	ti.SetStyles(styles)
+	ti.Focus()
 
 	pi := textinput.New()
 	pi.Prompt = "Password: "
-	//pi.Placeholder = ""
 	pi.CharLimit = 32
 	pi.EchoMode = textinput.EchoPassword
-	pi.Cursor.Style = renderer.NewStyle().Blink(true)
-	pi.Width = 16
+	pi.SetWidth(16)
+	pStyles := pi.Styles()
+	pStyles.Cursor.Blink = true
+	pi.SetStyles(pStyles)
 
 	ai := textinput.New()
 	ai.Placeholder = "flag"
 	ai.Prompt = "❯ "
-	ai.PromptStyle = renderer.NewStyle().Foreground(lipgloss.Color("5")).Bold(true)
-	ai.TextStyle = renderer.NewStyle().Foreground(lipgloss.Color("11"))
 	ai.CharLimit = 256
-	ai.Width = 16
+	ai.SetWidth(16)
+	aStyles := ai.Styles()
+	aStyles.Focused.Prompt = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Bold(true)
+	aStyles.Focused.Text = lipgloss.NewStyle().Foreground(lipgloss.Color("11"))
+	aStyles.Blurred.Prompt = lipgloss.NewStyle().Foreground(lipgloss.Color("5")).Bold(true)
+	aStyles.Blurred.Text = lipgloss.NewStyle().Foreground(lipgloss.Color("11"))
+	ai.SetStyles(aStyles)
 
 	return Model{
 		state:         stateLogin,
@@ -154,13 +158,12 @@ func InitialModel(renderer *lipgloss.Renderer, tasks []Task, sshuser string, ssh
 		cursor:        0,
 		sshuser:       sshuser,
 		sshhost:       sshhost,
-		renderer:      renderer,
 	}
 }
 
 func (m Model) Init() tea.Cmd { return nil }
 
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case startMsg:
 		m.state = stateLogin
@@ -220,10 +223,10 @@ func (m *Model) authenticate() tea.Cmd {
 	return nil
 }
 
-func (m Model) updateLogin(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m Model) updateLogin(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "enter":
 			return m, m.authenticate()
@@ -255,9 +258,9 @@ func (m Model) updateLogin(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m Model) updateMenu(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m Model) updateMenu(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "up", "k":
 			if m.cursor > 0 {
@@ -285,10 +288,10 @@ func (m Model) updateMenu(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) updateAnswer(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m Model) updateAnswer(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "enter":
 			ans := strings.TrimSpace(m.answerInput.Value())
@@ -296,7 +299,7 @@ func (m Model) updateAnswer(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if err := m.user.CompleteTask(m.selectedTask.Name, m.selectedTask.Points); err != nil {
 					m.errMsg = err.Error()
 				} else {
-					m.errMsg = m.renderer.NewStyle().Foreground(lipgloss.Color("10")).Bold(true).Render(
+					m.errMsg = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true).Render(
 						fmt.Sprintf("🎉 Correct! +%d points! 🎉", m.selectedTask.Points),
 					)
 					m.selectedTask.Completed = true
@@ -320,7 +323,7 @@ func (m Model) updateAnswer(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 
-			m.errMsg = m.renderer.NewStyle().Foreground(lipgloss.Color("9")).Bold(true).Render("Incorrect flag")
+			m.errMsg = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true).Render("Incorrect flag")
 			return m, nil
 		case "esc":
 			m.state = stateMenu
@@ -333,8 +336,8 @@ func (m Model) updateAnswer(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m Model) View() string {
-	titleStyle := m.renderer.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)
-	welcome := m.renderer.NewStyle().Foreground(lipgloss.Color("7")).Render("Welcome to the Honey Bear Honey Pot CTF!\n" +
+	titleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)
+	welcome := lipgloss.NewStyle().Foreground(lipgloss.Color("7")).Render("Welcome to the Honey Bear Honey Pot CTF!\n" +
 		"Create an account by entering a new username and password or login with your existing credentials.")
 
 	switch m.state {
@@ -355,8 +358,8 @@ func (m Model) View() string {
 		)
 	case stateAnswer:
 		desc := wordWrap(m.selectedTask.Description, m.width-4)
-		descStyle := m.renderer.NewStyle().Foreground(lipgloss.Color("7"))
-		box := m.renderer.NewStyle().Border(lipgloss.NormalBorder()).Padding(1, 2)
+		descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
+		box := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Padding(1, 2)
 		content := lipgloss.JoinVertical(lipgloss.Left,
 			titleStyle.Render(m.selectedTask.Name),
 			descStyle.Render(desc),
@@ -372,11 +375,11 @@ func (m Model) View() string {
 
 func (m Model) renderTasks(showAllDesc bool) string {
 	var b strings.Builder
-	bullet := m.renderer.NewStyle().Foreground(lipgloss.Color("2")).Render("🍯")
-	doneBullet := m.renderer.NewStyle().Foreground(lipgloss.Color("3")).Render("✓")
-	selectedStyle := m.renderer.NewStyle().Foreground(lipgloss.Color("0")).Background(lipgloss.Color("6")).Bold(true)
-	normalStyle := m.renderer.NewStyle()
-	descStyle := m.renderer.NewStyle().Foreground(lipgloss.Color("7"))
+	bullet := lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Render("🍯")
+	doneBullet := lipgloss.NewStyle().Foreground(lipgloss.Color("3")).Render("✓")
+	selectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(lipgloss.Color("6")).Bold(true)
+	normalStyle := lipgloss.NewStyle()
+	descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
 
 	for i, t := range m.tasks {
 		blet := bullet

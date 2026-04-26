@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"fyne.io/fyne/v2/canvas"
-	"github.com/charmbracelet/log"
+	"charm.land/log/v2"
 	"github.com/mikeflynn/honeybearhoneypot/internal/gui/assets"
 )
 
