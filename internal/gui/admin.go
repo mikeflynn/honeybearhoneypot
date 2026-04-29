@@ -10,7 +10,7 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
-	"github.com/charmbracelet/log"
+	"charm.land/log/v2"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
 	"github.com/mikeflynn/honeybearhoneypot/internal/gui/keypad"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot"

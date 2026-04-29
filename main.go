@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/charmbracelet/log"
+	"charm.land/log/v2"
 	"github.com/mikeflynn/honeybearhoneypot/internal/config"
 	"github.com/mikeflynn/honeybearhoneypot/internal/db"
 	"github.com/mikeflynn/honeybearhoneypot/internal/db/export"

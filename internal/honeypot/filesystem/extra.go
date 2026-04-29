@@ -5,7 +5,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/charmbracelet/log"
+	"charm.land/log/v2"
 )
 
 var additionalNodes []Node

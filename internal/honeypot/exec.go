@@ -7,8 +7,8 @@ import (
 	"regexp"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/log"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/log/v2"
 	"github.com/charmbracelet/ssh"
 	"github.com/google/shlex"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"

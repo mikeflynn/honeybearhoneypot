@@ -15,16 +15,16 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/log"
+	"charm.land/bubbles/v2/textinput"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
+	"charm.land/log/v2"
 	"github.com/charmbracelet/ssh"
-	"github.com/charmbracelet/wish"
-	"github.com/charmbracelet/wish/activeterm"
-	"github.com/charmbracelet/wish/bubbletea"
-	"github.com/charmbracelet/wish/elapsed"
-	"github.com/charmbracelet/wish/logging"
+	"charm.land/wish/v2"
+	"charm.land/wish/v2/activeterm"
+	"charm.land/wish/v2/bubbletea"
+	"charm.land/wish/v2/elapsed"
+	"charm.land/wish/v2/logging"
 	"github.com/mikeflynn/honeybearhoneypot/internal/config"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/confetti"
@@ -339,34 +339,25 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	// This should never fail, as we are using the activeterm middleware.
 	pty, _, _ := s.Pty()
 
-	renderer := bubbletea.MakeRenderer(s)
+	txtStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
+	outputStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("246"))
+	historyStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#c33"))
+	quitStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
 
-	txtStyle := renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{
-		Light: "10", // Light green
-		Dark:  "10", // Light green
-	})
-	outputStyle := renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{
-		Light: "8",   // Light grey
-		Dark:  "246", // Dark grey
-	})
-	historyStyle := renderer.NewStyle().Bold(true).Foreground(lipgloss.AdaptiveColor{
-		Light: "#c33", // C33 Red
-		Dark:  "#c33", // C33 Red
-	})
-	quitStyle := renderer.NewStyle().Foreground(lipgloss.AdaptiveColor{
-		Light: "246", // Dark grey
-		Dark:  "8",   // Light grey
-	})
+	ti := textinput.New()
+	ti.Placeholder = ""
+	ti.CharLimit = 200
+	ti.SetWidth(50)
+	ti.Prompt = "you@hbhphh.hhb.com $ "
 
-	textinput := textinput.New()
-	textinput.Placeholder = ""
-	textinput.Focus()
-	textinput.CharLimit = 200
-	textinput.Width = 50
-	textinput.Prompt = "you@hbhphh.hhb.com $ "
-	textinput.Cursor.Style = txtStyle.Background(lipgloss.Color("10"))
-	textinput.PromptStyle = txtStyle
-	textinput.TextStyle = txtStyle
+	tiStyles := ti.Styles()
+	tiStyles.Cursor.Color = lipgloss.Color("10")
+	tiStyles.Focused.Prompt = txtStyle
+	tiStyles.Focused.Text = txtStyle
+	tiStyles.Blurred.Prompt = txtStyle
+	tiStyles.Blurred.Text = txtStyle
+	ti.SetStyles(tiStyles)
+	ti.Focus()
 
 	initialOutput := ""
 	if out, err := embedded.Files.ReadFile("initial-output.txt"); err == nil {
@@ -383,24 +374,21 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		group:         "default",
 		term:          pty.Term,
 		currentDir:    filesystem.HomeDir,
-		profile:       renderer.ColorProfile().Name(),
 		width:         pty.Window.Width,
 		height:        pty.Window.Height,
-		renderer:      renderer,
 		txtStyle:      txtStyle,
 		quitStyle:     quitStyle,
 		outputStyle:   outputStyle,
 		historyStyle:  historyStyle,
 		viewportReady: false,
-		textInput:     textinput,
+		textInput:     ti,
 		events: map[string]time.Time{
 			"session_start": time.Now(),
 		},
-		environ: DefaultEnviron(user, pty.Term),
-		confetti: confetti.InitialModel(renderer),
-		matrix:   matrix.InitialModel(renderer, pty.Window.Width, pty.Window.Height),
+		environ:  DefaultEnviron(user, pty.Term),
+		confetti: confetti.InitialModel(),
+		matrix:   matrix.InitialModel(pty.Window.Width, pty.Window.Height),
 		ctf: ctf.InitialModel(
-			renderer,
 			convertTasks(config.Active.Tasks),
 			s.Context().User(),
 			s.Context().RemoteAddr().String(),
@@ -411,9 +399,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		history:    []string{},
 	}
 
-	return m, []tea.ProgramOption{
-		//tea.WithAltScreen(),
-	}
+	return m, bubbletea.MakeOptions(s)
 }
 
 func convertTasks(t []config.Task) []ctf.Task {

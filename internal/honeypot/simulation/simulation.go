@@ -2,11 +2,11 @@ package simulation
 
 import (
 	"fmt"
+	"image/color"
 	"strings"
 	"time"
 
 	"github.com/charmbracelet/harmonica"
-	"github.com/charmbracelet/lipgloss"
 )
 
 type System struct {
@@ -16,12 +16,12 @@ type System struct {
 
 type Particle struct {
 	Char          string
-	Color         lipgloss.Color
+	Color         color.Color
 	TailChar      string
 	Physics       *harmonica.Projectile
 	Hidden        bool
 	Shooting      bool
-	ExplosionCall func(color lipgloss.Color, x, y float64, width, height int) []*Particle
+	ExplosionCall func(c color.Color, x, y float64, width, height int) []*Particle
 }
 
 type Frame struct {
