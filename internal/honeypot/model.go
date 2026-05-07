@@ -70,31 +70,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case filesystem.TickMsg:
-		cmds := []tea.Cmd{}
-		if time.Since(*m.EventTime("session_start")) > 45*time.Second &&
-			m.EventTime("knock") == nil &&
-			m.runningCommand == "" &&
-			config.Active.NoFun == false &&
-			len(m.history) < 3 {
-			m.SetEventTime("knock")
-			cmds = append(
-				cmds,
-				tea.Cmd(func() tea.Msg {
-					return filesystem.ClearOutputMsg("")
-				}),
-				tea.Cmd(func() tea.Msg {
-					time.Sleep(time.Second * 1)
-					return filesystem.OutputMsg("Knock, knock, Neo.")
-				}),
-				tea.Cmd(func() tea.Msg {
-					time.Sleep(time.Second * 10)
-					return filesystem.OutputMsg("If you don't know what to do, type 'help' or 'ctf' to play a game.")
-				}),
-			)
-		}
-
-		cmds = append(cmds, doTick())
-		return m, tea.Batch(cmds...)
+		return m, doTick()
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width

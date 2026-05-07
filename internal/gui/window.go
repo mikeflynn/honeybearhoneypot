@@ -86,6 +86,7 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 			layout.NewSpacer(),
 			container.NewVBox(
 				layout.NewSpacer(),
+				broadcastButton(),
 				aboutButton(),
 				getAdminButton(),
 			),
