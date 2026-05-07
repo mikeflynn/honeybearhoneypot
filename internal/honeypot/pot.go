@@ -274,13 +274,14 @@ func StartHoneyPot(appConfigDir string) {
 			return ""
 		}),
 		wish.WithMiddleware(
-			bubbletea.Middleware(teaHandler),
+			bubbletea.MiddlewareWithProgramHandler(teaProgramHandler),
 			func(next ssh.Handler) ssh.Handler {
 				return func(s ssh.Session) {
 					addActiveUser(s.User())
 
 					next(s)
 
+					unregisterSession(s.Context().SessionID())
 					removeActiveUser(s.User())
 				}
 			},
@@ -407,6 +408,13 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	}
 
 	return m, bubbletea.MakeOptions(s)
+}
+
+func teaProgramHandler(s ssh.Session) *tea.Program {
+	m, opts := teaHandler(s)
+	p := tea.NewProgram(m, opts...)
+	registerSession(s.Context().SessionID(), p)
+	return p
 }
 
 func convertTasks(t []config.Task) []ctf.Task {
