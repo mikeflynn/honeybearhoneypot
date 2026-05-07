@@ -71,6 +71,55 @@ func Initialize() {
 		"/usr/bin/",
 	}
 
+	homeFile := func(path string, content []byte, mode int) *Node {
+		n := newFile(path, content, mode)
+		n.Owner = "you"
+		n.Group = "default"
+		return n
+	}
+
+	homeDir := func(path string, children ...*Node) *Node {
+		n := newDirectory(path, children...)
+		n.Owner = "you"
+		n.Group = "default"
+		return n
+	}
+
+	awsCredentials := []byte(`[default]
+aws_access_key_id = AKIA4HARDHATFOZZIE99
+aws_secret_access_key = h0n3yB34r/H0n3yP0t+W3st2HardhatLinuxKey
+region = us-west-2
+
+[hardhat-prod]
+aws_access_key_id = AKIA4HARDHATPRODBEAR1
+aws_secret_access_key = pr0dB34rP4ws/D0NotC0mmit+ToTheR3p0Pls
+region = us-east-1
+`)
+
+	idRsa := []byte(`-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn
+NhAAAAAwEAAQAAAYEAyH0n3yB3aR/Pl4YsH4rdH4tF0zZ13L1nuxAtT4ckERsB3aRSay5n
+fozzieFoZZi3K3yD0NotUs3ThisAnyWh3reItIsAH0n3yp0tF4k3Pr1v4t3K3yF0rTh3B3
+4rTh4tWat3rTh3HardhatLinuxBucketAndStaresAtY0uThr0ughTh3WindowAtNight
+N0PrivateKeyTh4tStartsWithB3arShouldB3Tru3stedAndYouSh0uldHaveKn0wnTh
+4tBy NowR34lly+Th1sIsAH0n3yp0tDontW4st3Y0urT1m3TryingT0Cr4ckTh1sK3y
+AAAAAwEAAQAAAYBhardh4tFozz13B34rB4itK3yPl4nt3dF0rH0n3yp0tF1sh1ngAAAA
+-----END OPENSSH PRIVATE KEY-----
+`)
+
+	idRsaPub := []byte("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDIfSffIHdpH8+XhiwfivOUrt6sf3hH36ofozzieKey4HardhatLinuxBearBaitH0n3yP0tF4k3Pub1icK3yD0NotTrust you@hardhat\n")
+
+	authorizedKeys := []byte(`# Added by config-mgmt 2025-11-04
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDfozzieAdminH0n3yB34rR3m0t34cc3ssK3yPl4nt3dByH4rdh4tInfr4Pl34s3DontF1shM3 admin@hardhat-bastion
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH0n3yp0tBe4rB41tEd25519FozzieKeyJustB41t deploy@ci.hardhat.local
+`)
+
+	knownHosts := []byte(`hardhat-bastion.internal,10.42.0.7 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDhardh4tB4st10nHostK3yF0zz13B34rH0n3yp0tF4k3
+git.hardhat.local,10.42.0.21 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGitH4rdh4tL0c4lFozzieEd25519H0stK3yB41t
+github.com,140.82.112.4 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQGitHubLooKsR34lButTh1sI5StillBaitFromAH0n3yp0t
+|1|fozzieHASH=|fozzieMACHASH= ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQHashedHostNobodyW1llKn0wWh1chB34rTh1sIs
+`)
+
 	HomeDir = &Node{
 		Name:      "you",
 		Path:      "/home/you",
@@ -94,7 +143,15 @@ func Initialize() {
 					return fileData
 				},
 			},
-			newDirectory("/home/you/.ssh"),
+			homeDir("/home/you/.ssh",
+				homeFile("/home/you/.ssh/id_rsa", idRsa, 0600),
+				homeFile("/home/you/.ssh/id_rsa.pub", idRsaPub, 0644),
+				homeFile("/home/you/.ssh/authorized_keys", authorizedKeys, 0600),
+				homeFile("/home/you/.ssh/known_hosts", knownHosts, 0644),
+			),
+			homeDir("/home/you/.aws",
+				homeFile("/home/you/.aws/credentials", awsCredentials, 0600),
+			),
 		},
 		Owner: "you",
 		Group: "default",
