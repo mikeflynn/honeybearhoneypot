@@ -20,15 +20,16 @@ func adminStatsTab() *fyne.Container {
 
 	// Define the views
 	views := map[string]func() *fyne.Container{
-		"Users 30d": statsUsersGraphTab,
-		"Cmds 30d":  statsCommandsGraphTab,
-		"Top Cmds":  statsTopCommandsTab,
-		"Top Users": statsTopUsersTab,
-		"Recent":    statsRecentCommandsTab,
+		"Users 30d":     statsUsersGraphTab,
+		"Cmds 30d":      statsCommandsGraphTab,
+		"Top Cmds":      statsTopCommandsTab,
+		"Top Users":     statsTopUsersTab,
+		"Top Passwords": statsTopPasswordsTab,
+		"Recent":        statsRecentCommandsTab,
 	}
 
 	// Order for the dropdown
-	options := []string{"Users 30d", "Cmds 30d", "Top Cmds", "Top Users", "Recent"}
+	options := []string{"Users 30d", "Cmds 30d", "Top Cmds", "Top Users", "Top Passwords", "Recent"}
 
 	selector := widget.NewSelect(options, func(s string) {
 		if fn, ok := views[s]; ok {
@@ -152,6 +153,33 @@ func statsTopUsersTab() *fyne.Container {
 		data := []string{}
 		for i, e := range rows {
 			data = append(data, fmt.Sprintf("%d. %s: %d", i+1, e.Value, e.Count))
+		}
+		return data, nil
+	})
+}
+
+func statsTopPasswordsTab() *fyne.Container {
+	return createListTab(func() ([]string, error) {
+		rows, err := entity.EventCountQuery(
+			`SELECT
+				action,
+				count(*) AS total
+			FROM events
+			WHERE events.type = 'login'
+			AND action != ''
+			AND action != 'Logged in!'
+			AND action != 'Logged in via exec'
+			GROUP BY action
+			ORDER by count(*) DESC
+			LIMIT 100`,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		data := []string{}
+		for i, e := range rows {
+			data = append(data, fmt.Sprintf("%d. %s (%d)", i+1, e.Value, e.Count))
 		}
 		return data, nil
 	})

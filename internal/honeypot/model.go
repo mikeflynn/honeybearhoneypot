@@ -25,6 +25,7 @@ import (
 type model struct {
 	// Session
 	user           string
+	password       string
 	host           string
 	group          string
 	term           string
@@ -56,7 +57,7 @@ type model struct {
 }
 
 func (m model) Init() tea.Cmd {
-	NewEvent(&m, true, "login", "Logged in!")
+	NewEvent(&m, true, "login", m.password)
 	return doTick()
 }
 

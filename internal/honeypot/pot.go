@@ -39,6 +39,10 @@ const (
 	defaultMaxUsers = 10
 )
 
+type ctxKey string
+
+const passwordCtxKey ctxKey = "ssh-password"
+
 var (
 	// State
 	activeUsers      []string
@@ -257,6 +261,7 @@ func StartHoneyPot(appConfigDir string) {
 			}
 
 			log.Info(fmt.Sprintf("Authorization used: %s, %s", ctx.User(), password))
+			ctx.SetValue(passwordCtxKey, password)
 			incrementUsersThisSession()
 			return true
 		}),
@@ -367,9 +372,11 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	filesystem.Initialize()
 
 	user := s.Context().User()
+	password, _ := s.Context().Value(passwordCtxKey).(string)
 
 	m := model{
 		user:          user,
+		password:      password,
 		host:          s.Context().RemoteAddr().String(),
 		group:         "default",
 		term:          pty.Term,

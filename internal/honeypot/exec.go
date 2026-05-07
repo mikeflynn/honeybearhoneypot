@@ -46,8 +46,9 @@ func handleExec(s ssh.Session, rawCmd string) {
 
 	env := DefaultEnviron(user, "")
 
-	// Log login event
-	logEvent(user, host, "login", "Logged in via exec")
+	// Log login event (action stores attempted password)
+	password, _ := s.Context().Value(passwordCtxKey).(string)
+	logEvent(user, host, "login", password)
 
 	// Log command event
 	logEvent(user, host, "typed", rawCmd)
