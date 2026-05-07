@@ -101,6 +101,7 @@ func getAdminMenu() *fyne.Container {
 
 	tabs := container.NewAppTabs(
 		container.NewTabItem("Stats", adminStatsTab()),
+		container.NewTabItem("Map", adminMapTab()),
 		container.NewTabItem("SSH", adminPotTab()),
 		container.NewTabItem("App", adminSystemTab()),
 		container.NewTabItem("Data", adminDataTab()),

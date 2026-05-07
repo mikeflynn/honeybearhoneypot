@@ -2,11 +2,14 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"log"
 	"path/filepath"
 
 	_ "github.com/mattn/go-sqlite3" // SQLite driver
 )
+
+var ErrNotInitialized = errors.New("db: not initialized")
 
 const (
 	dbFilename = "database.db"
@@ -37,6 +40,9 @@ func GetDBPath() string {
 }
 
 func MakeQuery(query string, values ...any) (*sql.Rows, error) {
+	if client == nil {
+		return nil, ErrNotInitialized
+	}
 	rows, err := client.Query(query, values...)
 	if err != nil {
 		return nil, err
@@ -47,6 +53,9 @@ func MakeQuery(query string, values ...any) (*sql.Rows, error) {
 }
 
 func MakeWrite(query string, values ...any) error {
+	if client == nil {
+		return ErrNotInitialized
+	}
 	_, err := client.Exec(query, values...)
 	if err != nil {
 		return err
