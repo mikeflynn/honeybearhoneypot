@@ -132,18 +132,7 @@ func pickName(names map[string]string, fallback string) string {
 }
 
 func isPrivate(ip net.IP) bool {
-	if ip.IsLoopback() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() ||
-		ip.IsMulticast() || ip.IsUnspecified() {
-		return true
-	}
-	for _, cidr := range []string{
-		"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16",
-		"100.64.0.0/10", "fc00::/7",
-	} {
-		_, n, _ := net.ParseCIDR(cidr)
-		if n.Contains(ip) {
-			return true
-		}
-	}
-	return false
+	return ip.IsPrivate() || ip.IsLoopback() ||
+		ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() ||
+		ip.IsMulticast() || ip.IsUnspecified()
 }

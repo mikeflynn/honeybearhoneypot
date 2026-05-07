@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	_ "image/png"
+	"net"
 
 	fyne "fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -25,6 +26,18 @@ type pin struct {
 	Hits        int
 	Country     string
 	CountryCode string // ISO2; merge key
+}
+
+// extractIP returns the IP portion of a host string, handling both
+// "ip:port" (IPv4) and "[ip]:port" (IPv6) forms, as well as a bare IP.
+func extractIP(host string) string {
+	if host == "" {
+		return ""
+	}
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		return h
+	}
+	return host
 }
 
 // projectLatLon converts WGS-84 lat/lon to (x,y) within an equirectangular
@@ -83,13 +96,11 @@ func adminMapTab() *fyne.Container {
 func loadGeoPins(days int) ([]pin, error) {
 	since := fmt.Sprintf("-%d days", days)
 	rows, err := entity.EventCountQuery(
-		`SELECT
-			CASE WHEN instr(host,':')>0 THEN substr(host,1,instr(host,':')-1) ELSE host END AS ip,
-			COUNT(*) AS hits
+		`SELECT host, COUNT(*) AS hits
 		 FROM events
 		 WHERE type='login'
 		   AND timestamp >= datetime('now', ?)
-		 GROUP BY ip`,
+		 GROUP BY host`,
 		since,
 	)
 	if err != nil {
@@ -99,7 +110,10 @@ func loadGeoPins(days int) ([]pin, error) {
 	bucket := map[string]*pin{} // keyed by ISO2
 
 	for _, r := range rows {
-		ip := r.Value
+		ip := extractIP(r.Value)
+		if ip == "" {
+			continue
+		}
 		g, err := geo.Lookup(ip)
 		if err != nil || g == nil {
 			continue
