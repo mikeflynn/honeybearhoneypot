@@ -91,9 +91,11 @@ The GUI provides a visual interface for monitoring and managing the honeypot:
 - **Current Users**: Shows active SSH connections and maximum allowed users.
 - **Admin Menu**: Access administrative functions through a PIN-protected interface:
   - Stats: View login statistics, top commands, and recent activity
+  - Map: View geolocation of recent connection origins as country pins on a world map (30/90/120-day filter)
   - SSH: Configure maximum concurrent users
   - App: System controls including PIN changes and fullscreen toggle
   - Data: Export options or event logs.
+- **Broadcast**: Send messages or effects (Knock, Notice, Fake Join, Matrix, Confetti) to all active honeypot users, or kick them all.
 - **Tunnel Status**: Indicates reverse tunnel connection status when configured.
 - **Notifications**: Displays real-time SSH connection and command activity.
 
@@ -187,6 +189,11 @@ $ fyne-cross linux
 The app will be exported to the `fyne-cross/dist` directory as tar file with a Makefile and the application binary.
 
 See more info on the [Fyne app site](https://fyne.io).
+
+## Attribution
+
+- GeoIP data by [DB-IP](https://db-ip.com) (IP-to-Country Lite), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+- World map imagery from [Natural Earth](https://www.naturalearthdata.com/) (public domain).
 
 ## Contributing
 
