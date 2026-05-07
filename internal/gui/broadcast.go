@@ -1,8 +1,6 @@
 package gui
 
 import (
-	"fmt"
-
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
@@ -20,15 +18,13 @@ func broadcastButton() *widget.Button {
 }
 
 func showBroadcastModal() {
-	title := fmt.Sprintf("Broadcast Actions — %d connected", honeypot.SessionCount())
+	knock := widget.NewButtonWithIcon("Knock", theme.QuestionIcon(), honeypot.ActionKnock)
+	notice := widget.NewButtonWithIcon("Notice", theme.WarningIcon(), honeypot.ActionSystemNotice)
+	join := widget.NewButtonWithIcon("Fake Join", theme.AccountIcon(), honeypot.ActionFakeJoin)
+	mtx := widget.NewButtonWithIcon("Matrix", theme.VisibilityIcon(), honeypot.ActionMatrix)
+	conf := widget.NewButtonWithIcon("Confetti", theme.ColorPaletteIcon(), honeypot.ActionConfetti)
 
-	knock := widget.NewButton("Knock Knock", func() { honeypot.ActionKnock() })
-	notice := widget.NewButton("System Notice", func() { honeypot.ActionSystemNotice() })
-	join := widget.NewButton("Fake Join", func() { honeypot.ActionFakeJoin() })
-	mtx := widget.NewButton("Matrix Storm", func() { honeypot.ActionMatrix() })
-	conf := widget.NewButton("Confetti", func() { honeypot.ActionConfetti() })
-
-	kick := widget.NewButton("Kick All", func() {
+	kick := widget.NewButtonWithIcon("Kick All", theme.LogoutIcon(), func() {
 		dialog.NewConfirm(
 			"Kick All Sessions",
 			"This will disconnect every currently logged-in user. Continue?",
@@ -42,6 +38,6 @@ func showBroadcastModal() {
 	})
 	kick.Importance = widget.DangerImportance
 
-	content := container.NewVBox(knock, notice, join, mtx, conf, kick)
-	dialog.NewCustom(title, "Close", content, w).Show()
+	grid := container.NewGridWithColumns(3, knock, notice, join, mtx, conf, kick)
+	dialog.NewCustom("Broadcast Actions", "Close", grid, w).Show()
 }

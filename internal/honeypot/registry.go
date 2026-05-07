@@ -68,9 +68,14 @@ func ActionMatrix() {
 	broadcast(filesystem.SetRunningCmd("matrix"), matrix.MatrixTick{})
 }
 
-// ActionConfetti flips every active session into confetti mode.
+// ActionConfetti fires a single burst of confetti on every active session
+// and auto-exits after a short window so the user doesn't have to dismiss it.
 func ActionConfetti() {
 	broadcast(filesystem.SetRunningCmd("confetti"), confetti.Burst())
+	go func() {
+		time.Sleep(5 * time.Second)
+		broadcast(filesystem.SetRunningCmd(""), filesystem.ClearOutputMsg(""))
+	}()
 }
 
 // ActionKickAll disconnects every active session.
