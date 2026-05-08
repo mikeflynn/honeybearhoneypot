@@ -1,0 +1,5 @@
+This product includes IP-to-Country Lite data created by DB-IP.com,
+licensed under a Creative Commons Attribution 4.0 International License.
+https://db-ip.com/db/lite.php
+
+Database file: dbip-country-lite.mmdb

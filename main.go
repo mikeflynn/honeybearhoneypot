@@ -13,6 +13,7 @@ import (
 	"github.com/mikeflynn/honeybearhoneypot/internal/db"
 	"github.com/mikeflynn/honeybearhoneypot/internal/db/export"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
+	"github.com/mikeflynn/honeybearhoneypot/internal/geo"
 	"github.com/mikeflynn/honeybearhoneypot/internal/gui"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/filesystem"
@@ -139,7 +140,12 @@ func setup() string {
 		entity.CTFUserInit,
 		entity.CTFUserTaskInit,
 		entity.MigrationFixExecLoginSource,
+		entity.GeoCacheInitialization(),
 	)
+
+	if err := geo.Init(); err != nil {
+		log.Error("geo init failed", "err", err)
+	}
 
 	return appConfigDir
 }

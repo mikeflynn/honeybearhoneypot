@@ -347,6 +347,8 @@ func aboutButton() *widget.Button {
 						widget.NewHyperlink("honeybear.hydrox.fun", link),
 					),
 				),
+				widget.NewSeparator(),
+				widget.NewLabel("GeoIP data by DB-IP (https://db-ip.com), CC BY 4.0.\nWorld map: Natural Earth (public domain)."),
 			),
 			w.Canvas(),
 		)
