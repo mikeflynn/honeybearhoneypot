@@ -5,13 +5,13 @@ import (
 	"strings"
 	"time"
 
+	"charm.land/log/v2"
 	fyne "fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
-	"charm.land/log/v2"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
 )
 

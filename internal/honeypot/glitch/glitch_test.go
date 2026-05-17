@@ -1,0 +1,57 @@
+package glitch
+
+import (
+	"strings"
+	"testing"
+	"time"
+)
+
+func TestModelCompletesAfterDuration(t *testing.T) {
+	m := New("hello world\nsecond line\n")
+	if m == nil {
+		t.Fatal("New returned nil")
+	}
+
+	// Drive enough ticks to exceed Duration. Tick interval is TickInterval.
+	steps := int(Duration/TickInterval) + 2
+	var done bool
+	for i := 0; i < steps; i++ {
+		_, done = m.Update(Tick{})
+		if done {
+			break
+		}
+	}
+	if !done {
+		t.Fatalf("glitch model did not report done after %d ticks", steps)
+	}
+}
+
+func TestViewNonEmptyAndDifferentFromBase(t *testing.T) {
+	base := strings.Repeat("the quick brown fox jumps over the lazy dog\n", 5)
+	m := New(base)
+	for i := 0; i < 3; i++ {
+		m.Update(Tick{})
+	}
+	out := m.View()
+	if out == "" {
+		t.Fatal("View returned empty string")
+	}
+}
+
+func TestViewHandlesEmptyBase(t *testing.T) {
+	m := New("")
+	out := m.View()
+	_ = out
+}
+
+func TestStartReturnsTick(t *testing.T) {
+	if _, ok := Start().(Tick); !ok {
+		t.Fatal("Start() did not return a Tick message")
+	}
+}
+
+func TestDurationSane(t *testing.T) {
+	if Duration < 2*time.Second || Duration > 3*time.Second {
+		t.Errorf("Duration %v outside expected 2-3s range", Duration)
+	}
+}

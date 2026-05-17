@@ -19,12 +19,12 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"charm.land/log/v2"
-	"github.com/charmbracelet/ssh"
 	"charm.land/wish/v2"
 	"charm.land/wish/v2/activeterm"
 	"charm.land/wish/v2/bubbletea"
 	"charm.land/wish/v2/elapsed"
 	"charm.land/wish/v2/logging"
+	"github.com/charmbracelet/ssh"
 	"github.com/mikeflynn/honeybearhoneypot/internal/config"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/confetti"
@@ -393,9 +393,10 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		events: map[string]time.Time{
 			"session_start": time.Now(),
 		},
-		environ:  DefaultEnviron(user, pty.Term),
-		confetti: confetti.InitialModel(),
-		matrix:   matrix.InitialModel(pty.Window.Width, pty.Window.Height),
+		environ:     DefaultEnviron(user, pty.Term),
+		confetti:    confetti.InitialModel(),
+		matrix:      matrix.InitialModel(pty.Window.Width, pty.Window.Height),
+		glitchModel: nil,
 		ctf: ctf.InitialModel(
 			convertTasks(config.Active.Tasks),
 			s.Context().User(),

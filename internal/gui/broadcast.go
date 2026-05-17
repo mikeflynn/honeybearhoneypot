@@ -23,6 +23,8 @@ func showBroadcastModal() {
 	join := widget.NewButtonWithIcon("Fake Join", theme.AccountIcon(), honeypot.ActionFakeJoin)
 	mtx := widget.NewButtonWithIcon("Matrix", theme.VisibilityIcon(), honeypot.ActionMatrix)
 	conf := widget.NewButtonWithIcon("Confetti", theme.ColorPaletteIcon(), honeypot.ActionConfetti)
+	shuffle := widget.NewButtonWithIcon("Shuffle CWD", theme.FolderIcon(), honeypot.ActionShuffleDirs)
+	gltch := widget.NewButtonWithIcon("Glitch", theme.BrokenImageIcon(), honeypot.ActionGlitch)
 
 	kick := widget.NewButtonWithIcon("Kick All", theme.LogoutIcon(), func() {
 		dialog.NewConfirm(
@@ -38,6 +40,6 @@ func showBroadcastModal() {
 	})
 	kick.Importance = widget.DangerImportance
 
-	grid := container.NewGridWithColumns(3, knock, notice, join, mtx, conf, kick)
+	grid := container.NewGridWithColumns(3, knock, notice, join, mtx, conf, shuffle, gltch, kick)
 	dialog.NewCustom("Broadcast Actions", "Close", grid, w).Show()
 }

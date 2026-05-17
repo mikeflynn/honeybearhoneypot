@@ -105,19 +105,19 @@ func RunNode(currentNode *Node, path string, params []string, user string, group
 }
 
 type Node struct {
-	Name        string                                                         `json:"name"`
-	Path        string                                                         `json:"path"`
-	Directory   bool                                                           `json:"directory"`
-	Children    []*Node                                                        `json:"-"`                      // Children nodes, if applicable
-	AssetName   string                                                         `json:"asset_name,omitempty"`   // Only set if Directory is false
-	Content     func() []byte                                                  `json:"-"`                      // Function to get the content of the file, if applicable
-	ContentText string                                                         `json:"content_text,omitempty"` // Text content of the file, if applicable
+	Name        string                                                            `json:"name"`
+	Path        string                                                            `json:"path"`
+	Directory   bool                                                              `json:"directory"`
+	Children    []*Node                                                           `json:"-"`                      // Children nodes, if applicable
+	AssetName   string                                                            `json:"asset_name,omitempty"`   // Only set if Directory is false
+	Content     func() []byte                                                     `json:"-"`                      // Function to get the content of the file, if applicable
+	ContentText string                                                            `json:"content_text,omitempty"` // Text content of the file, if applicable
 	Exec        func(*Node, []string, string, string, map[string]string) *tea.Cmd `json:"-"`                      // Function to execute the node, if applicable
-	Owner       string                                                         `json:"owner"`
-	Group       string                                                         `json:"group"`
-	Mode        int                                                            `json:"mode"`                // File mode (permissions)
-	Fun         bool                                                           `json:"fun,omitempty"`       // Whether the node is part of the "fun" features
-	HelpText    string                                                         `json:"help_text,omitempty"` // Help text for the node, if applicable
+	Owner       string                                                            `json:"owner"`
+	Group       string                                                            `json:"group"`
+	Mode        int                                                               `json:"mode"`                // File mode (permissions)
+	Fun         bool                                                              `json:"fun,omitempty"`       // Whether the node is part of the "fun" features
+	HelpText    string                                                            `json:"help_text,omitempty"` // Help text for the node, if applicable
 }
 
 func (n *Node) IsDirectory() bool {

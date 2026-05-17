@@ -1,12 +1,14 @@
 package honeypot
 
 import (
+	"math/rand"
 	"sync"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/confetti"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/filesystem"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/glitch"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/matrix"
 )
 
@@ -81,4 +83,31 @@ func ActionConfetti() {
 // ActionKickAll disconnects every active session.
 func ActionKickAll() {
 	broadcast(tea.Quit())
+}
+
+// ActionGlitch broadcasts a short visual glitch effect (~2.5s) to every active
+// session, then restores normal rendering. Mirrors the lifecycle of
+// ActionConfetti.
+func ActionGlitch() {
+	broadcast(filesystem.SetRunningCmd("glitch"), glitch.Tick{})
+	go func() {
+		time.Sleep(glitch.Duration + 100*time.Millisecond)
+		broadcast(filesystem.SetRunningCmd(""), filesystem.ClearOutputMsg(""))
+	}()
+}
+
+// ActionShuffleDirs silently relocates every active session to a randomly
+// chosen directory in the fake filesystem. Each session gets an independent
+// random destination.
+func ActionShuffleDirs() {
+	dirs := filesystem.AllDirectories()
+	if len(dirs) == 0 {
+		return
+	}
+	sessionsMu.RLock()
+	defer sessionsMu.RUnlock()
+	for _, p := range sessions {
+		d := dirs[rand.Intn(len(dirs))]
+		p.Send(filesystem.ChangeDirMsg{Node: d, Path: d.Path, Silent: true})
+	}
 }
