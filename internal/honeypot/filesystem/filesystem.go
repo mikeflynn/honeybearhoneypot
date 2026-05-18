@@ -29,8 +29,9 @@ type (
 	SetRunningCmd      string
 	ListActiveUsersMsg string
 	ChangeDirMsg       struct {
-		Path string
-		Node *Node
+		Path   string
+		Node   *Node
+		Silent bool
 	}
 	SetEnvMsg struct {
 		Key   string
@@ -807,4 +808,29 @@ github.com,140.82.112.4 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQGitHubLooKsR34lBut
 	}
 
 	applyAdditionalNodes()
+}
+
+// AllDirectories returns every directory node reachable from the system root
+// via a breadth-first walk, skipping cloaked nodes.
+func AllDirectories() []*Node {
+	root := GetRoot()
+	if root == nil {
+		return nil
+	}
+	var out []*Node
+	queue := []*Node{root}
+	for len(queue) > 0 {
+		n := queue[0]
+		queue = queue[1:]
+		if n == nil || n.IsCloaked() || !n.IsDirectory() {
+			continue
+		}
+		out = append(out, n)
+		for _, child := range n.Children {
+			if child != nil && child.IsDirectory() {
+				queue = append(queue, child)
+			}
+		}
+	}
+	return out
 }

@@ -17,6 +17,7 @@ import (
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/confetti"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/ctf"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/filesystem"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/glitch"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/matrix"
 	"github.com/muesli/reflow/wordwrap"
 )
@@ -44,6 +45,7 @@ type model struct {
 	viewportReady bool
 	confetti      confetti.Model
 	matrix        matrix.Matrix
+	glitchModel   *glitch.Model
 	ctf           ctf.Model
 	helpText      string
 	events        map[string]time.Time
@@ -109,6 +111,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.runningCommand = string(msg)
 	case filesystem.OutputMsg:
 		m.output += m.outputStyle.Render("\n" + string(msg) + "\n")
+	case glitch.Tick:
+		if m.runningCommand == "glitch" {
+			if m.glitchModel == nil {
+				m.glitchModel = glitch.New(m.output)
+			}
+			cmd, done := m.glitchModel.Update(msg)
+			if done {
+				m.glitchModel = nil
+			} else if cmd != nil {
+				cmds = append(cmds, cmd)
+			}
+		}
 	case filesystem.ListActiveUsersMsg:
 		users := activeUsersSnapshot()
 		m.output += fmt.Sprintf("04:25:58 up 10 days, 23:21,  %d users,  load average: 0.10, 0.18, 0.10\n", len(users))
@@ -133,7 +147,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.environ = make(map[string]string)
 		}
 		m.environ["PWD"] = msg.Path
-		m.output += m.outputStyle.Render(fmt.Sprintf("\ncd %s\n", msg.Path))
+		if !msg.Silent {
+			m.output += m.outputStyle.Render(fmt.Sprintf("\ncd %s\n", msg.Path))
+		}
 	case filesystem.HistoryListMsg:
 		max := 10
 		if len(m.history) < 10 {
@@ -292,6 +308,11 @@ func (m model) View() tea.View {
 	} else if m.runningCommand == "matrix" {
 		content = m.matrix.View()
 		help = "Press 'ctrl + c' to quit."
+	} else if m.runningCommand == "glitch" {
+		if m.glitchModel != nil {
+			content = m.glitchModel.View()
+		}
+		help = ""
 	} else if m.runningCommand == "ctf" {
 		return tea.NewView("" +
 			m.ctf.View() +

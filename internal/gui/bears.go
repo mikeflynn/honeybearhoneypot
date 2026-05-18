@@ -6,8 +6,8 @@ import (
 	"slices"
 	"time"
 
-	"fyne.io/fyne/v2/canvas"
 	"charm.land/log/v2"
+	"fyne.io/fyne/v2/canvas"
 	"github.com/mikeflynn/honeybearhoneypot/internal/gui/assets"
 )
 

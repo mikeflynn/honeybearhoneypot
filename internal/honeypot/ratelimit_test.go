@@ -18,7 +18,7 @@ func TestRateLimiter(t *testing.T) {
 	// Just directly create a limiter for testing to avoid global state mess if possible,
 	// but GetRateLimiter uses global config. So we set config above.
 	// Let's just create a new RateLimiter manually for testing logic.
-	
+
 	rl := &RateLimiter{
 		limits:      make(map[string]*clientState),
 		window:      1 * time.Second,
