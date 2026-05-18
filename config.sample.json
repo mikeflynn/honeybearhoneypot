@@ -21,5 +21,19 @@
       "flag": "flag{demo}",
       "points": 100
     }
+  ],
+  "curl_responses": [
+    {"url": "http://internal.hardhat.local/status", "body": "{\"status\":\"ok\",\"uptime\":890123}"},
+    {"url": "http://10.0.0.10/admin", "body": "<html><body><h1>HoneyBear Admin Console</h1></body></html>"}
+  ],
+  "nmap_hosts": [
+    {
+      "ip": "10.0.0.10",
+      "ports": [
+        {"port": 22, "service": "ssh", "version": "OpenSSH 8.4"},
+        {"port": 80, "service": "http", "version": "nginx 1.20.1"},
+        {"port": 443, "service": "https", "version": "nginx 1.20.1"}
+      ]
+    }
   ]
 }

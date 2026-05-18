@@ -3,9 +3,11 @@ package filesystem
 import (
 	"fmt"
 	"math/rand/v2"
+	"net"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -282,20 +284,64 @@ func neofetchExec(dir *Node, params []string, user, group string, env map[string
 	return &batch
 }
 
-func catExec(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
+func viExec(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
 	cmds := []tea.Cmd{}
 	cmds = append(cmds, tea.Cmd(func() tea.Msg {
-		return SetRunningCmd("cat")
+		return SetRunningCmd("vi")
 	}))
 
 	cmds = append(cmds, tea.Cmd(func() tea.Msg {
 		if len(params) == 0 {
-			return OutputMsg("cat: missing file operand")
+			splash := "\n\n\n" +
+				"                VIM - Vi IMproved\n" +
+				"                  (read-only mode)\n\n" +
+				"               type  :q  to exit\n"
+			return FileContentsMsg(splash + viStatusLine("[No Name]", splash))
 		}
 
 		target, err := GetNodeByPath(dir, params[0])
 		if err != nil || target == nil {
-			return OutputMsg(err.Error())
+			return OutputMsg(fmt.Sprintf("E484: Can't open file %s", params[0]))
+		}
+
+		if target.IsDirectory() {
+			return OutputMsg(fmt.Sprintf("E17: \"%s\" is a directory", params[0]))
+		}
+
+		fileData, err := target.Open()
+		if err != nil {
+			return OutputMsg("vi: " + err.Error())
+		}
+
+		body := string(fileData)
+		return FileContentsMsg(body + viStatusLine(params[0], body))
+	}))
+
+	batch := tea.Batch(cmds...)
+	return &batch
+}
+
+func viStatusLine(name, body string) string {
+	lines := strings.Count(body, "\n")
+	if len(body) > 0 && !strings.HasSuffix(body, "\n") {
+		lines++
+	}
+	return fmt.Sprintf("\n\"%s\" [readonly]  %dL, %dB\n", name, lines, len(body))
+}
+
+func catExec(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
+	cmd := tea.Cmd(func() tea.Msg {
+		if len(params) == 0 {
+			return OutputMsg("")
+		}
+
+		target, err := GetNodeByPath(dir, params[0])
+		if err != nil || target == nil {
+			return OutputMsg(fmt.Sprintf("cat: %s: No such file or directory", params[0]))
+		}
+
+		if target.IsDirectory() {
+			return OutputMsg(fmt.Sprintf("cat: %s: Is a directory", params[0]))
 		}
 
 		fileData, err := target.Open()
@@ -303,11 +349,9 @@ func catExec(dir *Node, params []string, user, group string, env map[string]stri
 			return OutputMsg("cat: " + err.Error())
 		}
 
-		return FileContentsMsg(fileData)
-	}))
-
-	batch := tea.Batch(cmds...)
-	return &batch
+		return OutputMsg(string(fileData))
+	})
+	return &cmd
 }
 
 func idExec(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
@@ -437,4 +481,258 @@ func sudoExec(dir *Node, params []string, user, group string, env map[string]str
 		return &cmd
 	}
 	return newCmd
+}
+
+// normalizeURL lowercases scheme + host, prepends http:// if no scheme,
+// and trims a trailing slash from the path. Returns ("", "") on parse failure.
+// Returns (normalized, host).
+func normalizeURL(raw string) (string, string) {
+	s := strings.TrimSpace(raw)
+	if s == "" {
+		return "", ""
+	}
+	if !strings.Contains(s, "://") {
+		s = "http://" + s
+	}
+	schemeIdx := strings.Index(s, "://")
+	scheme := strings.ToLower(s[:schemeIdx])
+	rest := s[schemeIdx+3:]
+	hostEnd := strings.IndexAny(rest, "/?#")
+	host := rest
+	tail := ""
+	if hostEnd >= 0 {
+		host = rest[:hostEnd]
+		tail = rest[hostEnd:]
+	}
+	host = strings.ToLower(host)
+	// Trim a single trailing slash on the path portion only, if no query/fragment.
+	if tail == "/" {
+		tail = ""
+	} else if strings.HasSuffix(tail, "/") && !strings.ContainsAny(tail, "?#") {
+		tail = strings.TrimSuffix(tail, "/")
+	}
+	return scheme + "://" + host + tail, host
+}
+
+// stripCurlFlags removes flag tokens (and the next token for value-taking flags)
+// from args and returns the remaining positional args.
+func stripCurlFlags(args []string) []string {
+	valueTaking := map[string]bool{
+		"-X": true, "-H": true, "-d": true, "-o": true,
+		"-A": true, "-e": true, "-u": true,
+	}
+	var out []string
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		if strings.HasPrefix(a, "-") && a != "-" {
+			if valueTaking[a] && i+1 < len(args) {
+				i++ // skip the value
+			}
+			continue
+		}
+		out = append(out, a)
+	}
+	return out
+}
+
+func hasFlag(args []string, flag string) bool {
+	for _, a := range args {
+		if a == flag {
+			return true
+		}
+	}
+	return false
+}
+
+func curlExec(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
+	cmd := tea.Cmd(func() tea.Msg {
+		if len(params) == 0 {
+			return OutputMsg("curl: try 'curl --help' or 'curl --manual' for more information")
+		}
+
+		headersOnly := hasFlag(params, "-I") || hasFlag(params, "--head")
+		positional := stripCurlFlags(params)
+		if len(positional) == 0 {
+			return OutputMsg("curl: no URL specified!")
+		}
+
+		normalized, host := normalizeURL(positional[0])
+
+		body, found := curlResponseBodies[normalized]
+		if !found {
+			return OutputMsg(fmt.Sprintf("curl: (6) Could not resolve host: %s", host))
+		}
+
+		headers := fmt.Sprintf("HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: %d\n", len(body))
+		if headersOnly {
+			return OutputMsg(headers)
+		}
+		return OutputMsg(headers + "\n" + body)
+	})
+	return &cmd
+}
+
+func stripNmapFlags(args []string) []string {
+	valueTaking := map[string]bool{
+		"-p": true, "-oN": true, "-oX": true, "-oG": true,
+		"-iL": true, "-e": true, "-S": true,
+	}
+	var out []string
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		if strings.HasPrefix(a, "-") && a != "-" {
+			if valueTaking[a] && i+1 < len(args) {
+				i++
+			}
+			continue
+		}
+		out = append(out, a)
+	}
+	return out
+}
+
+// expandNmapTarget parses one target spec into the list of IPs to scan.
+// Supports a bare IP/host, CIDR (10.0.0.0/24), and last-octet hyphen
+// ranges (10.0.0.1-50). CIDR larger than /16 falls back to a single-IP
+// scan against the literal string so an overly broad scan still produces
+// a sensible (and quick) miss.
+func expandNmapTarget(target string) []string {
+	if strings.Contains(target, "/") {
+		_, ipnet, err := net.ParseCIDR(target)
+		if err != nil {
+			return []string{target}
+		}
+		ones, bits := ipnet.Mask.Size()
+		if bits-ones > 16 {
+			return []string{target}
+		}
+		var ips []string
+		for ip := ipnet.IP.Mask(ipnet.Mask); ipnet.Contains(ip); ip = nextIP(ip) {
+			ips = append(ips, ip.String())
+		}
+		return ips
+	}
+	if idx := strings.LastIndex(target, "-"); idx > 0 {
+		base := target[:idx]
+		endStr := target[idx+1:]
+		if lastDot := strings.LastIndex(base, "."); lastDot > 0 {
+			prefix := base[:lastDot+1]
+			startStr := base[lastDot+1:]
+			start, err1 := strconv.Atoi(startStr)
+			end, err2 := strconv.Atoi(endStr)
+			if err1 == nil && err2 == nil && start >= 0 && end <= 255 && start <= end {
+				ips := make([]string, 0, end-start+1)
+				for i := start; i <= end; i++ {
+					ips = append(ips, prefix+strconv.Itoa(i))
+				}
+				return ips
+			}
+		}
+	}
+	return []string{target}
+}
+
+func nextIP(ip net.IP) net.IP {
+	out := make(net.IP, len(ip))
+	copy(out, ip)
+	for i := len(out) - 1; i >= 0; i-- {
+		out[i]++
+		if out[i] != 0 {
+			break
+		}
+	}
+	return out
+}
+
+func nmapExec(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
+	cmd := tea.Cmd(func() tea.Msg {
+		positional := stripNmapFlags(params)
+		if len(positional) == 0 {
+			return OutputMsg("Nmap 7.94 ( https://nmap.org )\nUsage: nmap [Scan Type(s)] [Options] {target specification}")
+		}
+		ips := expandNmapTarget(positional[0])
+
+		var b strings.Builder
+		b.WriteString(fmt.Sprintf("Starting Nmap 7.94 ( https://nmap.org ) at %s EDT\n",
+			time.Now().Format("2006-01-02 15:04")))
+
+		hostsUp := 0
+		for _, ip := range ips {
+			match, ok := nmapHostsByIP[ip]
+			if !ok {
+				continue
+			}
+			hostsUp++
+			b.WriteString(fmt.Sprintf("Nmap scan report for %s\n", ip))
+			b.WriteString("Host is up (0.0012s latency).\n")
+			b.WriteString(fmt.Sprintf("Not shown: %d closed tcp ports (reset)\n", 1000-len(match.Ports)))
+			b.WriteString(fmt.Sprintf("%-10s%-6s%-9s%s\n", "PORT", "STATE", "SERVICE", "VERSION"))
+			for _, p := range match.Ports {
+				b.WriteString(fmt.Sprintf("%-10s%-6s%-9s%s\n",
+					fmt.Sprintf("%d/tcp", p.Port), "open", p.Service, p.Version))
+			}
+			b.WriteString("\n")
+		}
+
+		if len(ips) == 1 && hostsUp == 0 {
+			b.WriteString(fmt.Sprintf("Nmap scan report for %s\n", ips[0]))
+			b.WriteString("Note: Host seems down. If it is really up, but blocking our ping probes, try -Pn\n")
+		}
+
+		ipNoun := "IP address"
+		if len(ips) != 1 {
+			ipNoun = "IP addresses"
+		}
+		hostNoun := "host"
+		if hostsUp != 1 {
+			hostNoun = "hosts"
+		}
+		b.WriteString(fmt.Sprintf("Nmap done: %d %s (%d %s up) scanned in %.2f seconds",
+			len(ips), ipNoun, hostsUp, hostNoun, 0.32+float64(len(ips))*0.01))
+
+		return OutputMsg(b.String())
+	})
+	return &cmd
+}
+
+func ipExec(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
+	cmd := tea.Cmd(func() tea.Msg {
+		sub := ""
+		for _, p := range params {
+			if !strings.HasPrefix(p, "-") {
+				sub = p
+				break
+			}
+		}
+
+		switch sub {
+		case "a", "addr", "address":
+			return OutputMsg(`1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host
+       valid_lft forever preferred_lft forever
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 02:42:0a:00:00:2a brd ff:ff:ff:ff:ff:ff
+    inet 10.0.0.42/24 brd 10.0.0.255 scope global eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::42:aff:fe00:2a/64 scope link
+       valid_lft forever preferred_lft forever`)
+		case "link":
+			return OutputMsg(`1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP mode DEFAULT group default qlen 1000
+    link/ether 02:42:0a:00:00:2a brd ff:ff:ff:ff:ff:ff`)
+		case "route", "r":
+			return OutputMsg(`default via 10.0.0.1 dev eth0
+10.0.0.0/24 dev eth0 proto kernel scope link src 10.0.0.42`)
+		case "":
+			return OutputMsg(`Usage: ip [ OPTIONS ] OBJECT { COMMAND | help }
+where  OBJECT := { link | addr | route | neigh | tunnel }`)
+		default:
+			return OutputMsg(fmt.Sprintf("Object \"%s\" is unknown, try \"ip help\".", sub))
+		}
+	})
+	return &cmd
 }

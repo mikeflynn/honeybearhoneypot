@@ -30,6 +30,8 @@ func main() {
 	}
 
 	filesystem.SetAdditionalNodes(cfg.Filesystem)
+	filesystem.SetCurlResponses(cfg.CurlResponses)
+	filesystem.SetNmapHosts(cfg.NmapHosts)
 
 	log.SetLevel(translateLogLevel(cfg.LogLevel))
 

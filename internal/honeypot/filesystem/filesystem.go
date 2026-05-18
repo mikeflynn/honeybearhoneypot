@@ -344,6 +344,36 @@ github.com,140.82.112.4 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQGitHubLooKsR34lBut
 								},
 							},
 							{
+								Name:      "curl",
+								Path:      "/usr/bin/curl",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								HelpText:  "Usage: curl [options] <url>\n Transfer a URL.",
+								Exec:      curlExec,
+							},
+							{
+								Name:      "nmap",
+								Path:      "/usr/bin/nmap",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								HelpText:  "Usage: nmap [Scan Type(s)] [Options] {target specification}",
+								Exec:      nmapExec,
+							},
+							{
+								Name:      "ip",
+								Path:      "/usr/bin/ip",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								HelpText:  "Usage: ip [ OPTIONS ] OBJECT { COMMAND | help }",
+								Exec:      ipExec,
+							},
+							{
 								Name:      "man",
 								Path:      "/usr/bin/man",
 								Directory: false,
@@ -371,7 +401,7 @@ github.com,140.82.112.4 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQGitHubLooKsR34lBut
 								Exec: func(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
 									cmds := []tea.Cmd{}
 									cmds = append(cmds, tea.Cmd(func() tea.Msg {
-										return SetRunningCmd("cat")
+										return SetRunningCmd("vi")
 									}))
 
 									cmds = append(cmds, tea.Cmd(func() tea.Msg {
@@ -516,7 +546,7 @@ github.com,140.82.112.4 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQGitHubLooKsR34lBut
 								Owner:     "root",
 								Group:     "root",
 								Mode:      0711,
-								Exec:      catExec,
+								Exec:      viExec,
 								HelpText:  catHelp,
 							},
 							{
@@ -526,8 +556,18 @@ github.com,140.82.112.4 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQGitHubLooKsR34lBut
 								Owner:     "root",
 								Group:     "root",
 								Mode:      0711,
-								Exec:      catExec,
+								Exec:      viExec,
 								HelpText:  catHelp,
+							},
+							{
+								Name:      "vi",
+								Path:      "/usr/bin/vi",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								Exec:      viExec,
+								HelpText:  "Usage: vi [file]\n A read-only fake vi editor. Use :q or ctrl+c to exit.",
 							},
 							{
 								Name:      "celebrate",

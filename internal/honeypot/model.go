@@ -261,7 +261,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	switch m.runningCommand {
-	case "cat":
+	case "vi":
 		m.viewport, vpCmd = m.viewport.Update(msg)
 		cmds = append(cmds, vpCmd)
 	case "confetti":
@@ -295,13 +295,13 @@ func (m model) View() tea.View {
 	content := m.txtStyle.Width(m.width - 4).Height(contentHeight).Render(lipgloss.PlaceVertical(contentHeight-2, lipgloss.Top, m.output))
 	help := m.helpText
 
-	if m.runningCommand == "cat" && m.viewportReady {
+	if m.runningCommand == "vi" && m.viewportReady {
 		m.viewport.SetHeight(m.height - footerHeight)
 
 		return tea.NewView("" +
 			m.viewport.View() +
 			"\n" +
-			m.quitStyle.Render("ctrl + c to exit this file.\n"))
+			m.quitStyle.Render(":q or ctrl + c to exit this file.\n"))
 	} else if m.runningCommand == "confetti" {
 		content = m.confetti.View()
 		help = "Press 'q' to quit or any other key to make more confetti."
