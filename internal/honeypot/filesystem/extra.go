@@ -31,23 +31,24 @@ type NmapHost struct {
 }
 
 var (
-	curlResponses []CurlResponse
-	nmapHosts     []NmapHost
+	curlResponseBodies map[string]string
+	nmapHosts          []NmapHost
 )
 
 // SetCurlResponses installs the curl response table used by curlExec.
+// URLs are pre-normalized for O(1) lookup.
 func SetCurlResponses(responses []CurlResponse) {
-	curlResponses = responses
+	m := make(map[string]string, len(responses))
+	for _, r := range responses {
+		key, _ := normalizeURL(r.URL)
+		m[key] = r.Body
+	}
+	curlResponseBodies = m
 }
 
 // SetNmapHosts installs the nmap host table used by nmapExec.
 func SetNmapHosts(hosts []NmapHost) {
 	nmapHosts = hosts
-}
-
-// CurlResponses returns the installed curl responses (test helper / accessor).
-func CurlResponses() []CurlResponse {
-	return curlResponses
 }
 
 // NmapHosts returns the installed nmap hosts (test helper / accessor).

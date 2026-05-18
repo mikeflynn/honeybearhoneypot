@@ -557,17 +557,7 @@ func curlExec(dir *Node, params []string, user, group string, env map[string]str
 
 		normalized, host := normalizeURL(positional[0])
 
-		var body string
-		var found bool
-		for _, r := range curlResponses {
-			rn, _ := normalizeURL(r.URL)
-			if rn == normalized {
-				body = r.Body
-				found = true
-				break
-			}
-		}
-
+		body, found := curlResponseBodies[normalized]
 		if !found {
 			return OutputMsg(fmt.Sprintf("curl: (6) Could not resolve host: %s", host))
 		}
