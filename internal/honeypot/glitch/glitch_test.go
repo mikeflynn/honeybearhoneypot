@@ -1,6 +1,7 @@
 package glitch
 
 import (
+	"math/rand"
 	"strings"
 	"testing"
 	"time"
@@ -53,5 +54,45 @@ func TestStartReturnsTick(t *testing.T) {
 func TestDurationSane(t *testing.T) {
 	if Duration < 2*time.Second || Duration > 3*time.Second {
 		t.Errorf("Duration %v outside expected 2-3s range", Duration)
+	}
+}
+
+func TestBaseLinesCapped(t *testing.T) {
+	huge := strings.Repeat("filler line\n", maxLines*3)
+	m := New(huge)
+	if len(m.baseLines) > maxLines {
+		t.Errorf("baseLines length %d exceeds cap %d", len(m.baseLines), maxLines)
+	}
+}
+
+func TestCorruptionDoesNotAccumulate(t *testing.T) {
+	base := strings.Repeat("the quick brown fox jumps over the lazy dog\n", 10)
+	m := New(base)
+	snapshot := make([]string, len(m.baseLines))
+	copy(snapshot, m.baseLines)
+
+	for i := 0; i < 20; i++ {
+		_ = m.View()
+	}
+
+	for i, line := range m.baseLines {
+		if line != snapshot[i] {
+			t.Fatalf("baseLines[%d] mutated by View(): want %q got %q", i, snapshot[i], line)
+		}
+	}
+}
+
+func TestCorruptLinePreservesAnsi(t *testing.T) {
+	styled := "\x1b[31mhello world\x1b[0m and \x1b[1;33mmore styled text\x1b[0m"
+	rng := rand.New(rand.NewSource(1))
+
+	for i := 0; i < 500; i++ {
+		out := corruptLine(styled, rng)
+		// Every original escape sequence must still appear verbatim.
+		for _, esc := range []string{"\x1b[31m", "\x1b[0m", "\x1b[1;33m"} {
+			if !strings.Contains(out, esc) {
+				t.Fatalf("ANSI escape %q corrupted on iteration %d: %q", esc, i, out)
+			}
+		}
 	}
 }
