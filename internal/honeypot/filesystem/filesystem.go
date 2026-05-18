@@ -364,6 +364,16 @@ github.com,140.82.112.4 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQGitHubLooKsR34lBut
 								Exec:      nmapExec,
 							},
 							{
+								Name:      "ip",
+								Path:      "/usr/bin/ip",
+								Directory: false,
+								Owner:     "root",
+								Group:     "root",
+								Mode:      0711,
+								HelpText:  "Usage: ip [ OPTIONS ] OBJECT { COMMAND | help }",
+								Exec:      ipExec,
+							},
+							{
 								Name:      "man",
 								Path:      "/usr/bin/man",
 								Directory: false,

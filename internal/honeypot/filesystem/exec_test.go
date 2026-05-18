@@ -299,6 +299,40 @@ func TestNmapExecCIDRMultipleHits(t *testing.T) {
 	}
 }
 
+func TestIpExecAddr(t *testing.T) {
+	for _, sub := range []string{"a", "addr", "address"} {
+		msgs := runExec(t, ipExec, []string{sub})
+		out := string(msgs[0].(OutputMsg))
+		for _, want := range []string{"lo:", "eth0:", "inet 127.0.0.1/8", "inet 10.0.0.42/24"} {
+			if !strings.Contains(out, want) {
+				t.Errorf("sub=%q missing %q in:\n%s", sub, want, out)
+			}
+		}
+	}
+}
+
+func TestIpExecLinkAndRoute(t *testing.T) {
+	link := string(runExec(t, ipExec, []string{"link"})[0].(OutputMsg))
+	if strings.Contains(link, "inet ") {
+		t.Errorf("ip link should not include inet lines:\n%s", link)
+	}
+	route := string(runExec(t, ipExec, []string{"route"})[0].(OutputMsg))
+	if !strings.Contains(route, "default via 10.0.0.1") || !strings.Contains(route, "10.0.0.0/24") {
+		t.Errorf("ip route missing expected entries:\n%s", route)
+	}
+}
+
+func TestIpExecNoArgsAndUnknown(t *testing.T) {
+	usage := string(runExec(t, ipExec, nil)[0].(OutputMsg))
+	if !strings.Contains(usage, "Usage: ip") {
+		t.Errorf("missing usage: %q", usage)
+	}
+	unknown := string(runExec(t, ipExec, []string{"banana"})[0].(OutputMsg))
+	if !strings.Contains(unknown, `"banana" is unknown`) {
+		t.Errorf("missing unknown-object error: %q", unknown)
+	}
+}
+
 func TestNmapExecHyphenRangeNoHits(t *testing.T) {
 	SetNmapHosts(nil)
 	msgs := runExec(t, nmapExec, []string{"10.99.0.1-5"})

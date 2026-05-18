@@ -694,3 +694,45 @@ func nmapExec(dir *Node, params []string, user, group string, env map[string]str
 	})
 	return &cmd
 }
+
+func ipExec(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
+	cmd := tea.Cmd(func() tea.Msg {
+		sub := ""
+		for _, p := range params {
+			if !strings.HasPrefix(p, "-") {
+				sub = p
+				break
+			}
+		}
+
+		switch sub {
+		case "a", "addr", "address":
+			return OutputMsg(`1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host
+       valid_lft forever preferred_lft forever
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 02:42:0a:00:00:2a brd ff:ff:ff:ff:ff:ff
+    inet 10.0.0.42/24 brd 10.0.0.255 scope global eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::42:aff:fe00:2a/64 scope link
+       valid_lft forever preferred_lft forever`)
+		case "link":
+			return OutputMsg(`1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP mode DEFAULT group default qlen 1000
+    link/ether 02:42:0a:00:00:2a brd ff:ff:ff:ff:ff:ff`)
+		case "route", "r":
+			return OutputMsg(`default via 10.0.0.1 dev eth0
+10.0.0.0/24 dev eth0 proto kernel scope link src 10.0.0.42`)
+		case "":
+			return OutputMsg(`Usage: ip [ OPTIONS ] OBJECT { COMMAND | help }
+where  OBJECT := { link | addr | route | neigh | tunnel }`)
+		default:
+			return OutputMsg(fmt.Sprintf("Object \"%s\" is unknown, try \"ip help\".", sub))
+		}
+	})
+	return &cmd
+}
