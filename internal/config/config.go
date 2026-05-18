@@ -39,6 +39,9 @@ type Config struct {
 	ExportFormat string   `json:"export_format,omitempty"`
 	ExportPath   string   `json:"export_path,omitempty"`
 	ExportTypes  []string `json:"export_types,omitempty"`
+
+	CurlResponses []filesystem.CurlResponse `json:"curl_responses,omitempty"`
+	NmapHosts     []filesystem.NmapHost     `json:"nmap_hosts,omitempty"`
 }
 
 var (
@@ -223,5 +226,11 @@ func merge(dst *Config, src *Config) {
 	}
 	if len(src.ExportTypes) > 0 {
 		dst.ExportTypes = src.ExportTypes
+	}
+	if len(src.CurlResponses) > 0 {
+		dst.CurlResponses = src.CurlResponses
+	}
+	if len(src.NmapHosts) > 0 {
+		dst.NmapHosts = src.NmapHosts
 	}
 }

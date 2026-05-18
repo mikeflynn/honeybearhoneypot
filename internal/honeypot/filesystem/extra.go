@@ -11,6 +11,50 @@ import (
 var additionalNodes []Node
 var noFun bool = false
 
+// CurlResponse is a single fake URL-to-body mapping consumed by curlExec.
+type CurlResponse struct {
+	URL  string `json:"url"`
+	Body string `json:"body"`
+}
+
+// NmapPort is a single open-port entry for a fake host.
+type NmapPort struct {
+	Port    int    `json:"port"`
+	Service string `json:"service"`
+	Version string `json:"version,omitempty"`
+}
+
+// NmapHost is a single fake host with its open ports.
+type NmapHost struct {
+	IP    string     `json:"ip"`
+	Ports []NmapPort `json:"ports"`
+}
+
+var (
+	curlResponses []CurlResponse
+	nmapHosts     []NmapHost
+)
+
+// SetCurlResponses installs the curl response table used by curlExec.
+func SetCurlResponses(responses []CurlResponse) {
+	curlResponses = responses
+}
+
+// SetNmapHosts installs the nmap host table used by nmapExec.
+func SetNmapHosts(hosts []NmapHost) {
+	nmapHosts = hosts
+}
+
+// CurlResponses returns the installed curl responses (test helper / accessor).
+func CurlResponses() []CurlResponse {
+	return curlResponses
+}
+
+// NmapHosts returns the installed nmap hosts (test helper / accessor).
+func NmapHosts() []NmapHost {
+	return nmapHosts
+}
+
 // SetAdditionalNodes stores nodes that will be merged into the filesystem
 // during initialization.
 func SetAdditionalNodes(nodes []Node) {

@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
@@ -282,20 +283,64 @@ func neofetchExec(dir *Node, params []string, user, group string, env map[string
 	return &batch
 }
 
-func catExec(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
+func viExec(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
 	cmds := []tea.Cmd{}
 	cmds = append(cmds, tea.Cmd(func() tea.Msg {
-		return SetRunningCmd("cat")
+		return SetRunningCmd("vi")
 	}))
 
 	cmds = append(cmds, tea.Cmd(func() tea.Msg {
 		if len(params) == 0 {
-			return OutputMsg("cat: missing file operand")
+			splash := "\n\n\n" +
+				"                VIM - Vi IMproved\n" +
+				"                  (read-only mode)\n\n" +
+				"               type  :q  to exit\n"
+			return FileContentsMsg(splash + viStatusLine("[No Name]", splash))
 		}
 
 		target, err := GetNodeByPath(dir, params[0])
 		if err != nil || target == nil {
-			return OutputMsg(err.Error())
+			return OutputMsg(fmt.Sprintf("E484: Can't open file %s", params[0]))
+		}
+
+		if target.IsDirectory() {
+			return OutputMsg(fmt.Sprintf("E17: \"%s\" is a directory", params[0]))
+		}
+
+		fileData, err := target.Open()
+		if err != nil {
+			return OutputMsg("vi: " + err.Error())
+		}
+
+		body := string(fileData)
+		return FileContentsMsg(body + viStatusLine(params[0], body))
+	}))
+
+	batch := tea.Batch(cmds...)
+	return &batch
+}
+
+func viStatusLine(name, body string) string {
+	lines := strings.Count(body, "\n")
+	if len(body) > 0 && !strings.HasSuffix(body, "\n") {
+		lines++
+	}
+	return fmt.Sprintf("\n\"%s\" [readonly]  %dL, %dB\n", name, lines, len(body))
+}
+
+func catExec(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
+	cmd := tea.Cmd(func() tea.Msg {
+		if len(params) == 0 {
+			return OutputMsg("")
+		}
+
+		target, err := GetNodeByPath(dir, params[0])
+		if err != nil || target == nil {
+			return OutputMsg(fmt.Sprintf("cat: %s: No such file or directory", params[0]))
+		}
+
+		if target.IsDirectory() {
+			return OutputMsg(fmt.Sprintf("cat: %s: Is a directory", params[0]))
 		}
 
 		fileData, err := target.Open()
@@ -303,11 +348,9 @@ func catExec(dir *Node, params []string, user, group string, env map[string]stri
 			return OutputMsg("cat: " + err.Error())
 		}
 
-		return FileContentsMsg(fileData)
-	}))
-
-	batch := tea.Batch(cmds...)
-	return &batch
+		return OutputMsg(string(fileData))
+	})
+	return &cmd
 }
 
 func idExec(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
@@ -437,4 +480,162 @@ func sudoExec(dir *Node, params []string, user, group string, env map[string]str
 		return &cmd
 	}
 	return newCmd
+}
+
+// normalizeURL lowercases scheme + host, prepends http:// if no scheme,
+// and trims a trailing slash from the path. Returns ("", "") on parse failure.
+// Returns (normalized, host).
+func normalizeURL(raw string) (string, string) {
+	s := strings.TrimSpace(raw)
+	if s == "" {
+		return "", ""
+	}
+	if !strings.Contains(s, "://") {
+		s = "http://" + s
+	}
+	schemeIdx := strings.Index(s, "://")
+	scheme := strings.ToLower(s[:schemeIdx])
+	rest := s[schemeIdx+3:]
+	hostEnd := strings.IndexAny(rest, "/?#")
+	host := rest
+	tail := ""
+	if hostEnd >= 0 {
+		host = rest[:hostEnd]
+		tail = rest[hostEnd:]
+	}
+	host = strings.ToLower(host)
+	// Trim a single trailing slash on the path portion only, if no query/fragment.
+	if tail == "/" {
+		tail = ""
+	} else if strings.HasSuffix(tail, "/") && !strings.ContainsAny(tail, "?#") {
+		tail = strings.TrimSuffix(tail, "/")
+	}
+	return scheme + "://" + host + tail, host
+}
+
+// stripCurlFlags removes flag tokens (and the next token for value-taking flags)
+// from args and returns the remaining positional args.
+func stripCurlFlags(args []string) []string {
+	valueTaking := map[string]bool{
+		"-X": true, "-H": true, "-d": true, "-o": true,
+		"-A": true, "-e": true, "-u": true,
+	}
+	var out []string
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		if strings.HasPrefix(a, "-") && a != "-" {
+			if valueTaking[a] && i+1 < len(args) {
+				i++ // skip the value
+			}
+			continue
+		}
+		out = append(out, a)
+	}
+	return out
+}
+
+func hasFlag(args []string, flag string) bool {
+	for _, a := range args {
+		if a == flag {
+			return true
+		}
+	}
+	return false
+}
+
+func curlExec(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
+	cmd := tea.Cmd(func() tea.Msg {
+		if len(params) == 0 {
+			return OutputMsg("curl: try 'curl --help' or 'curl --manual' for more information")
+		}
+
+		headersOnly := hasFlag(params, "-I") || hasFlag(params, "--head")
+		positional := stripCurlFlags(params)
+		if len(positional) == 0 {
+			return OutputMsg("curl: no URL specified!")
+		}
+
+		normalized, host := normalizeURL(positional[0])
+
+		var body string
+		var found bool
+		for _, r := range curlResponses {
+			rn, _ := normalizeURL(r.URL)
+			if rn == normalized {
+				body = r.Body
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			return OutputMsg(fmt.Sprintf("curl: (6) Could not resolve host: %s", host))
+		}
+
+		headers := fmt.Sprintf("HTTP/1.1 200 OK\nContent-Type: text/html\nContent-Length: %d\n", len(body))
+		if headersOnly {
+			return OutputMsg(headers)
+		}
+		return OutputMsg(headers + "\n" + body)
+	})
+	return &cmd
+}
+
+func stripNmapFlags(args []string) []string {
+	valueTaking := map[string]bool{
+		"-p": true, "-oN": true, "-oX": true, "-oG": true,
+		"-iL": true, "-e": true, "-S": true,
+	}
+	var out []string
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		if strings.HasPrefix(a, "-") && a != "-" {
+			if valueTaking[a] && i+1 < len(args) {
+				i++
+			}
+			continue
+		}
+		out = append(out, a)
+	}
+	return out
+}
+
+func nmapExec(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
+	cmd := tea.Cmd(func() tea.Msg {
+		positional := stripNmapFlags(params)
+		if len(positional) == 0 {
+			return OutputMsg("Nmap 7.94 ( https://nmap.org )\nUsage: nmap [Scan Type(s)] [Options] {target specification}")
+		}
+		target := positional[0]
+
+		var match *NmapHost
+		for i := range nmapHosts {
+			if nmapHosts[i].IP == target {
+				match = &nmapHosts[i]
+				break
+			}
+		}
+
+		header := fmt.Sprintf("Starting Nmap 7.94 ( https://nmap.org ) at %s EDT\nNmap scan report for %s\n",
+			time.Now().Format("2006-01-02 15:04"), target)
+
+		if match == nil {
+			return OutputMsg(header +
+				"Note: Host seems down. If it is really up, but blocking our ping probes, try -Pn\n" +
+				"Nmap done: 1 IP address (0 hosts up) scanned in 0.32 seconds")
+		}
+
+		var b strings.Builder
+		b.WriteString(header)
+		b.WriteString("Host is up (0.0012s latency).\n")
+		b.WriteString(fmt.Sprintf("Not shown: %d closed tcp ports (reset)\n", 1000-len(match.Ports)))
+		b.WriteString(fmt.Sprintf("%-10s%-6s%-9s%s\n", "PORT", "STATE", "SERVICE", "VERSION"))
+		for _, p := range match.Ports {
+			b.WriteString(fmt.Sprintf("%-10s%-6s%-9s%s\n",
+				fmt.Sprintf("%d/tcp", p.Port), "open", p.Service, p.Version))
+		}
+		b.WriteString("\nNmap done: 1 IP address (1 host up) scanned in 1.23 seconds")
+		return OutputMsg(b.String())
+	})
+	return &cmd
 }
