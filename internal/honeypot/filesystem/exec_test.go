@@ -226,3 +226,88 @@ func TestNmapExecHit(t *testing.T) {
 		}
 	}
 }
+
+func TestExpandNmapTargetSingle(t *testing.T) {
+	got := expandNmapTarget("10.0.0.1")
+	if len(got) != 1 || got[0] != "10.0.0.1" {
+		t.Errorf("got %v", got)
+	}
+}
+
+func TestExpandNmapTargetCIDR(t *testing.T) {
+	got := expandNmapTarget("10.0.0.0/30")
+	want := []string{"10.0.0.0", "10.0.0.1", "10.0.0.2", "10.0.0.3"}
+	if len(got) != len(want) {
+		t.Fatalf("got %d ips, want %d: %v", len(got), len(want), got)
+	}
+	for i, w := range want {
+		if got[i] != w {
+			t.Errorf("ip[%d] = %q, want %q", i, got[i], w)
+		}
+	}
+}
+
+func TestExpandNmapTargetCIDRTooLarge(t *testing.T) {
+	got := expandNmapTarget("10.0.0.0/8")
+	if len(got) != 1 || got[0] != "10.0.0.0/8" {
+		t.Errorf("expected fallback to literal, got %v", got)
+	}
+}
+
+func TestExpandNmapTargetHyphen(t *testing.T) {
+	got := expandNmapTarget("10.0.0.5-7")
+	want := []string{"10.0.0.5", "10.0.0.6", "10.0.0.7"}
+	if len(got) != len(want) {
+		t.Fatalf("got %v want %v", got, want)
+	}
+	for i, w := range want {
+		if got[i] != w {
+			t.Errorf("ip[%d] = %q, want %q", i, got[i], w)
+		}
+	}
+}
+
+func TestExpandNmapTargetHyphenInvalid(t *testing.T) {
+	// end < start falls back to literal.
+	got := expandNmapTarget("10.0.0.50-1")
+	if len(got) != 1 || got[0] != "10.0.0.50-1" {
+		t.Errorf("expected literal fallback, got %v", got)
+	}
+}
+
+func TestNmapExecCIDRMultipleHits(t *testing.T) {
+	SetNmapHosts([]NmapHost{
+		{IP: "10.0.0.1", Ports: []NmapPort{{Port: 22, Service: "ssh", Version: "OpenSSH 8.4"}}},
+		{IP: "10.0.0.2", Ports: []NmapPort{{Port: 80, Service: "http", Version: "nginx 1.20"}}},
+	})
+	defer SetNmapHosts(nil)
+	msgs := runExec(t, nmapExec, []string{"10.0.0.0/29"})
+	out := string(msgs[0].(OutputMsg))
+	for _, want := range []string{
+		"Nmap scan report for 10.0.0.1",
+		"Nmap scan report for 10.0.0.2",
+		"22/tcp", "80/tcp",
+		"8 IP addresses (2 hosts up)",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q in:\n%s", want, out)
+		}
+	}
+	// Down hosts should be silent.
+	if strings.Contains(out, "Nmap scan report for 10.0.0.3") {
+		t.Errorf("unexpected report for down host in:\n%s", out)
+	}
+}
+
+func TestNmapExecHyphenRangeNoHits(t *testing.T) {
+	SetNmapHosts(nil)
+	msgs := runExec(t, nmapExec, []string{"10.99.0.1-5"})
+	out := string(msgs[0].(OutputMsg))
+	if !strings.Contains(out, "5 IP addresses (0 hosts up)") {
+		t.Errorf("missing summary in:\n%s", out)
+	}
+	// "Host seems down" only shows for single-IP scans.
+	if strings.Contains(out, "Host seems down") {
+		t.Errorf("unexpected single-host miss text in range scan:\n%s", out)
+	}
+}

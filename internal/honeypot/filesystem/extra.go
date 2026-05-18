@@ -32,7 +32,7 @@ type NmapHost struct {
 
 var (
 	curlResponseBodies map[string]string
-	nmapHosts          []NmapHost
+	nmapHostsByIP      map[string]NmapHost
 )
 
 // SetCurlResponses installs the curl response table used by curlExec.
@@ -46,14 +46,14 @@ func SetCurlResponses(responses []CurlResponse) {
 	curlResponseBodies = m
 }
 
-// SetNmapHosts installs the nmap host table used by nmapExec.
+// SetNmapHosts installs the nmap host table used by nmapExec, keyed by IP
+// for O(1) lookup when expanding range scans.
 func SetNmapHosts(hosts []NmapHost) {
-	nmapHosts = hosts
-}
-
-// NmapHosts returns the installed nmap hosts (test helper / accessor).
-func NmapHosts() []NmapHost {
-	return nmapHosts
+	m := make(map[string]NmapHost, len(hosts))
+	for _, h := range hosts {
+		m[h.IP] = h
+	}
+	nmapHostsByIP = m
 }
 
 // SetAdditionalNodes stores nodes that will be merged into the filesystem

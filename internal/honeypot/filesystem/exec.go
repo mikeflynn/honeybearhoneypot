@@ -3,6 +3,7 @@ package filesystem
 import (
 	"fmt"
 	"math/rand/v2"
+	"net"
 	"sort"
 	"strconv"
 	"strings"
@@ -590,41 +591,105 @@ func stripNmapFlags(args []string) []string {
 	return out
 }
 
+// expandNmapTarget parses one target spec into the list of IPs to scan.
+// Supports a bare IP/host, CIDR (10.0.0.0/24), and last-octet hyphen
+// ranges (10.0.0.1-50). CIDR larger than /16 falls back to a single-IP
+// scan against the literal string so an overly broad scan still produces
+// a sensible (and quick) miss.
+func expandNmapTarget(target string) []string {
+	if strings.Contains(target, "/") {
+		_, ipnet, err := net.ParseCIDR(target)
+		if err != nil {
+			return []string{target}
+		}
+		ones, bits := ipnet.Mask.Size()
+		if bits-ones > 16 {
+			return []string{target}
+		}
+		var ips []string
+		for ip := ipnet.IP.Mask(ipnet.Mask); ipnet.Contains(ip); ip = nextIP(ip) {
+			ips = append(ips, ip.String())
+		}
+		return ips
+	}
+	if idx := strings.LastIndex(target, "-"); idx > 0 {
+		base := target[:idx]
+		endStr := target[idx+1:]
+		if lastDot := strings.LastIndex(base, "."); lastDot > 0 {
+			prefix := base[:lastDot+1]
+			startStr := base[lastDot+1:]
+			start, err1 := strconv.Atoi(startStr)
+			end, err2 := strconv.Atoi(endStr)
+			if err1 == nil && err2 == nil && start >= 0 && end <= 255 && start <= end {
+				ips := make([]string, 0, end-start+1)
+				for i := start; i <= end; i++ {
+					ips = append(ips, prefix+strconv.Itoa(i))
+				}
+				return ips
+			}
+		}
+	}
+	return []string{target}
+}
+
+func nextIP(ip net.IP) net.IP {
+	out := make(net.IP, len(ip))
+	copy(out, ip)
+	for i := len(out) - 1; i >= 0; i-- {
+		out[i]++
+		if out[i] != 0 {
+			break
+		}
+	}
+	return out
+}
+
 func nmapExec(dir *Node, params []string, user, group string, env map[string]string) *tea.Cmd {
 	cmd := tea.Cmd(func() tea.Msg {
 		positional := stripNmapFlags(params)
 		if len(positional) == 0 {
 			return OutputMsg("Nmap 7.94 ( https://nmap.org )\nUsage: nmap [Scan Type(s)] [Options] {target specification}")
 		}
-		target := positional[0]
-
-		var match *NmapHost
-		for i := range nmapHosts {
-			if nmapHosts[i].IP == target {
-				match = &nmapHosts[i]
-				break
-			}
-		}
-
-		header := fmt.Sprintf("Starting Nmap 7.94 ( https://nmap.org ) at %s EDT\nNmap scan report for %s\n",
-			time.Now().Format("2006-01-02 15:04"), target)
-
-		if match == nil {
-			return OutputMsg(header +
-				"Note: Host seems down. If it is really up, but blocking our ping probes, try -Pn\n" +
-				"Nmap done: 1 IP address (0 hosts up) scanned in 0.32 seconds")
-		}
+		ips := expandNmapTarget(positional[0])
 
 		var b strings.Builder
-		b.WriteString(header)
-		b.WriteString("Host is up (0.0012s latency).\n")
-		b.WriteString(fmt.Sprintf("Not shown: %d closed tcp ports (reset)\n", 1000-len(match.Ports)))
-		b.WriteString(fmt.Sprintf("%-10s%-6s%-9s%s\n", "PORT", "STATE", "SERVICE", "VERSION"))
-		for _, p := range match.Ports {
-			b.WriteString(fmt.Sprintf("%-10s%-6s%-9s%s\n",
-				fmt.Sprintf("%d/tcp", p.Port), "open", p.Service, p.Version))
+		b.WriteString(fmt.Sprintf("Starting Nmap 7.94 ( https://nmap.org ) at %s EDT\n",
+			time.Now().Format("2006-01-02 15:04")))
+
+		hostsUp := 0
+		for _, ip := range ips {
+			match, ok := nmapHostsByIP[ip]
+			if !ok {
+				continue
+			}
+			hostsUp++
+			b.WriteString(fmt.Sprintf("Nmap scan report for %s\n", ip))
+			b.WriteString("Host is up (0.0012s latency).\n")
+			b.WriteString(fmt.Sprintf("Not shown: %d closed tcp ports (reset)\n", 1000-len(match.Ports)))
+			b.WriteString(fmt.Sprintf("%-10s%-6s%-9s%s\n", "PORT", "STATE", "SERVICE", "VERSION"))
+			for _, p := range match.Ports {
+				b.WriteString(fmt.Sprintf("%-10s%-6s%-9s%s\n",
+					fmt.Sprintf("%d/tcp", p.Port), "open", p.Service, p.Version))
+			}
+			b.WriteString("\n")
 		}
-		b.WriteString("\nNmap done: 1 IP address (1 host up) scanned in 1.23 seconds")
+
+		if len(ips) == 1 && hostsUp == 0 {
+			b.WriteString(fmt.Sprintf("Nmap scan report for %s\n", ips[0]))
+			b.WriteString("Note: Host seems down. If it is really up, but blocking our ping probes, try -Pn\n")
+		}
+
+		ipNoun := "IP address"
+		if len(ips) != 1 {
+			ipNoun = "IP addresses"
+		}
+		hostNoun := "host"
+		if hostsUp != 1 {
+			hostNoun = "hosts"
+		}
+		b.WriteString(fmt.Sprintf("Nmap done: %d %s (%d %s up) scanned in %.2f seconds",
+			len(ips), ipNoun, hostsUp, hostNoun, 0.32+float64(len(ips))*0.01))
+
 		return OutputMsg(b.String())
 	})
 	return &cmd
