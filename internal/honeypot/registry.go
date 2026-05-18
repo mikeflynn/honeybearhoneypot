@@ -86,13 +86,14 @@ func ActionKickAll() {
 }
 
 // ActionGlitch broadcasts a short visual glitch effect (~2.5s) to every active
-// session, then restores normal rendering. Mirrors the lifecycle of
-// ActionConfetti.
+// session, then restores normal rendering. The pre-glitch screen output is
+// preserved (the glitch sub-model snapshots it on entry and never mutates
+// m.output), so clearing SetRunningCmd alone is enough to restore it.
 func ActionGlitch() {
 	broadcast(filesystem.SetRunningCmd("glitch"), glitch.Tick{})
 	go func() {
 		time.Sleep(glitch.Duration + 100*time.Millisecond)
-		broadcast(filesystem.SetRunningCmd(""), filesystem.ClearOutputMsg(""))
+		broadcast(filesystem.SetRunningCmd(""))
 	}()
 }
 
