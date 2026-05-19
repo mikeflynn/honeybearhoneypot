@@ -14,6 +14,7 @@ type Task struct {
 	Description string `json:"description"`
 	Flag        string `json:"flag"`
 	Points      int    `json:"points"`
+	Archived    bool   `json:"archived,omitempty"`
 }
 
 type Config struct {

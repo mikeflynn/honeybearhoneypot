@@ -426,6 +426,7 @@ func convertTasks(t []config.Task) []ctf.Task {
 			Description: task.Description,
 			Flag:        task.Flag,
 			Points:      task.Points,
+			Archived:    task.Archived,
 		}
 	}
 	return out

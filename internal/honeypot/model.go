@@ -168,6 +168,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.runningCommand = ""
 		m.ctf = ctf.InitialModel(convertTasks(config.Active.Tasks), m.user, m.host)
 		return m, nil
+	case ctf.ConfettiMsg:
+		if msg.Active {
+			m.runningCommand = "confetti"
+		} else {
+			m.runningCommand = "ctf"
+		}
+		return m, nil
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "enter":
