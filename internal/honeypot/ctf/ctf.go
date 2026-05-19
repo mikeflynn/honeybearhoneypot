@@ -11,6 +11,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/confetti"
 )
 
 // Start returns a tea.Msg used to launch the CTF game.
@@ -26,6 +27,12 @@ type QuitMsg struct{}
 // Quit returns a message that signals the parent model to close the CTF view.
 func Quit() tea.Msg { return QuitMsg{} }
 
+// ConfettiMsg is sent when the player solves a CTF task. The parent model is
+// responsible for translating this into the appropriate confetti animation
+// commands (filesystem.SetRunningCmd + confetti.Burst).
+// Active=true means "start confetti"; Active=false means "stop confetti".
+type ConfettiMsg struct{ Active bool }
+
 // gameState indicates which screen we're showing.
 type gameState int
 
@@ -33,6 +40,7 @@ const (
 	stateLogin gameState = iota
 	stateMenu
 	stateAnswer
+	stateLeaderboard
 	stateDone
 )
 
@@ -42,6 +50,7 @@ type Task struct {
 	Flag        string
 	Points      int
 	Completed   bool
+	Archived    bool
 }
 
 type Model struct {
@@ -60,12 +69,31 @@ type Model struct {
 	passwordInput textinput.Model
 	answerInput   textinput.Model
 
-	tasks  []Task
-	cursor int
+	tasks        []Task
+	activeTasks  []Task
+	archivedDone []Task
+	cursor       int
 
 	selectedTask *Task
 
-	errMsg string
+	leaderboard []entity.CTFUser
+	errMsg      string
+}
+
+// partitionTasks splits tasks into (active, archivedDone).
+// Active = not archived (regardless of completion state).
+// archivedDone = archived AND completed by the current user.
+// Archived-and-not-completed tasks are excluded entirely.
+func partitionTasks(tasks []Task) (active, archivedDone []Task) {
+	for _, t := range tasks {
+		switch {
+		case !t.Archived:
+			active = append(active, t)
+		case t.Archived && t.Completed:
+			archivedDone = append(archivedDone, t)
+		}
+	}
+	return active, archivedDone
 }
 
 func (m *Model) loadCompleted() {
@@ -85,6 +113,10 @@ func (m *Model) loadCompleted() {
 		if _, ok := done[m.tasks[i].Name]; ok {
 			m.tasks[i].Completed = true
 		}
+	}
+	m.activeTasks, m.archivedDone = partitionTasks(m.tasks)
+	if m.cursor >= len(m.activeTasks) {
+		m.cursor = 0
 	}
 }
 
@@ -184,6 +216,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		return m.updateMenu(msg)
 	case stateAnswer:
 		return m.updateAnswer(msg)
+	case stateLeaderboard:
+		return m.updateLeaderboard(msg)
 	case stateDone:
 		return m, func() tea.Msg { return QuitMsg{} }
 	}
@@ -267,19 +301,34 @@ func (m Model) updateMenu(msg tea.Msg) (Model, tea.Cmd) {
 				m.cursor--
 			}
 		case "down", "j":
-			if m.cursor < len(m.tasks)-1 {
+			if m.cursor < len(m.activeTasks)-1 {
 				m.cursor++
 			}
 		case "enter":
-			if len(m.tasks) > 0 {
-				if m.tasks[m.cursor].Completed {
+			if len(m.activeTasks) > 0 {
+				if m.activeTasks[m.cursor].Completed {
 					return m, nil
 				}
-				m.selectedTask = &m.tasks[m.cursor]
+				// Find the master-list pointer so CompleteTask updates the right element.
+				for i := range m.tasks {
+					if m.tasks[i].Name == m.activeTasks[m.cursor].Name {
+						m.selectedTask = &m.tasks[i]
+						break
+					}
+				}
 				m.state = stateAnswer
 				m.answerInput.SetValue("")
 				m.answerInput.Focus()
 			}
+		case "l", "L":
+			board, err := entity.Leaderboard(10)
+			if err != nil {
+				m.errMsg = err.Error()
+				return m, nil
+			}
+			m.leaderboard = board
+			m.state = stateLeaderboard
+			return m, nil
 		case "q", "ctrl+c":
 			m.state = stateDone
 			return m, func() tea.Msg { return QuitMsg{} }
@@ -296,6 +345,7 @@ func (m Model) updateAnswer(msg tea.Msg) (Model, tea.Cmd) {
 		case "enter":
 			ans := strings.TrimSpace(m.answerInput.Value())
 			if ans == m.selectedTask.Flag {
+				var celebrate tea.Cmd
 				if err := m.user.CompleteTask(m.selectedTask.Name, m.selectedTask.Points); err != nil {
 					m.errMsg = err.Error()
 				} else {
@@ -318,9 +368,23 @@ func (m Model) updateAnswer(msg tea.Msg) (Model, tea.Cmd) {
 						event.Publish()
 						event.Save()
 					}(m.selectedTask.Name, m.selectedTask.Points)
+
+					// Recompute partition so activeTasks reflects the newly-completed task.
+					m.activeTasks, m.archivedDone = partitionTasks(m.tasks)
+					if m.cursor >= len(m.activeTasks) {
+						m.cursor = 0
+					}
+
+					celebrate = tea.Batch(
+						func() tea.Msg { return ConfettiMsg{Active: true} },
+						func() tea.Msg { return confetti.Burst() },
+						tea.Tick(4*time.Second, func(time.Time) tea.Msg {
+							return ConfettiMsg{Active: false}
+						}),
+					)
 				}
 				m.state = stateMenu
-				return m, nil
+				return m, celebrate
 			}
 
 			m.errMsg = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true).Render("Incorrect flag")
@@ -333,6 +397,14 @@ func (m Model) updateAnswer(msg tea.Msg) (Model, tea.Cmd) {
 	}
 	m.answerInput, cmd = m.answerInput.Update(msg)
 	return m, cmd
+}
+
+func (m Model) updateLeaderboard(msg tea.Msg) (Model, tea.Cmd) {
+	if _, ok := msg.(tea.KeyPressMsg); ok {
+		m.state = stateMenu
+		return m, nil
+	}
+	return m, nil
 }
 
 func (m Model) View() string {
@@ -351,10 +423,12 @@ func (m Model) View() string {
 		)
 	case stateMenu:
 		header := fmt.Sprintf("Honey Bear Honey Pot CTF - %s (%d pts)", m.user.Username, m.user.Points)
+		footer := lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render("press L for leaderboard, q to quit")
 		return lipgloss.JoinVertical(lipgloss.Left,
 			titleStyle.Render(header),
 			m.renderTasks(false),
 			m.errMsg,
+			footer,
 		)
 	case stateAnswer:
 		desc := wordWrap(m.selectedTask.Description, m.width-4)
@@ -367,6 +441,9 @@ func (m Model) View() string {
 			m.errMsg,
 		)
 		return box.Render(content)
+	case stateLeaderboard:
+		box := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Padding(1, 2)
+		return box.Render(m.renderLeaderboard())
 	case stateDone:
 		return "Goodbye"
 	}
@@ -380,8 +457,9 @@ func (m Model) renderTasks(showAllDesc bool) string {
 	selectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("0")).Background(lipgloss.Color("6")).Bold(true)
 	normalStyle := lipgloss.NewStyle()
 	descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
+	archivedHeader := lipgloss.NewStyle().Foreground(lipgloss.Color("8")).Render("── Archived ──")
 
-	for i, t := range m.tasks {
+	renderOne := func(t Task, i int, selectable bool) {
 		blet := bullet
 		style := normalStyle
 		if t.Completed {
@@ -390,12 +468,12 @@ func (m Model) renderTasks(showAllDesc bool) string {
 		}
 
 		marker := " "
-		if m.state == stateMenu && i == m.cursor {
+		if selectable && m.state == stateMenu && i == m.cursor {
 			marker = ">"
 		}
 
 		line := fmt.Sprintf("%s %s %s (%d pts)", marker, blet, t.Name, t.Points)
-		if m.state == stateMenu && i == m.cursor {
+		if selectable && m.state == stateMenu && i == m.cursor {
 			line = selectedStyle.Render(line)
 		} else {
 			line = style.Render(line)
@@ -408,10 +486,54 @@ func (m Model) renderTasks(showAllDesc bool) string {
 			if len(r) > limit {
 				desc = string(r[:limit-3]) + "..."
 			}
-			b.WriteString("  " + descStyle.Render(desc) + "\n")
-		} else {
-			b.WriteString("  " + descStyle.Render(desc) + "\n")
+		}
+		b.WriteString("  " + descStyle.Render(desc) + "\n")
+	}
+
+	if len(m.activeTasks) == 0 && len(m.archivedDone) == 0 {
+		return descStyle.Render("No tasks available.")
+	}
+
+	for i, t := range m.activeTasks {
+		renderOne(t, i, true)
+	}
+
+	if len(m.activeTasks) == 0 {
+		b.WriteString(descStyle.Render("All active tasks complete!") + "\n")
+	}
+
+	if len(m.archivedDone) > 0 {
+		b.WriteString("\n" + archivedHeader + "\n")
+		for i, t := range m.archivedDone {
+			renderOne(t, i, false)
 		}
 	}
+
 	return strings.TrimRight(b.String(), "\n")
+}
+
+func (m Model) renderLeaderboard() string {
+	titleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)
+	rowStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
+	meStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("11")).Bold(true)
+	footerStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("8"))
+
+	var b strings.Builder
+	b.WriteString(titleStyle.Render("Leaderboard") + "\n\n")
+
+	if len(m.leaderboard) == 0 {
+		b.WriteString(rowStyle.Render("No scores yet.") + "\n")
+	} else {
+		for i, u := range m.leaderboard {
+			line := fmt.Sprintf("%2d. %s — %d pts", i+1, u.Username, u.Points)
+			if m.user != nil && u.Username == m.user.Username {
+				b.WriteString(meStyle.Render(line) + "\n")
+			} else {
+				b.WriteString(rowStyle.Render(line) + "\n")
+			}
+		}
+	}
+
+	b.WriteString("\n" + footerStyle.Render("press any key to return"))
+	return b.String()
 }
