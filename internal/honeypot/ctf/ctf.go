@@ -33,6 +33,20 @@ func Quit() tea.Msg { return QuitMsg{} }
 // Active=true means "start confetti"; Active=false means "stop confetti".
 type ConfettiMsg struct{ Active bool }
 
+// leaderboardLoadedMsg carries the result of an async leaderboard query so
+// the SQLite read stays off the Bubble Tea event loop.
+type leaderboardLoadedMsg struct {
+	users []entity.CTFUser
+	err   error
+}
+
+func loadLeaderboardCmd() tea.Cmd {
+	return func() tea.Msg {
+		users, err := entity.Leaderboard(10)
+		return leaderboardLoadedMsg{users: users, err: err}
+	}
+}
+
 // gameState indicates which screen we're showing.
 type gameState int
 
@@ -207,6 +221,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+	case leaderboardLoadedMsg:
+		if msg.err != nil {
+			m.errMsg = msg.err.Error()
+			m.state = stateMenu
+		} else {
+			m.leaderboard = msg.users
+		}
+		return m, nil
 	}
 
 	switch m.state {
@@ -321,14 +343,9 @@ func (m Model) updateMenu(msg tea.Msg) (Model, tea.Cmd) {
 				m.answerInput.Focus()
 			}
 		case "l", "L":
-			board, err := entity.Leaderboard(10)
-			if err != nil {
-				m.errMsg = err.Error()
-				return m, nil
-			}
-			m.leaderboard = board
 			m.state = stateLeaderboard
-			return m, nil
+			m.leaderboard = nil
+			return m, loadLeaderboardCmd()
 		case "q", "ctrl+c":
 			m.state = stateDone
 			return m, func() tea.Msg { return QuitMsg{} }
@@ -375,9 +392,15 @@ func (m Model) updateAnswer(msg tea.Msg) (Model, tea.Cmd) {
 						m.cursor = 0
 					}
 
+					// Delay the burst by 100ms so the parent model has a frame
+					// to process ConfettiMsg{Active: true} and swap views
+					// before the animation message arrives. Matches the
+					// pattern in filesystem.go's celebrate command.
 					celebrate = tea.Batch(
 						func() tea.Msg { return ConfettiMsg{Active: true} },
-						func() tea.Msg { return confetti.Burst() },
+						tea.Tick(100*time.Millisecond, func(time.Time) tea.Msg {
+							return confetti.Burst()
+						}),
 						tea.Tick(4*time.Second, func(time.Time) tea.Msg {
 							return ConfettiMsg{Active: false}
 						}),
@@ -521,7 +544,9 @@ func (m Model) renderLeaderboard() string {
 	var b strings.Builder
 	b.WriteString(titleStyle.Render("Leaderboard") + "\n\n")
 
-	if len(m.leaderboard) == 0 {
+	if m.leaderboard == nil {
+		b.WriteString(rowStyle.Render("Loading…") + "\n")
+	} else if len(m.leaderboard) == 0 {
 		b.WriteString(rowStyle.Render("No scores yet.") + "\n")
 	} else {
 		for i, u := range m.leaderboard {
