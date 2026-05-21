@@ -3,10 +3,12 @@ package main
 // https://github.com/charmbracelet/wish
 
 import (
+	_ "embed"
 	"net"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"charm.land/log/v2"
 	"github.com/mikeflynn/honeybearhoneypot/internal/config"
@@ -22,6 +24,15 @@ import (
 const (
 	appName = "HoneyBearHoneyPot"
 )
+
+//go:embed VERSION
+var versionFile string
+
+func init() {
+	if v := strings.TrimSpace(versionFile); v != "" {
+		gui.Version = v
+	}
+}
 
 func main() {
 	cfg, _, err := config.Parse()

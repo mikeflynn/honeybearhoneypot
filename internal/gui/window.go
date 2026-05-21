@@ -25,8 +25,12 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
+// Version is the app version string shown in the About modal. It is set from
+// main.go using the contents of the top-level VERSION file. To bump the
+// version, edit /VERSION (and /FyneApp.toml to match).
+var Version = "dev"
+
 const (
-	version       = "v1.5"
 	defaultWidth  = 800
 	defaultHeight = 480
 )
@@ -333,7 +337,7 @@ func aboutButton() *widget.Button {
 		aboutPopup = widget.NewModalPopUp(
 			container.NewVBox(
 				container.NewHBox(
-					widget.NewLabel("Honey Bear Honey Pot: "+version),
+					widget.NewLabel("Honey Bear Honey Pot: v"+Version),
 					layout.NewSpacer(),
 					widget.NewButtonWithIcon("", theme.WindowCloseIcon(), func() {
 						aboutPopup.Hide()
@@ -347,8 +351,6 @@ func aboutButton() *widget.Button {
 						widget.NewHyperlink("honeybear.hydrox.fun", link),
 					),
 				),
-				widget.NewSeparator(),
-				widget.NewLabel("GeoIP data by DB-IP (https://db-ip.com), CC BY 4.0.\nWorld map: Natural Earth (public domain)."),
 			),
 			w.Canvas(),
 		)
