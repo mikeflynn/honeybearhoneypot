@@ -4,6 +4,7 @@ package main
 
 import (
 	_ "embed"
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -35,6 +36,13 @@ func init() {
 }
 
 func main() {
+	for _, arg := range os.Args[1:] {
+		if arg == "--version" || arg == "-version" {
+			fmt.Println(strings.TrimSpace(versionFile))
+			return
+		}
+	}
+
 	cfg, _, err := config.Parse()
 	if err != nil {
 		log.Fatal("Failed to parse configuration", "error", err)
