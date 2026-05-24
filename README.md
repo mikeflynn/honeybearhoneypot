@@ -8,25 +8,34 @@ See more information about this project: [honeybear.hydrox.fun](https://honeybea
 
 ## Installation
 
-### Homebrew (macOS & Linux)
+### Install Script (recommended)
 
-You can install Honey Bear Honey Pot using Homebrew by tapping the official repository:
+The quickest way to install on macOS or Linux — pipe to bash:
 
 ```bash
-$ brew tap mikeflynn/honeybearhoneypot
-$ brew install honeybearhoneypot
+curl -fsSL https://raw.githubusercontent.com/mikeflynn/honeybearhoneypot/main/honeybear.sh | bash
 ```
 
-...or simply:
+On macOS, the script will detect Homebrew and offer to use it automatically. On Linux (or if you decline Homebrew), it downloads the pre-built binary from the latest GitHub release, verifies the SHA-256 checksum, and installs to `/usr/local/bin`. If no pre-built binary exists for your platform, it will offer to build from source.
+
+**Upgrade to the latest release:**
 
 ```bash
-$ brew install mikeflynn/honeybearhoneypot/honeybearhoneypot
+curl -fsSL https://raw.githubusercontent.com/mikeflynn/honeybearhoneypot/main/honeybear.sh | bash -s -- --upgrade
 ```
 
-After installation, you can run the application using the command:
+If the binary was installed via Homebrew, `--upgrade` routes through `brew upgrade` automatically.
+
+### Homebrew (macOS)
 
 ```bash
-$ honeybearhoneypot -h
+brew install mikeflynn/honeybearhoneypot/honeybearhoneypot
+```
+
+Upgrade:
+
+```bash
+brew upgrade honeybearhoneypot
 ```
 
 ### Linux Packages
@@ -59,6 +68,7 @@ Download the latest binary or package for your architecture from the [Releases](
 
 The honeypot can be configured using command-line flags when starting the application:
 
+- `-version`: Print the version and exit
 - `-fs`: Start the GUI in full screen mode
 - `-height`: Set the height of the GUI window
 - `-width`: Set the width of the GUI window
