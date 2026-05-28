@@ -125,13 +125,16 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 
 	notifications := container.NewVBox()
 
+	notificationsScroll := container.NewVScroll(notifications)
+	notificationsScroll.SetMinSize(fyne.NewSize(260, 1))
+
 	w.SetContent(container.New(
 		layout.NewStackLayout(),
 		background,
 		dataOverlays,
 		container.NewPadded(
 			container.NewHBox(
-				container.NewVScroll(notifications),
+				notificationsScroll,
 				layout.NewSpacer(),
 			),
 		),
