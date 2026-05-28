@@ -77,9 +77,8 @@ func addNode(n Node) error {
 		return errors.New("node path required")
 	}
 
-	if n.Name == "" {
-		n.Name = path.Base(n.Path)
-	}
+	n.Path = path.Clean(n.Path)
+	n.Name = path.Base(n.Path)
 	parentPath := path.Dir(n.Path)
 	if parentPath == "." {
 		parentPath = "/"
@@ -103,12 +102,20 @@ func addNode(n Node) error {
 		}
 	}
 
+	for i, child := range parent.Children {
+		if child.Name == n.Name {
+			parent.Children[i] = &n
+			return nil
+		}
+	}
 	parent.Children = append(parent.Children, &n)
 	return nil
 }
 
 func applyAdditionalNodes() {
 	for _, n := range additionalNodes {
-		_ = addNode(n)
+		if err := addNode(n); err != nil {
+			log.Errorf("filesystem: failed to add node %q: %v", n.Path, err)
+		}
 	}
 }
