@@ -256,6 +256,11 @@ func StartGUI(fullscreen bool, overrideWidth, overrideHeight float32) {
 				// Update the bear
 				background.Objects[0] = showBear(newBear)
 				background.Refresh()
+
+				// Prevent layout-driven window growth (e.g. from notification content width)
+				if s := w.Canvas().Size(); s.Width > width || s.Height > height {
+					w.Resize(fyne.NewSize(width, height))
+				}
 			})
 
 			time.Sleep(loopWait)
@@ -306,6 +311,9 @@ func showBear(bear *Bear) *canvas.Image {
 
 func shouldShowEmotion() bool {
 	max := (honeypot.StatActiveUsers() * 3) + (honeypot.StatMaxUsers() * 2)
+	if max == 0 {
+		return false
+	}
 	r := rand.IntN(max)
 	log.Debug("Bear update:", "max", max, "r", r, "emotionFactor", emotionFactor)
 
@@ -424,6 +432,22 @@ func maxLineLen(s string, l int) []string {
 	return result
 }
 
+// notifLayout is a Stack-like layout that reports a fixed MinSize regardless of
+// content, preventing notification items from growing the VScroll's reported
+// min-width through the parent layout chain.
+type notifLayout struct{}
+
+func (notifLayout) Layout(objects []fyne.CanvasObject, size fyne.Size) {
+	for _, o := range objects {
+		o.Resize(size)
+		o.Move(fyne.NewPos(0, 0))
+	}
+}
+
+func (notifLayout) MinSize(_ []fyne.CanvasObject) fyne.Size {
+	return fyne.NewSize(240, 90)
+}
+
 type notificationQueue struct {
 	notifications []*entity.Event
 	maxLength     int
@@ -461,7 +485,6 @@ func (n *notificationQueue) Draw() []*fyne.Container {
 		fontSize := float32(18)
 
 		bg := canvas.NewRectangle(color.RGBA{0, 0, 0, 95})
-		bg.Resize(fyne.NewSize(240, 40))
 		bg.CornerRadius = 10
 
 		lines := []fyne.CanvasObject{}
@@ -490,8 +513,8 @@ func (n *notificationQueue) Draw() []*fyne.Container {
 			lines = lines[:4]
 		}
 
-		containers = append(containers, container.NewStack(
-			//canvas.NewRectangle(theme.Color(theme.ColorNameOverlayBackground)),
+		containers = append(containers, container.New(
+			notifLayout{},
 			bg,
 			container.NewPadded(
 				container.NewVBox(lines...),
