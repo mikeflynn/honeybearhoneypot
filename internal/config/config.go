@@ -9,6 +9,17 @@ import (
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/filesystem"
 )
 
+type Webhooks struct {
+	Leaderboard *LeaderboardWebhook `json:"leaderboard,omitempty"`
+}
+
+type LeaderboardWebhook struct {
+	URL              string `json:"url,omitempty"`
+	Limit            int    `json:"limit,omitempty"`
+	HeartbeatSeconds int    `json:"heartbeat_seconds,omitempty"`
+	TimeoutSeconds   int    `json:"timeout_seconds,omitempty"`
+}
+
 type Task struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
@@ -43,6 +54,8 @@ type Config struct {
 
 	CurlResponses []filesystem.CurlResponse `json:"curl_responses,omitempty"`
 	NmapHosts     []filesystem.NmapHost     `json:"nmap_hosts,omitempty"`
+
+	Webhooks *Webhooks `json:"webhooks,omitempty"`
 }
 
 var (
@@ -67,6 +80,9 @@ var (
 	exportFormatFlag = flag.String("export-format", "", "The format to export data to (json, csv, raw)")
 	exportPathFlag   = flag.String("export-path", "", "The directory to export data to")
 	exportTypesFlag  = flag.String("export-types", "", "The types of data to export (events, options, ctf). Comma separated.")
+
+	leaderboardWebhookURLFlag       = flag.String("leaderboard-webhook-url", "", "URL to POST CTF leaderboard snapshots to (enables leaderboard webhook)")
+	leaderboardWebhookHeartbeatFlag = flag.Int("leaderboard-webhook-heartbeat", 0, "Heartbeat interval in seconds for leaderboard webhook (0 disables)")
 )
 
 // Active holds the configuration loaded via Parse so it can be referenced by
@@ -166,6 +182,25 @@ func Parse() (*Config, string, error) {
 		cfg.ExportTypes = strings.Split(*exportTypesFlag, ",")
 	}
 
+	if *leaderboardWebhookURLFlag != "" {
+		if cfg.Webhooks == nil {
+			cfg.Webhooks = &Webhooks{}
+		}
+		if cfg.Webhooks.Leaderboard == nil {
+			cfg.Webhooks.Leaderboard = &LeaderboardWebhook{}
+		}
+		cfg.Webhooks.Leaderboard.URL = *leaderboardWebhookURLFlag
+	}
+	if *leaderboardWebhookHeartbeatFlag != 0 {
+		if cfg.Webhooks == nil {
+			cfg.Webhooks = &Webhooks{}
+		}
+		if cfg.Webhooks.Leaderboard == nil {
+			cfg.Webhooks.Leaderboard = &LeaderboardWebhook{}
+		}
+		cfg.Webhooks.Leaderboard.HeartbeatSeconds = *leaderboardWebhookHeartbeatFlag
+	}
+
 	Active = &cfg
 	return Active, cfg.PinReset, nil
 }
@@ -233,5 +268,29 @@ func merge(dst *Config, src *Config) {
 	}
 	if len(src.NmapHosts) > 0 {
 		dst.NmapHosts = src.NmapHosts
+	}
+	if src.Webhooks != nil {
+		if dst.Webhooks == nil {
+			dst.Webhooks = &Webhooks{}
+		}
+		if src.Webhooks.Leaderboard != nil {
+			if dst.Webhooks.Leaderboard == nil {
+				dst.Webhooks.Leaderboard = &LeaderboardWebhook{}
+			}
+			lb := src.Webhooks.Leaderboard
+			dlb := dst.Webhooks.Leaderboard
+			if lb.URL != "" {
+				dlb.URL = lb.URL
+			}
+			if lb.Limit != 0 {
+				dlb.Limit = lb.Limit
+			}
+			if lb.HeartbeatSeconds != 0 {
+				dlb.HeartbeatSeconds = lb.HeartbeatSeconds
+			}
+			if lb.TimeoutSeconds != 0 {
+				dlb.TimeoutSeconds = lb.TimeoutSeconds
+			}
+		}
 	}
 }
