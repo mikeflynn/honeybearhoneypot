@@ -55,8 +55,8 @@ func NewDispatcher(cfg Config) *Dispatcher {
 		return d
 	}
 	u, err := url.Parse(cfg.URL)
-	if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
-		log.Error("Invalid webhook URL; disabling", "err", err)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		log.Error("Invalid webhook URL; disabling", "url", cfg.URL, "err", err)
 		return d
 	}
 	d.host = u.Host
