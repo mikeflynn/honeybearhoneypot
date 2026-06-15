@@ -91,7 +91,7 @@ func (d *Dispatcher) Publish(event string) {
 		return
 	}
 	d.mu.Lock()
-	if eventPriority(event) > eventPriority(d.pending) {
+	if d.pending == "" || eventPriority(event) > eventPriority(d.pending) {
 		d.pending = event
 	}
 	d.mu.Unlock()
