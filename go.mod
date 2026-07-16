@@ -15,7 +15,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/muesli/reflow v0.3.0
 	github.com/oschwald/maxminddb-golang/v2 v2.2.0
-	golang.org/x/crypto v0.51.0
+	golang.org/x/crypto v0.52.0
 )
 
 require (
