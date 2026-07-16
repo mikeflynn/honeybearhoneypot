@@ -19,7 +19,9 @@ import (
 	"github.com/mikeflynn/honeybearhoneypot/internal/geo"
 	"github.com/mikeflynn/honeybearhoneypot/internal/gui"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/ctf"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/filesystem"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/webhook/leaderboard"
 )
 
 const (
@@ -80,6 +82,15 @@ func main() {
 	}
 
 	log.Info("Starting Honey Bear Honey Pot...")
+
+	var lbCfg *config.LeaderboardWebhook
+	if cfg.Webhooks != nil {
+		lbCfg = cfg.Webhooks.Leaderboard
+	}
+	lbDispatcher := leaderboard.New(lbCfg, strings.TrimSpace(versionFile))
+	defer lbDispatcher.Close()
+	ctf.SetLeaderboardPublisher(lbDispatcher)
+	lbDispatcher.Publish("startup")
 
 	filesystem.SetNoFun(config.Active.NoFun)
 

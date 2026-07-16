@@ -12,7 +12,24 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/confetti"
+	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/webhook"
 )
+
+// leaderboardPublisher is set by main.go at startup. When nil or when its
+// underlying URL is empty, the publish call is a no-op.
+var leaderboardPublisher *webhook.Dispatcher
+
+// SetLeaderboardPublisher wires the webhook dispatcher used after successful
+// flag submissions. Safe to call once at startup.
+func SetLeaderboardPublisher(d *webhook.Dispatcher) {
+	leaderboardPublisher = d
+}
+
+func publishLeaderboard(event string) {
+	if leaderboardPublisher != nil {
+		leaderboardPublisher.Publish(event)
+	}
+}
 
 // Start returns a tea.Msg used to launch the CTF game.
 func Start() tea.Msg { return startMsg{} }
@@ -370,6 +387,7 @@ func (m Model) updateAnswer(msg tea.Msg) (Model, tea.Cmd) {
 						fmt.Sprintf("🎉 Correct! +%d points! 🎉", m.selectedTask.Points),
 					)
 					m.selectedTask.Completed = true
+					publishLeaderboard("solve")
 
 					// Create a GUI notification for task completion
 					go func(taskName string, points int) {
