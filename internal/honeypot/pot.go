@@ -422,11 +422,12 @@ func convertTasks(t []config.Task) []ctf.Task {
 	out := make([]ctf.Task, len(t))
 	for i, task := range t {
 		out[i] = ctf.Task{
-			Name:        task.Name,
-			Description: task.Description,
-			Flag:        task.Flag,
-			Points:      task.Points,
-			Archived:    task.Archived,
+			Name:           task.Name,
+			Description:    task.Description,
+			Flag:           task.Flag,
+			Points:         task.Points,
+			Archived:       task.Archived,
+			SuccessMessage: task.SuccessMessage,
 		}
 	}
 	return out

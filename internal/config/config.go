@@ -21,11 +21,12 @@ type LeaderboardWebhook struct {
 }
 
 type Task struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Flag        string `json:"flag"`
-	Points      int    `json:"points"`
-	Archived    bool   `json:"archived,omitempty"`
+	Name           string `json:"name"`
+	Description    string `json:"description"`
+	Flag           string `json:"flag"`
+	Points         int    `json:"points"`
+	Archived       bool   `json:"archived,omitempty"`
+	SuccessMessage string `json:"success_message,omitempty"`
 }
 
 type Config struct {

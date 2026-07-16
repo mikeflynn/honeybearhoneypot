@@ -19,7 +19,8 @@
       "name": "demo",
       "description": "Example flag",
       "flag": "flag{demo}",
-      "points": 100
+      "points": 100,
+      "success_message": "Nicely done — the vault is open."
     }
   ],
   "curl_responses": [

@@ -76,12 +76,13 @@ const (
 )
 
 type Task struct {
-	Name        string
-	Description string
-	Flag        string
-	Points      int
-	Completed   bool
-	Archived    bool
+	Name           string
+	Description    string
+	Flag           string
+	Points         int
+	Completed      bool
+	Archived       bool
+	SuccessMessage string
 }
 
 type Model struct {
@@ -371,6 +372,16 @@ func (m Model) updateMenu(msg tea.Msg) (Model, tea.Cmd) {
 	return m, nil
 }
 
+// successMessage returns the celebratory text shown after a correct flag.
+// A non-blank custom message replaces the default "Correct!" text; the points
+// suffix is always appended.
+func successMessage(custom string, points int) string {
+	if strings.TrimSpace(custom) == "" {
+		return fmt.Sprintf("🎉 Correct! +%d points! 🎉", points)
+	}
+	return fmt.Sprintf("%s +%d points!", custom, points)
+}
+
 func (m Model) updateAnswer(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
@@ -384,7 +395,7 @@ func (m Model) updateAnswer(msg tea.Msg) (Model, tea.Cmd) {
 					m.errMsg = err.Error()
 				} else {
 					m.errMsg = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true).Render(
-						fmt.Sprintf("🎉 Correct! +%d points! 🎉", m.selectedTask.Points),
+						successMessage(m.selectedTask.SuccessMessage, m.selectedTask.Points),
 					)
 					m.selectedTask.Completed = true
 					publishLeaderboard("solve")

@@ -42,6 +42,33 @@ func TestTaskArchivedJSON(t *testing.T) {
 	})
 }
 
+func TestTaskSuccessMessageJSON(t *testing.T) {
+	t.Run("success_message round-trips", func(t *testing.T) {
+		in := Task{Name: "x", Flag: "f", Points: 1, SuccessMessage: "well done"}
+		b, err := json.Marshal(in)
+		if err != nil {
+			t.Fatalf("marshal: %v", err)
+		}
+		var out Task
+		if err := json.Unmarshal(b, &out); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		if out.SuccessMessage != "well done" {
+			t.Fatalf("expected SuccessMessage=well done, got %q; json=%s", out.SuccessMessage, string(b))
+		}
+	})
+
+	t.Run("success_message omitted when empty", func(t *testing.T) {
+		b, err := json.Marshal(Task{Name: "x", Flag: "f", Points: 1})
+		if err != nil {
+			t.Fatalf("marshal: %v", err)
+		}
+		if contains(string(b), "success_message") {
+			t.Fatalf("expected omitempty to drop success_message field, got %s", string(b))
+		}
+	})
+}
+
 func contains(s, sub string) bool {
 	for i := 0; i+len(sub) <= len(s); i++ {
 		if s[i:i+len(sub)] == sub {

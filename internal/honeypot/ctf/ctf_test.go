@@ -26,3 +26,29 @@ func TestPartitionTasksEmpty(t *testing.T) {
 		t.Fatalf("expected empty slices, got %d active, %d archived", len(active), len(archived))
 	}
 }
+
+func TestSuccessMessage(t *testing.T) {
+	t.Run("empty uses default", func(t *testing.T) {
+		got := successMessage("", 50)
+		want := "🎉 Correct! +50 points! 🎉"
+		if got != want {
+			t.Fatalf("got %q, want %q", got, want)
+		}
+	})
+
+	t.Run("whitespace-only uses default", func(t *testing.T) {
+		got := successMessage("   ", 50)
+		want := "🎉 Correct! +50 points! 🎉"
+		if got != want {
+			t.Fatalf("got %q, want %q", got, want)
+		}
+	})
+
+	t.Run("custom replaces with points suffix", func(t *testing.T) {
+		got := successMessage("The vault is open.", 50)
+		want := "The vault is open. +50 points!"
+		if got != want {
+			t.Fatalf("got %q, want %q", got, want)
+		}
+	})
+}
