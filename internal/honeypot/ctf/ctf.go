@@ -11,7 +11,6 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
-	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/confetti"
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/webhook"
 )
 
@@ -64,6 +63,15 @@ func loadLeaderboardCmd() tea.Cmd {
 	}
 }
 
+// successTickMsg drives the arcade success-screen animation.
+type successTickMsg struct{}
+
+func successTick() tea.Cmd {
+	return tea.Tick(80*time.Millisecond, func(time.Time) tea.Msg {
+		return successTickMsg{}
+	})
+}
+
 // gameState indicates which screen we're showing.
 type gameState int
 
@@ -72,6 +80,7 @@ const (
 	stateMenu
 	stateAnswer
 	stateLeaderboard
+	stateSuccess
 	stateDone
 )
 
@@ -110,6 +119,13 @@ type Model struct {
 
 	leaderboard []entity.CTFUser
 	errMsg      string
+
+	// success-screen animation snapshot
+	successFrame    int
+	successMsg      string
+	successBonus    int
+	successOldTotal int
+	successNewTotal int
 }
 
 // partitionTasks splits tasks into (active, archivedDone).
@@ -247,6 +263,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.leaderboard = msg.users
 		}
 		return m, nil
+	case successTickMsg:
+		if m.state == stateSuccess {
+			m.successFrame++
+			return m, successTick()
+		}
+		return m, nil
 	}
 
 	switch m.state {
@@ -258,6 +280,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		return m.updateAnswer(msg)
 	case stateLeaderboard:
 		return m.updateLeaderboard(msg)
+	case stateSuccess:
+		return m.updateSuccess(msg)
 	case stateDone:
 		return m, func() tea.Msg { return QuitMsg{} }
 	}
@@ -372,14 +396,34 @@ func (m Model) updateMenu(msg tea.Msg) (Model, tea.Cmd) {
 	return m, nil
 }
 
-// successMessage returns the celebratory text shown after a correct flag.
-// A non-blank custom message replaces the default "Correct!" text; the points
-// suffix is always appended.
-func successMessage(custom string, points int) string {
+// successBanner returns the headline shown on the success screen: the custom
+// message when set, otherwise a default.
+func successBanner(custom string) string {
 	if strings.TrimSpace(custom) == "" {
-		return fmt.Sprintf("🎉 Correct! +%d points! 🎉", points)
+		return "Challenge Complete!"
 	}
-	return fmt.Sprintf("%s +%d points!", custom, points)
+	return strings.TrimSpace(custom)
+}
+
+// tallyValue returns the animated count-up value at the given frame, ramping
+// linearly from start to end over duration frames, then holding at end.
+func tallyValue(start, end, frame, duration int) int {
+	if duration <= 0 || frame >= duration {
+		return end
+	}
+	if frame <= 0 {
+		return start
+	}
+	return start + (end-start)*frame/duration
+}
+
+// dottedLeader renders "LABEL ....... value" padded to width with a dotted run.
+func dottedLeader(label, value string, width int) string {
+	dots := width - (len(label) + len(value) + 2)
+	if dots < 1 {
+		dots = 1
+	}
+	return fmt.Sprintf("%s %s %s", label, strings.Repeat(".", dots), value)
 }
 
 func (m Model) updateAnswer(msg tea.Msg) (Model, tea.Cmd) {
@@ -390,13 +434,11 @@ func (m Model) updateAnswer(msg tea.Msg) (Model, tea.Cmd) {
 		case "enter":
 			ans := strings.TrimSpace(m.answerInput.Value())
 			if ans == m.selectedTask.Flag {
-				var celebrate tea.Cmd
+				var next tea.Cmd
 				if err := m.user.CompleteTask(m.selectedTask.Name, m.selectedTask.Points); err != nil {
 					m.errMsg = err.Error()
+					m.state = stateMenu
 				} else {
-					m.errMsg = lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true).Render(
-						successMessage(m.selectedTask.SuccessMessage, m.selectedTask.Points),
-					)
 					m.selectedTask.Completed = true
 					publishLeaderboard("solve")
 
@@ -421,22 +463,17 @@ func (m Model) updateAnswer(msg tea.Msg) (Model, tea.Cmd) {
 						m.cursor = 0
 					}
 
-					// Delay the burst by 100ms so the parent model has a frame
-					// to process ConfettiMsg{Active: true} and swap views
-					// before the animation message arrives. Matches the
-					// pattern in filesystem.go's celebrate command.
-					celebrate = tea.Batch(
-						func() tea.Msg { return ConfettiMsg{Active: true} },
-						tea.Tick(100*time.Millisecond, func(time.Time) tea.Msg {
-							return confetti.Burst()
-						}),
-						tea.Tick(4*time.Second, func(time.Time) tea.Msg {
-							return ConfettiMsg{Active: false}
-						}),
-					)
+					// Snapshot data for the arcade success screen.
+					m.successMsg = successBanner(m.selectedTask.SuccessMessage)
+					m.successBonus = m.selectedTask.Points
+					m.successNewTotal = m.user.Points
+					m.successOldTotal = m.user.Points - m.selectedTask.Points
+					m.successFrame = 0
+					m.errMsg = ""
+					m.state = stateSuccess
+					next = successTick()
 				}
-				m.state = stateMenu
-				return m, celebrate
+				return m, next
 			}
 
 			m.errMsg = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Bold(true).Render("Incorrect flag")
@@ -449,6 +486,15 @@ func (m Model) updateAnswer(msg tea.Msg) (Model, tea.Cmd) {
 	}
 	m.answerInput, cmd = m.answerInput.Update(msg)
 	return m, cmd
+}
+
+func (m Model) updateSuccess(msg tea.Msg) (Model, tea.Cmd) {
+	if _, ok := msg.(tea.KeyPressMsg); ok {
+		m.state = stateMenu
+		m.errMsg = ""
+		return m, nil
+	}
+	return m, nil
 }
 
 func (m Model) updateLeaderboard(msg tea.Msg) (Model, tea.Cmd) {
@@ -496,10 +542,71 @@ func (m Model) View() string {
 	case stateLeaderboard:
 		box := lipgloss.NewStyle().Border(lipgloss.NormalBorder()).Padding(1, 2)
 		return box.Render(m.renderLeaderboard())
+	case stateSuccess:
+		return m.renderSuccess()
 	case stateDone:
 		return "Goodbye"
 	}
 	return ""
+}
+
+func (m Model) renderSuccess() string {
+	palette := []string{"9", "11", "10", "14", "13", "12"}
+	const tallyFrames = 12
+	const blinkFrames = 6
+
+	titleStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(palette[(m.successFrame/2)%len(palette)])).Bold(true)
+	msgStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("15")).Bold(true)
+	scoreStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("11")).Bold(true)
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("7"))
+
+	bonus := tallyValue(0, m.successBonus, m.successFrame, tallyFrames)
+	score := tallyValue(m.successOldTotal, m.successNewTotal, m.successFrame, tallyFrames)
+
+	const leaderWidth = 30
+	bonusLine := dottedLeader("BONUS", fmt.Sprintf("+%d", bonus), leaderWidth)
+	scoreLine := dottedLeader("SCORE", fmt.Sprintf("%d", score), leaderWidth)
+
+	// Wrap the message; only decorate with >>> <<< when it stays on one line.
+	maxMsg := 44
+	if m.width > 0 && m.width-12 < maxMsg {
+		maxMsg = m.width - 12
+	}
+	if maxMsg < 10 {
+		maxMsg = 10
+	}
+	wrapped := wordWrap(m.successMsg, maxMsg)
+	var msgLine string
+	if strings.Contains(wrapped, "\n") {
+		msgLine = msgStyle.Render(wrapped)
+	} else {
+		msgLine = msgStyle.Render(">>>  " + wrapped + "  <<<")
+	}
+
+	prompt := " "
+	if (m.successFrame/blinkFrames)%2 == 0 {
+		prompt = "press any key to continue"
+	}
+
+	body := lipgloss.JoinVertical(lipgloss.Center,
+		titleStyle.Render("·  ·  ✦  LEVEL COMPLETE  ✦  ·  ·"),
+		"",
+		"🏆   🍯   🏆",
+		"",
+		msgLine,
+		"",
+		scoreStyle.Render(bonusLine),
+		scoreStyle.Render(scoreLine),
+		"",
+		dimStyle.Render(prompt),
+	)
+
+	box := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(1, 4)
+	inner := box.Render(body)
+	if m.width > 0 {
+		return lipgloss.PlaceHorizontal(m.width, lipgloss.Center, inner)
+	}
+	return inner
 }
 
 func (m Model) renderTasks(showAllDesc bool) string {

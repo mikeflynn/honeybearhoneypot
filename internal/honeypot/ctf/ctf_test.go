@@ -1,6 +1,9 @@
 package ctf
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestPartitionTasks(t *testing.T) {
 	tasks := []Task{
@@ -27,28 +30,55 @@ func TestPartitionTasksEmpty(t *testing.T) {
 	}
 }
 
-func TestSuccessMessage(t *testing.T) {
-	t.Run("empty uses default", func(t *testing.T) {
-		got := successMessage("", 50)
-		want := "🎉 Correct! +50 points! 🎉"
-		if got != want {
-			t.Fatalf("got %q, want %q", got, want)
-		}
-	})
+func TestSuccessBanner(t *testing.T) {
+	if got := successBanner(""); got != "Challenge Complete!" {
+		t.Fatalf("empty: got %q", got)
+	}
+	if got := successBanner("   "); got != "Challenge Complete!" {
+		t.Fatalf("whitespace: got %q", got)
+	}
+	if got := successBanner("  The vault is open.  "); got != "The vault is open." {
+		t.Fatalf("custom: got %q", got)
+	}
+}
 
-	t.Run("whitespace-only uses default", func(t *testing.T) {
-		got := successMessage("   ", 50)
-		want := "🎉 Correct! +50 points! 🎉"
-		if got != want {
-			t.Fatalf("got %q, want %q", got, want)
-		}
-	})
+func TestTallyValue(t *testing.T) {
+	if got := tallyValue(0, 50, 0, 10); got != 0 {
+		t.Fatalf("frame 0: got %d", got)
+	}
+	if got := tallyValue(0, 50, -3, 10); got != 0 {
+		t.Fatalf("negative frame: got %d", got)
+	}
+	if got := tallyValue(0, 50, 5, 10); got != 25 {
+		t.Fatalf("midpoint: got %d", got)
+	}
+	if got := tallyValue(0, 50, 10, 10); got != 50 {
+		t.Fatalf("end frame: got %d", got)
+	}
+	if got := tallyValue(0, 50, 99, 10); got != 50 {
+		t.Fatalf("past end: got %d", got)
+	}
+	if got := tallyValue(0, 50, 5, 0); got != 50 {
+		t.Fatalf("zero duration: got %d", got)
+	}
+	if got := tallyValue(100, 150, 5, 10); got != 125 {
+		t.Fatalf("nonzero start midpoint: got %d", got)
+	}
+}
 
-	t.Run("custom replaces with points suffix", func(t *testing.T) {
-		got := successMessage("The vault is open.", 50)
-		want := "The vault is open. +50 points!"
-		if got != want {
-			t.Fatalf("got %q, want %q", got, want)
-		}
-	})
+func TestDottedLeader(t *testing.T) {
+	got := dottedLeader("BONUS", "+50", 32)
+	if len([]rune(got)) != 32 {
+		t.Fatalf("width: got len %d (%q)", len([]rune(got)), got)
+	}
+	if !strings.HasPrefix(got, "BONUS ") || !strings.HasSuffix(got, " +50") {
+		t.Fatalf("format: got %q", got)
+	}
+	if !strings.Contains(got, "..") {
+		t.Fatalf("expected dots: got %q", got)
+	}
+	cramped := dottedLeader("BONUS", "+50", 3)
+	if !strings.Contains(cramped, ".") {
+		t.Fatalf("cramped: expected a dot, got %q", cramped)
+	}
 }
