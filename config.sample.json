@@ -40,7 +40,7 @@
   "webhooks": {
     "leaderboard": {
       "url": "https://example.com/honeybear/leaderboard",
-      "limit": 0,
+      "limit": -1,
       "heartbeat_seconds": 300,
       "timeout_seconds": 5
     }

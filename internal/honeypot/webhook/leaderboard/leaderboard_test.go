@@ -71,7 +71,7 @@ func TestBuildPayload_EmptyLeaderboardEmitsEmptyArray(t *testing.T) {
 	}
 }
 
-func TestBuildPayload_LimitZeroSendsFullBoard(t *testing.T) {
+func TestBuildPayload_LimitZeroDefaultsTo10(t *testing.T) {
 	var gotLimit int
 	src := func(limit int) ([]entity.CTFUser, error) {
 		gotLimit = limit
@@ -81,8 +81,24 @@ func TestBuildPayload_LimitZeroSendsFullBoard(t *testing.T) {
 	if _, err := p("solve"); err != nil {
 		t.Fatal(err)
 	}
-	// limit 0 (unset) means "send everyone"; entity.Leaderboard treats a
-	// negative limit as no cap (SQLite LIMIT -1).
+	// An unset (0) limit falls back to the default top-10.
+	if gotLimit != 10 {
+		t.Errorf("limit passed = %d, want 10", gotLimit)
+	}
+}
+
+func TestBuildPayload_NegativeLimitSendsFullBoard(t *testing.T) {
+	var gotLimit int
+	src := func(limit int) ([]entity.CTFUser, error) {
+		gotLimit = limit
+		return nil, nil
+	}
+	p := newPayloadFunc(src, -1)
+	if _, err := p("solve"); err != nil {
+		t.Fatal(err)
+	}
+	// A negative limit is the explicit "send everyone" opt-in; it passes
+	// through to entity.Leaderboard, where SQLite LIMIT -1 returns all rows.
 	if gotLimit != -1 {
 		t.Errorf("limit passed = %d, want -1 (all)", gotLimit)
 	}

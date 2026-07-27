@@ -67,3 +67,17 @@ func TestRankFor_UnknownUserNotFound(t *testing.T) {
 		t.Error("ghost should not be found")
 	}
 }
+
+func TestRankFor_UnscoredUserNotFound(t *testing.T) {
+	// A registered user with 0 points is absent from the board (Leaderboard
+	// filters points > 0), so RankFor must report them as unranked too.
+	seedCTFUsers(t, map[string]int{"alice": 150, "newbie": 0})
+
+	_, _, found, err := RankFor("newbie")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if found {
+		t.Error("unscored user should not be ranked")
+	}
+}

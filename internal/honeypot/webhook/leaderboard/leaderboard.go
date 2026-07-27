@@ -11,6 +11,8 @@ import (
 	"github.com/mikeflynn/honeybearhoneypot/internal/honeypot/webhook"
 )
 
+const defaultLimit = 10
+
 type row struct {
 	Rank     int    `json:"rank"`
 	Username string `json:"username"`
@@ -28,10 +30,11 @@ type snapshot struct {
 type leaderboardSource func(limit int) ([]entity.CTFUser, error)
 
 func newPayloadFunc(src leaderboardSource, limit int) webhook.PayloadFunc {
-	// A non-positive limit means "send the whole board". entity.Leaderboard
-	// forwards it to SQLite, where LIMIT -1 returns every row uncapped.
-	if limit <= 0 {
-		limit = -1
+	// An unset (0) limit falls back to the default top-N. A negative limit is
+	// the explicit "send the whole board" opt-in: it passes through to
+	// entity.Leaderboard, where SQLite LIMIT -1 returns every row uncapped.
+	if limit == 0 {
+		limit = defaultLimit
 	}
 	return func(event string) (any, error) {
 		users, err := src(limit)

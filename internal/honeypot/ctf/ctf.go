@@ -711,8 +711,15 @@ func (m Model) renderLeaderboard() string {
 		b.WriteString(rowStyle.Render("No scores yet.") + "\n")
 	} else {
 		inList := false
+		rank := 0
 		for i, u := range m.leaderboard {
-			line := fmt.Sprintf("%2d. %s — %d pts", i+1, u.Username, u.Points)
+			// Competition ranking: ties share a rank (1, 2, 2, 4...), matching
+			// entity.RankFor so a player's number is the same in-list or in the
+			// self-rank footer below.
+			if i == 0 || u.Points != m.leaderboard[i-1].Points {
+				rank = i + 1
+			}
+			line := fmt.Sprintf("%2d. %s — %d pts", rank, u.Username, u.Points)
 			if m.user != nil && u.Username == m.user.Username {
 				inList = true
 				b.WriteString(meStyle.Render(line) + "\n")

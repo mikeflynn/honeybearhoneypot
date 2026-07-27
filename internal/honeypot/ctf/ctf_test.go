@@ -32,6 +32,29 @@ func TestRenderLeaderboard_ShowsOwnRankWhenBelowTop(t *testing.T) {
 	}
 }
 
+func TestRenderLeaderboard_TiesShareRank(t *testing.T) {
+	// alice leads; bob and carol tie for 2nd; dave is 4th. Competition ranking
+	// must render 1, 2, 2, 4 — consistent with entity.RankFor.
+	board := []entity.CTFUser{
+		{Username: "alice", Points: 150},
+		{Username: "bob", Points: 100},
+		{Username: "carol", Points: 100},
+		{Username: "dave", Points: 40},
+	}
+	m := Model{leaderboard: board}
+
+	out := m.renderLeaderboard()
+
+	for _, want := range []string{" 1. alice", " 2. bob", " 2. carol", " 4. dave"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q in:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "3. carol") {
+		t.Errorf("carol should share rank 2, not 3:\n%s", out)
+	}
+}
+
 func TestRenderLeaderboard_NoDuplicateWhenInTop(t *testing.T) {
 	board := []entity.CTFUser{
 		{Username: "alice", Points: 150},
