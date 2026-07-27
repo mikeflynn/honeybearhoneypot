@@ -52,14 +52,27 @@ type ConfettiMsg struct{ Active bool }
 // leaderboardLoadedMsg carries the result of an async leaderboard query so
 // the SQLite read stays off the Bubble Tea event loop.
 type leaderboardLoadedMsg struct {
-	users []entity.CTFUser
-	err   error
+	users    []entity.CTFUser
+	myRank   int
+	myPoints int
+	err      error
 }
 
-func loadLeaderboardCmd() tea.Cmd {
+func loadLeaderboardCmd(username string) tea.Cmd {
 	return func() tea.Msg {
 		users, err := entity.Leaderboard(10)
-		return leaderboardLoadedMsg{users: users, err: err}
+		if err != nil {
+			return leaderboardLoadedMsg{err: err}
+		}
+		var rank, points int
+		if username != "" {
+			if r, p, found, rerr := entity.RankFor(username); rerr != nil {
+				return leaderboardLoadedMsg{err: rerr}
+			} else if found {
+				rank, points = r, p
+			}
+		}
+		return leaderboardLoadedMsg{users: users, myRank: rank, myPoints: points}
 	}
 }
 
@@ -118,7 +131,11 @@ type Model struct {
 	selectedTask *Task
 
 	leaderboard []entity.CTFUser
-	errMsg      string
+	// myRank/myPoints let a player below the visible top-N still see their own
+	// standing. myRank is 0 when the current user has no ranked score.
+	myRank   int
+	myPoints int
+	errMsg   string
 
 	// success-screen animation snapshot
 	successFrame    int
@@ -261,6 +278,8 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.state = stateMenu
 		} else {
 			m.leaderboard = msg.users
+			m.myRank = msg.myRank
+			m.myPoints = msg.myPoints
 		}
 		return m, nil
 	case successTickMsg:
@@ -387,7 +406,13 @@ func (m Model) updateMenu(msg tea.Msg) (Model, tea.Cmd) {
 		case "l", "L":
 			m.state = stateLeaderboard
 			m.leaderboard = nil
-			return m, loadLeaderboardCmd()
+			m.myRank = 0
+			m.myPoints = 0
+			username := ""
+			if m.user != nil {
+				username = m.user.Username
+			}
+			return m, loadLeaderboardCmd(username)
 		case "q", "ctrl+c":
 			m.state = stateDone
 			return m, func() tea.Msg { return QuitMsg{} }
@@ -685,13 +710,29 @@ func (m Model) renderLeaderboard() string {
 	} else if len(m.leaderboard) == 0 {
 		b.WriteString(rowStyle.Render("No scores yet.") + "\n")
 	} else {
+		inList := false
+		rank := 0
 		for i, u := range m.leaderboard {
-			line := fmt.Sprintf("%2d. %s — %d pts", i+1, u.Username, u.Points)
+			// Competition ranking: ties share a rank (1, 2, 2, 4...), matching
+			// entity.RankFor so a player's number is the same in-list or in the
+			// self-rank footer below.
+			if i == 0 || u.Points != m.leaderboard[i-1].Points {
+				rank = i + 1
+			}
+			line := fmt.Sprintf("%2d. %s — %d pts", rank, u.Username, u.Points)
 			if m.user != nil && u.Username == m.user.Username {
+				inList = true
 				b.WriteString(meStyle.Render(line) + "\n")
 			} else {
 				b.WriteString(rowStyle.Render(line) + "\n")
 			}
+		}
+		// If the current player scored but sits below the visible top-N, append
+		// their own standing so they can always find their score.
+		if !inList && m.user != nil && m.myRank > 0 && m.myPoints > 0 {
+			line := fmt.Sprintf("%2d. %s — %d pts", m.myRank, m.user.Username, m.myPoints)
+			b.WriteString(footerStyle.Render("     ⋮") + "\n")
+			b.WriteString(meStyle.Render(line) + "\n")
 		}
 	}
 
