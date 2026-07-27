@@ -71,7 +71,7 @@ func TestBuildPayload_EmptyLeaderboardEmitsEmptyArray(t *testing.T) {
 	}
 }
 
-func TestBuildPayload_LimitDefaultsTo10WhenZero(t *testing.T) {
+func TestBuildPayload_LimitZeroSendsFullBoard(t *testing.T) {
 	var gotLimit int
 	src := func(limit int) ([]entity.CTFUser, error) {
 		gotLimit = limit
@@ -81,7 +81,24 @@ func TestBuildPayload_LimitDefaultsTo10WhenZero(t *testing.T) {
 	if _, err := p("solve"); err != nil {
 		t.Fatal(err)
 	}
-	if gotLimit != 10 {
-		t.Errorf("limit passed = %d, want 10", gotLimit)
+	// limit 0 (unset) means "send everyone"; entity.Leaderboard treats a
+	// negative limit as no cap (SQLite LIMIT -1).
+	if gotLimit != -1 {
+		t.Errorf("limit passed = %d, want -1 (all)", gotLimit)
+	}
+}
+
+func TestBuildPayload_PositiveLimitStillCaps(t *testing.T) {
+	var gotLimit int
+	src := func(limit int) ([]entity.CTFUser, error) {
+		gotLimit = limit
+		return nil, nil
+	}
+	p := newPayloadFunc(src, 25)
+	if _, err := p("solve"); err != nil {
+		t.Fatal(err)
+	}
+	if gotLimit != 25 {
+		t.Errorf("limit passed = %d, want 25", gotLimit)
 	}
 }

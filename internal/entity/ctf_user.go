@@ -128,6 +128,27 @@ func Leaderboard(limit int) ([]CTFUser, error) {
 	return out, nil
 }
 
+// RankFor returns the competition rank (1-based; ties share a rank) and point
+// total for a single user, so a player outside the top-N board can still find
+// their standing. found is false when no such user exists.
+func RankFor(username string) (rank, points int, found bool, err error) {
+	rows, err := db.MakeQuery(
+		"SELECT points, (SELECT COUNT(*) FROM ctf_users c2 WHERE c2.points > c1.points) + 1 AS rank "+
+			"FROM ctf_users c1 WHERE username = ?", username)
+	if err != nil {
+		return 0, 0, false, err
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return 0, 0, false, nil
+	}
+	if err := rows.Scan(&points, &rank); err != nil {
+		return 0, 0, false, err
+	}
+	return rank, points, true, nil
+}
+
 func CTFUsersAll() ([]*CTFUser, error) {
 	rows, err := db.MakeQuery("SELECT id, username, password, points, created_at FROM ctf_users")
 	if err != nil {

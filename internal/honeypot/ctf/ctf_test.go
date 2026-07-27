@@ -3,7 +3,53 @@ package ctf
 import (
 	"strings"
 	"testing"
+
+	"github.com/mikeflynn/honeybearhoneypot/internal/entity"
 )
+
+func TestRenderLeaderboard_ShowsOwnRankWhenBelowTop(t *testing.T) {
+	board := make([]entity.CTFUser, 0, 3)
+	for _, name := range []string{"alice", "bob", "carol"} {
+		board = append(board, entity.CTFUser{Username: name, Points: 100})
+	}
+	m := Model{
+		leaderboard: board,
+		user:        &entity.CTFUser{Username: "straggler", Points: 40},
+		myRank:      15,
+		myPoints:    40,
+	}
+
+	out := m.renderLeaderboard()
+
+	if strings.Contains(strings.Join(strings.Fields(out), " "), "straggler") == false {
+		t.Fatalf("own username missing from footer:\n%s", out)
+	}
+	if !strings.Contains(out, "40 pts") {
+		t.Errorf("own points missing:\n%s", out)
+	}
+	if !strings.Contains(out, "15.") {
+		t.Errorf("own rank missing:\n%s", out)
+	}
+}
+
+func TestRenderLeaderboard_NoDuplicateWhenInTop(t *testing.T) {
+	board := []entity.CTFUser{
+		{Username: "alice", Points: 150},
+		{Username: "bob", Points: 100},
+	}
+	m := Model{
+		leaderboard: board,
+		user:        &entity.CTFUser{Username: "bob", Points: 100},
+		myRank:      2,
+		myPoints:    100,
+	}
+
+	out := m.renderLeaderboard()
+
+	if strings.Count(out, "bob") != 1 {
+		t.Errorf("bob should appear exactly once, got:\n%s", out)
+	}
+}
 
 func TestPartitionTasks(t *testing.T) {
 	tasks := []Task{
