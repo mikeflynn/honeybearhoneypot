@@ -8,3 +8,4 @@ config.json
 config.hardhat.json
 honeybear
 /data
+.claude

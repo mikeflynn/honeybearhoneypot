@@ -81,3 +81,40 @@ func TestRankFor_UnscoredUserNotFound(t *testing.T) {
 		t.Error("unscored user should not be ranked")
 	}
 }
+
+func TestLeaderboard_ExcludesConfiguredUsers(t *testing.T) {
+	seedCTFUsers(t, map[string]int{"alice": 150, "admin": 500, "bob": 100})
+	SetLeaderboardExcludedUsers([]string{"admin"})
+	t.Cleanup(func() { SetLeaderboardExcludedUsers(nil) })
+
+	board, err := Leaderboard(10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, u := range board {
+		if u.Username == "admin" {
+			t.Fatalf("excluded user admin present in leaderboard: %+v", board)
+		}
+	}
+	if len(board) != 2 {
+		t.Fatalf("expected 2 users on the board, got %d: %+v", len(board), board)
+	}
+}
+
+func TestRankFor_IgnoresExcludedUsersInRankCount(t *testing.T) {
+	// admin outscores alice but is excluded, so alice should still rank 1.
+	seedCTFUsers(t, map[string]int{"alice": 150, "admin": 500, "bob": 100})
+	SetLeaderboardExcludedUsers([]string{"admin"})
+	t.Cleanup(func() { SetLeaderboardExcludedUsers(nil) })
+
+	rank, points, found, err := RankFor("alice")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found {
+		t.Fatal("alice not found")
+	}
+	if rank != 1 || points != 150 {
+		t.Errorf("alice rank=%d points=%d, want rank=1 points=150", rank, points)
+	}
+}
