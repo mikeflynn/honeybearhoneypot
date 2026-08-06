@@ -124,6 +124,17 @@ func SetLeaderboardExcludedUsers(users []string) {
 	leaderboardExcludedUsers = append([]string(nil), users...)
 }
 
+func isExcludedUser(username string) bool {
+	leaderboardExcludedUsersMu.RLock()
+	defer leaderboardExcludedUsersMu.RUnlock()
+	for _, u := range leaderboardExcludedUsers {
+		if u == username {
+			return true
+		}
+	}
+	return false
+}
+
 func excludedUsersClause(args []any) (string, []any) {
 	leaderboardExcludedUsersMu.RLock()
 	excluded := leaderboardExcludedUsers
@@ -166,9 +177,14 @@ func Leaderboard(limit int) ([]CTFUser, error) {
 
 // RankFor returns the competition rank (1-based; ties share a rank) and point
 // total for a single user, so a player outside the top-N board can still find
-// their standing. found is false when no such user exists or the user has no
-// ranked score (points <= 0), matching Leaderboard's "points > 0" filter.
+// their standing. found is false when no such user exists, the user has no
+// ranked score (points <= 0, matching Leaderboard's "points > 0" filter), or
+// the user is configured via SetLeaderboardExcludedUsers.
 func RankFor(username string) (rank, points int, found bool, err error) {
+	if isExcludedUser(username) {
+		return 0, 0, false, nil
+	}
+
 	clause, clauseArgs := excludedUsersClause(nil)
 	args := append([]any{}, clauseArgs...)
 	args = append(args, username)

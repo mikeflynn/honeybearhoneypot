@@ -101,6 +101,20 @@ func TestLeaderboard_ExcludesConfiguredUsers(t *testing.T) {
 	}
 }
 
+func TestRankFor_ExcludedUserNotFound(t *testing.T) {
+	seedCTFUsers(t, map[string]int{"alice": 150, "admin": 500, "bob": 100})
+	SetLeaderboardExcludedUsers([]string{"admin"})
+	t.Cleanup(func() { SetLeaderboardExcludedUsers(nil) })
+
+	_, _, found, err := RankFor("admin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if found {
+		t.Error("excluded user admin should not be found by RankFor")
+	}
+}
+
 func TestRankFor_IgnoresExcludedUsersInRankCount(t *testing.T) {
 	// admin outscores alice but is excluded, so alice should still rank 1.
 	seedCTFUsers(t, map[string]int{"alice": 150, "admin": 500, "bob": 100})
