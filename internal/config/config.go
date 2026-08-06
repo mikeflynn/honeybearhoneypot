@@ -57,6 +57,8 @@ type Config struct {
 	NmapHosts     []filesystem.NmapHost     `json:"nmap_hosts,omitempty"`
 
 	Webhooks *Webhooks `json:"webhooks,omitempty"`
+
+	LeaderboardExcludedUsers []string `json:"leaderboard_excluded_users,omitempty"`
 }
 
 var (
@@ -269,6 +271,9 @@ func merge(dst *Config, src *Config) {
 	}
 	if len(src.NmapHosts) > 0 {
 		dst.NmapHosts = src.NmapHosts
+	}
+	if len(src.LeaderboardExcludedUsers) > 0 {
+		dst.LeaderboardExcludedUsers = src.LeaderboardExcludedUsers
 	}
 	if src.Webhooks != nil {
 		if dst.Webhooks == nil {

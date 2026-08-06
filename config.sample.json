@@ -44,5 +44,6 @@
       "heartbeat_seconds": 300,
       "timeout_seconds": 5
     }
-  }
+  },
+  "leaderboard_excluded_users": ["admin", "testuser"]
 }

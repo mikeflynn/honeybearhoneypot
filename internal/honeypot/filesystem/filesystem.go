@@ -717,6 +717,10 @@ github.com,140.82.112.4 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQGitHubLooKsR34lBut
 											return OutputMsg(err.Error())
 										}
 
+										if !newNode.Directory {
+											return OutputMsg(fmt.Sprintf("-bash: cd: %s: Not a directory", newPath))
+										}
+
 										return ChangeDirMsg{
 											Path: newPath,
 											Node: newNode,

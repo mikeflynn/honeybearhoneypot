@@ -2,6 +2,8 @@ package entity
 
 import (
 	"fmt"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/mikeflynn/honeybearhoneypot/internal/db"
@@ -109,9 +111,54 @@ func (u *CTFUser) CompletedTasks() ([]string, error) {
 	return tasks, nil
 }
 
-// Leaderboard returns the top users ordered by points.
+var (
+	leaderboardExcludedUsersMu sync.RWMutex
+	leaderboardExcludedUsers   []string
+)
+
+// SetLeaderboardExcludedUsers configures usernames that should be hidden from
+// the CTF leaderboard and rank calculations (e.g. house accounts, testers).
+func SetLeaderboardExcludedUsers(users []string) {
+	leaderboardExcludedUsersMu.Lock()
+	defer leaderboardExcludedUsersMu.Unlock()
+	leaderboardExcludedUsers = append([]string(nil), users...)
+}
+
+func isExcludedUser(username string) bool {
+	leaderboardExcludedUsersMu.RLock()
+	defer leaderboardExcludedUsersMu.RUnlock()
+	for _, u := range leaderboardExcludedUsers {
+		if u == username {
+			return true
+		}
+	}
+	return false
+}
+
+func excludedUsersClause(args []any) (string, []any) {
+	leaderboardExcludedUsersMu.RLock()
+	excluded := leaderboardExcludedUsers
+	leaderboardExcludedUsersMu.RUnlock()
+
+	if len(excluded) == 0 {
+		return "", args
+	}
+
+	placeholders := make([]string, len(excluded))
+	for i, u := range excluded {
+		placeholders[i] = "?"
+		args = append(args, u)
+	}
+	return " AND username NOT IN (" + strings.Join(placeholders, ",") + ")", args
+}
+
+// Leaderboard returns the top users ordered by points, excluding any
+// usernames configured via SetLeaderboardExcludedUsers.
 func Leaderboard(limit int) ([]CTFUser, error) {
-	rows, err := db.MakeQuery("SELECT username, points FROM ctf_users WHERE points > 0 ORDER BY points DESC LIMIT ?", limit)
+	clause, args := excludedUsersClause(nil)
+	args = append(args, limit)
+
+	rows, err := db.MakeQuery("SELECT username, points FROM ctf_users WHERE points > 0"+clause+" ORDER BY points DESC LIMIT ?", args...)
 	if err != nil {
 		return nil, err
 	}
@@ -130,12 +177,21 @@ func Leaderboard(limit int) ([]CTFUser, error) {
 
 // RankFor returns the competition rank (1-based; ties share a rank) and point
 // total for a single user, so a player outside the top-N board can still find
-// their standing. found is false when no such user exists or the user has no
-// ranked score (points <= 0), matching Leaderboard's "points > 0" filter.
+// their standing. found is false when no such user exists, the user has no
+// ranked score (points <= 0, matching Leaderboard's "points > 0" filter), or
+// the user is configured via SetLeaderboardExcludedUsers.
 func RankFor(username string) (rank, points int, found bool, err error) {
+	if isExcludedUser(username) {
+		return 0, 0, false, nil
+	}
+
+	clause, clauseArgs := excludedUsersClause(nil)
+	args := append([]any{}, clauseArgs...)
+	args = append(args, username)
+
 	rows, err := db.MakeQuery(
-		"SELECT points, (SELECT COUNT(*) FROM ctf_users c2 WHERE c2.points > c1.points) + 1 AS rank "+
-			"FROM ctf_users c1 WHERE username = ? AND points > 0", username)
+		"SELECT points, (SELECT COUNT(*) FROM ctf_users c2 WHERE c2.points > c1.points"+clause+") + 1 AS rank "+
+			"FROM ctf_users c1 WHERE username = ? AND points > 0", args...)
 	if err != nil {
 		return 0, 0, false, err
 	}
