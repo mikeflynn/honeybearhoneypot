@@ -346,6 +346,11 @@ func (m Model) updateLogin(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "enter":
+			if m.usernameInput.Focused() && strings.TrimSpace(m.passwordInput.Value()) == "" {
+				m.usernameInput.Blur()
+				m.passwordInput.Focus()
+				return m, nil
+			}
 			return m, m.authenticate()
 		case "tab", "down":
 			if m.usernameInput.Focused() {

@@ -5,5 +5,5 @@ Website = "https://honeybear.hydrox.fun"
   Name = "Honey Bear Honey Pot"
   ID = "com.github.com/mikeflynn/hardhat-honeybear"
   # Keep Version in sync with /VERSION (shown in the in-app About modal).
-  Version = "1.9.1"
+  Version = "1.9.3"
   Build = 23
